@@ -527,25 +527,13 @@ namespace OpenMetaverse
 
         public static Vector3 operator *(Vector3 vec, Quaternion rot)
         {
-            float vx = vec.X;
-            float vy = vec.Y;
-            float vz = vec.Z;
-            float qx = rot.X;
-            float qy = rot.Y;
-            float qz = rot.Z;
-            float qw = rot.W;
+            float rx = rot.W * vec.X + rot.Y * vec.Z - rot.Z * vec.Y;
+            float ry = rot.W * vec.Y + rot.Z * vec.X - rot.X * vec.Z;
+            float rz = rot.W * vec.Z + rot.X * vec.Y - rot.Y * vec.X;
 
-            float rx = qw * vx + qy * vz - qz * vy;
-            float ry = qw * vy + qz * vx - qx * vz;
-            float rz = qw * vz + qx * vy - qy * vx;
-
-            float cx = rz * qy - ry * qz;
-            float cy = rx * qz - rz * qx;
-            float cz = ry * qx - rx * qy;
-
-            vec.X += 2.0f * cx;
-            vec.Y += 2.0f * cy;
-            vec.Z += 2.0f * cz;
+            vec.X += 2.0f * (rz * rot.Y - ry * rot.Z);
+            vec.Y += 2.0f * (rx * rot.Z - rz * rot.X);
+            vec.Z += 2.0f * (ry * rot.X - rx * rot.Y);
 
             return vec;
         }

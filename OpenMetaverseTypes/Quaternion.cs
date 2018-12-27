@@ -498,25 +498,24 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Conjugates and renormalizes a vector
+        /// inverse of a quaternion
         /// </summary>
         public static Quaternion Inverse(Quaternion quaternion)
         {
-            float norm = quaternion.LengthSquared();
+            float normsq = quaternion.LengthSquared();
 
-            if (norm == 0f)
+            if (normsq < 1e-6f)
             {
-                quaternion.X = quaternion.Y = quaternion.Z = quaternion.W = 0f;
+                quaternion.X = quaternion.Y = quaternion.Z = 0f;
+                quaternion.W = 1.0f;
             }
             else
             {
-                float oonorm = 1f / norm;
-                quaternion = Conjugate(quaternion);
-                
+                float oonorm = -1f / normsq;
                 quaternion.X *= oonorm;
                 quaternion.Y *= oonorm;
                 quaternion.Z *= oonorm;
-                quaternion.W *= oonorm;
+                quaternion.W *= -oonorm;
             }
 
             return quaternion;
@@ -608,11 +607,9 @@ namespace OpenMetaverse
 
         public static Quaternion Normalize(Quaternion q)
         {
-            const float MAG_THRESHOLD = 0.0000001f;
             float mag = q.Length();
 
-            // Catch very small rounding errors when normalizing
-            if (mag > MAG_THRESHOLD)
+            if (mag > 1e-6f)
             {
                 float oomag = 1f / mag;
                 q.X *= oomag;
