@@ -59,7 +59,8 @@ namespace OpenMetaverse.StructuredData
         /// <summary></summary>
         Map,
         /// <summary></summary>
-        Array
+        Array,
+        LLSDxml
     }
 
     public enum OSDFormat
@@ -536,6 +537,73 @@ namespace OpenMetaverse.StructuredData
     /// <summary>
     /// 
     /// </summary>
+    public sealed class OSDllsdxml : OSD
+    {
+        private string value;
+
+        public override OSDType Type { get { return OSDType.LLSDxml; } }
+
+        public override OSD Copy() { return new OSDllsdxml(value); }
+
+        public OSDllsdxml(string value)
+        {
+            // Refuse to hold null pointers
+            if (value != null)
+                this.value = value;
+            else
+                this.value = String.Empty;
+        }
+
+        public override bool AsBoolean()
+        {
+            return false;
+        }
+
+        public override int AsInteger()
+        {
+            return 0;
+        }
+
+        public override uint AsUInteger()
+        {
+            return 0;
+        }
+
+        public override long AsLong()
+        {
+            return 0;
+        }
+
+        public override ulong AsULong()
+        {
+            return 0;
+        }
+
+        public override double AsReal()
+        {
+           return 0d;
+        }
+
+        public override string AsString() { return value; }
+        public override byte[] AsBinary() { return Encoding.UTF8.GetBytes(value); }
+        public override UUID AsUUID()
+        {
+            return UUID.Zero;
+        }
+
+        public override DateTime AsDate()
+        {
+            return Utils.Epoch;
+        }
+
+        public override Uri AsUri()
+        {
+            return null;
+        }
+
+        public override string ToString() { return AsString(); }
+    }
+
     public sealed class OSDString : OSD
     {
         private string value;
