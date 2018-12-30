@@ -218,24 +218,25 @@ namespace OpenMetaverse
         /// <example>UUID.TryParse("11f8aa9c-b071-4242-836b-13b7abe0d489", result)</example>
         public static bool TryParse(string val, out UUID result)
         {
-            if (String.IsNullOrEmpty(val) ||
-                (val[0] == '{' && val.Length != 38) ||
-                (val.Length != 36 && val.Length != 32))
+            if (String.IsNullOrEmpty(val))
             {
                 result = UUID.Zero;
                 return false;
             }
 
+            Guid gg;
             try
             {
-                result = Parse(val);
-                return true;
+                if(Guid.TryParse(val, out gg))
+                {
+                    result = new UUID(gg);
+                    return true;
+                }
             }
-            catch (Exception)
-            {
-                result = UUID.Zero;
-                return false;
-            }
+            catch { }
+
+            result = UUID.Zero;
+            return false;
         }
 
         /// <summary>

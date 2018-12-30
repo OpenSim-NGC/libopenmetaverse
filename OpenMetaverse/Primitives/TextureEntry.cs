@@ -1359,9 +1359,9 @@ namespace OpenMetaverse
                 data[pos++] = (byte)SizeX;
                 data[pos++] = (byte)SizeY;
 
-                Utils.FloatToBytes(Start).CopyTo(data, pos);
-                Utils.FloatToBytes(Length).CopyTo(data, pos + 4);
-                Utils.FloatToBytes(Rate).CopyTo(data, pos + 4);
+                Utils.FloatToBytes(Start, data, pos);
+                Utils.FloatToBytes(Length, data, pos + 4);
+                Utils.FloatToBytes(Rate, data, pos + 8);
 
                 return data;
             }
