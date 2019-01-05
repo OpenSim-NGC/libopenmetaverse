@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Prebuild xmlns="http://dnpb.sourceforge.net/schemas/prebuild-1.7.xsd" version="1.7">
-  <Solution name="OpenMetaverse" activeConfig="Debug" version="0.6.0">
+  <Solution name="OpenMetaverse" activeConfig="Debug" version="0.6.0" path="./">
     <Configuration name="Debug">
       <Options>
         <CompilerDefines>TRACE;DEBUG</CompilerDefines>
@@ -34,7 +34,7 @@
 
     <!-- External Libraries -->
 
-    <Project name="CSJ2K" path="CSJ2K" type="Library" frameworkVersion="v4_0">
+    <Project name="CSJ2K" path="CSJ2K" type="Library" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -50,13 +50,15 @@
       <Reference name="System"/>
       <Reference name="System.Drawing"/>
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+         <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
 
     <!-- Libraries -->
 
-    <Project name="OpenMetaverseTypes" path="OpenMetaverseTypes" type="Library" rootNamespace="OpenMetaverse" frameworkVersion="v4_0">
+    <Project name="OpenMetaverseTypes" path="OpenMetaverseTypes" type="Library" rootNamespace="OpenMetaverse" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -73,11 +75,13 @@
       <Reference name="System"/>
       <Reference name="System.Core"/>
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+         <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.StructuredData" path="OpenMetaverse.StructuredData" type="Library" rootNamespace="OpenMetaverse.StructuredData" frameworkVersion="v4_0">
+    <Project name="OpenMetaverse.StructuredData" path="OpenMetaverse.StructuredData" type="Library" rootNamespace="OpenMetaverse.StructuredData" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -95,11 +99,13 @@
       <Reference name="System.Xml"/>
       <Reference name="OpenMetaverseTypes"/>
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+         <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse" path="OpenMetaverse" type="Library" rootNamespace="OpenMetaverse" frameworkVersion="v4_0">
+    <Project name="OpenMetaverse" path="OpenMetaverse" type="Library" rootNamespace="OpenMetaverse" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -126,11 +132,13 @@
       <Reference name="zlib.net" />
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+         <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.Utilities" path="OpenMetaverse.Utilities" type="Library" frameworkVersion="v4_0">
+    <Project name="OpenMetaverse.Utilities" path="OpenMetaverse.Utilities" type="Library" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -151,11 +159,13 @@
       <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenMetaverse.StructuredData"/>
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+         <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.Tests" path="OpenMetaverse.Tests" type="Library" frameworkVersion="v4_0">
+    <Project name="OpenMetaverse.Tests" path="OpenMetaverse.Tests" type="Library" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -176,11 +186,13 @@
       <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenMetaverse.StructuredData"/>
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+         <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
 
-    <Project name="GridProxy" path="Programs/GridProxy" type="Library" frameworkVersion="v4_0">
+    <Project name="GridProxy" path="Programs/GridProxy" type="Library" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -204,11 +216,12 @@
       <Files>
         <Match pattern="*.cs" recurse="true">
           <Exclude name="GridProxyMain.cs"/>
+          <Exclude name="obj" pattern="obj"/>
         </Match>
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.Rendering.Simple" path="OpenMetaverse.Rendering.Simple" type="Library" frameworkVersion="v4_0">
+    <Project name="OpenMetaverse.Rendering.Simple" path="OpenMetaverse.Rendering.Simple" type="Library" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -226,11 +239,13 @@
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
-
-    <Project name="OpenMetaverse.Rendering.Meshmerizer" path="OpenMetaverse.Rendering.Meshmerizer" type="Library" frameworkVersion="v4_0">
+-->
+    <Project name="OpenMetaverse.Rendering.Meshmerizer" path="OpenMetaverse.Rendering.Meshmerizer" type="Library" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -250,11 +265,13 @@
       <Reference name="OpenMetaverse.StructuredData"/>
       <Reference name="PrimMesher"/>
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.GUI" path="OpenMetaverse.GUI" type="Library" frameworkVersion="v4_0">
+    <Project name="OpenMetaverse.GUI" path="OpenMetaverse.GUI" type="Library" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -275,13 +292,15 @@
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
 
     <!-- Programs -->
 
-    <Project name="AvatarPreview" path="Programs/AvatarPreview" type="WinExe" frameworkVersion="v4_0">
+    <Project name="AvatarPreview" path="Programs/AvatarPreview" type="WinExe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -303,16 +322,21 @@
       <Reference name="Tao.Platform.Windows"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
-
+	  
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>		
         <Match pattern="*.resx" recurse="true"/>
+		<!--
         <Match pattern="*.settings" recurse="true"/>
+		-->
         <Match pattern="*.ico" recurse="true"/>
       </Files>
     </Project>
+-->
 
-    <Project name="Baker" path="Programs/Baker" type="WinExe" frameworkVersion="v4_0">
+    <Project name="Baker" path="Programs/Baker" type="WinExe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -333,14 +357,18 @@
       <Reference name="OpenMetaverseTypes"/>
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
         <Match pattern="*.resx" recurse="true"/>
+		<!--
         <Match pattern="*.settings" recurse="true"/>
+		-->
         <Match pattern="*.ico" recurse="true"/>
       </Files>
     </Project>
 
-    <Project name="importprimscript" path="Programs/importprimscript" type="Exe" frameworkVersion="v4_0">
+    <Project name="importprimscript" path="Programs/importprimscript" type="Exe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -359,11 +387,13 @@
       <Reference name="OpenMetaverseTypes"/>
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
 
-    <Project name="mapgenerator" path="Programs/mapgenerator" type="Exe" frameworkVersion="v4_0">
+    <Project name="mapgenerator" path="Programs/mapgenerator" type="Exe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -384,7 +414,7 @@
       </Files>
     </Project>
 
-    <Project name="IRCGateway" path="Programs/examples/IRCGateway" type="Exe" frameworkVersion="v4_0">
+    <Project name="IRCGateway" path="Programs/examples/IRCGateway" type="Exe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -401,11 +431,14 @@
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
+	  
     </Project>
 
-    <Project name="Dashboard" path="Programs/examples/Dashboard" type="WinExe" frameworkVersion="v4_0">
+    <Project name="Dashboard" path="Programs/examples/Dashboard" type="WinExe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -424,18 +457,22 @@
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenMetaverse.GUI"/>
-
+	  
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
         <Match pattern="*.resx" recurse="true"/>
+		<!--
         <Match pattern="*.settings" recurse="true"/>
+		-->
         <Match pattern="*.ico" recurse="true"/>
       </Files>
     </Project>
 
     <!-- // Sorry for the cruft, this is an in progress plugin for WGP that
     	 // will show a simulators objects in a tree view - Coming soon!
-    <Project name="ObjectTreeBrowser" path="Programs/examples/ObjectTreeBrowser" type="WinExe" frameworkVersion="v4_0">
+    <Project name="ObjectTreeBrowser" path="Programs/examples/ObjectTreeBrowser" type="WinExe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -454,15 +491,18 @@
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
 
+
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
         <Match pattern="*.resx" recurse="true"/>
         <Match pattern="*.settings" recurse="true"/>
         <Match pattern="*.ico" recurse="true"/>
       </Files>
     </Project>
     -->
-    <Project name="PrimWorkshop" path="Programs/PrimWorkshop" type="WinExe" frameworkVersion="v4_0">
+    <Project name="PrimWorkshop" path="Programs/PrimWorkshop" type="WinExe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -489,14 +529,19 @@
       <Reference name="OpenMetaverse.StructuredData"/>
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
+		<Match pattern="meshtoobj.cs" />		
         <Match pattern="*.resx" recurse="true"/>
+		<!--
         <Match pattern="*.settings" recurse="true"/>
         <Match pattern="*.ico" recurse="true"/>
+		-->
       </Files>
     </Project>
 
-    <Project name="GridImageUpload" path="Programs/GridImageUpload" type="WinExe" frameworkVersion="v4_0">
+    <Project name="GridImageUpload" path="Programs/GridImageUpload" type="WinExe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -517,14 +562,15 @@
       <Reference name="OpenMetaverseTypes"/>
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
-        <Match pattern="*.resx" recurse="true"/>
-        <Match pattern="*.settings" recurse="true"/>
-        <Match pattern="*.ico" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
+		<Match pattern="*.resx" recurse="true"/>
+		<Match pattern="*.ico" recurse="true"/>
       </Files>
     </Project>
 
-    <Project name="GridProxyApp" path="Programs/GridProxy" type="Exe" frameworkVersion="v4_0">
+    <Project name="GridProxyApp" path="Programs/GridProxy" type="Exe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -547,8 +593,7 @@
       </Files>
     </Project>
 
-
-    <Project name="WinGridProxy" path="Programs/WinGridProxy" type="WinExe" frameworkVersion="v4_0">
+    <Project name="WinGridProxy" path="Programs/WinGridProxy" type="WinExe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -575,15 +620,17 @@
       <Reference name="Be.Windows.Forms.HexBox"/>
       <Reference name="log4net"/>
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
         <Match pattern="*.resx" recurse="true"/>
         <Match pattern="*.settings" recurse="true"/>
         <Match pattern="*.ico" recurse="true"/>
       </Files>
     </Project>
 
-    <!--
-    <Project name="GridProxyGUI" path="Programs/GridProxyGUI" icon="libomv.ico" type="WinExe" frameworkVersion="v4_0">
+<!--
+    <Project name="GridProxyGUI" path="Programs/GridProxyGUI" icon="libomv.ico" type="WinExe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -617,15 +664,16 @@
       <Reference name="Mono.Posix"/>
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
         <Match pattern="*.resx" recurse="true"/>
         <Match pattern="*.png" recurse="true" buildAction="EmbeddedResource"/>
-        <Match pattern="*.ico" recurse="true"/>
+        <Match pattern="*.ico" recurse="true" buildAction="EmbeddedResource"/>
       </Files>
     </Project>
-    -->
-
-    <Project name="VisualParamGenerator" path="Programs/VisualParamGenerator" type="Exe" frameworkVersion="v4_0">
+-->
+    <Project name="VisualParamGenerator" path="Programs/VisualParamGenerator" type="Exe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -648,7 +696,7 @@
       </Files>
     </Project>
 
-    <Project name="VoiceTest" path="Programs/VoiceTest" type="Exe" frameworkVersion="v4_0">
+    <Project name="VoiceTest" path="Programs/VoiceTest" type="Exe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -667,13 +715,15 @@
       <Reference name="OpenMetaverse.Utilities"/>
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>	
       </Files>
     </Project>
 
     <!-- Examples -->
 
-    <Project name="groupmanager" path="Programs/examples/groupmanager" type="WinExe" frameworkVersion="v4_0">
+    <Project name="groupmanager" path="Programs/examples/groupmanager" type="WinExe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -694,14 +744,16 @@
       <Reference name="OpenMetaverseTypes"/>
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+         <Exclude name="obj" pattern="obj"/>
+        </Match>
         <Match pattern="*.resx" recurse="true"/>
         <Match pattern="*.settings" recurse="true"/>
         <Match pattern="*.ico" recurse="true"/>
       </Files>
     </Project>
 
-    <Project name="Heightmap" path="Programs/examples/Heightmap" type="WinExe" frameworkVersion="v4_0">
+    <Project name="Heightmap" path="Programs/examples/Heightmap" type="WinExe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -722,14 +774,18 @@
       <Reference name="OpenMetaverseTypes"/>
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+         <Exclude name="obj" pattern="obj"/>
+        </Match>
         <Match pattern="*.resx" recurse="true"/>
+		<!--
         <Match pattern="*.settings" recurse="true"/>
+		-->
         <Match pattern="*.ico" recurse="true"/>
       </Files>
     </Project>
 
-    <Project name="GridAccountant" path="Programs/examples/GridAccountant" type="WinExe" frameworkVersion="v4_0">
+    <Project name="GridAccountant" path="Programs/examples/GridAccountant" type="WinExe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -750,14 +806,18 @@
       <Reference name="OpenMetaverseTypes"/>
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+         <Exclude name="obj" pattern="obj"/>
+        </Match>
         <Match pattern="*.resx" recurse="true"/>
+		<!--
         <Match pattern="*.settings" recurse="true"/>
+		-->
         <Match pattern="*.ico" recurse="true"/>
       </Files>
     </Project>
 
-    <Project name="PacketDump" path="Programs/examples/PacketDump" type="Exe" frameworkVersion="v4_0">
+    <Project name="PacketDump" path="Programs/examples/PacketDump" type="Exe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -775,11 +835,13 @@
       <Reference name="OpenMetaverseTypes"/>
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+          <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
 
-    <Project name="TestClient" path="Programs/examples/TestClient" type="Exe" frameworkVersion="v4_0">
+    <Project name="TestClient" path="Programs/examples/TestClient" type="Exe" frameworkVersion="v4_6">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -802,7 +864,9 @@
       <Reference name="OpenMetaverse.StructuredData"/>
 
       <Files>
-        <Match pattern="*.cs" recurse="true"/>
+        <Match pattern="*.cs" recurse="true">
+         <Exclude name="obj" pattern="obj"/>
+        </Match>
       </Files>
     </Project>
 
