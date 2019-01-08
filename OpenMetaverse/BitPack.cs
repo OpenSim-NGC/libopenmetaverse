@@ -35,10 +35,14 @@ namespace OpenMetaverse
     /// </summary>
     public class BitPack
     {
+        private const int MAX_BITS = 8;
+        private readonly bool weAreBigEndian = !BitConverter.IsLittleEndian;
+
         /// <summary></summary>
         public byte[] Data;
 
         /// <summary></summary>
+        private int bytePos;
         public int BytePos
         {
             get
@@ -51,15 +55,8 @@ namespace OpenMetaverse
         }
 
         /// <summary></summary>
-        public int BitPos { get { return bitPos; } }
-
-
-        private const int MAX_BITS = 8;
-
-        private int bytePos;
         private int bitPos;
-        private bool weAreBigEndian = !BitConverter.IsLittleEndian;
-
+        public int BitPos { get { return bitPos; } }
 
         /// <summary>
         /// Default constructor, initialize the bit packer / bit unpacker
@@ -71,6 +68,17 @@ namespace OpenMetaverse
         {
             Data = data;
             bytePos = pos;
+            cleanUnUsedBits();
+        }
+
+        private void cleanUnUsedBits()
+        {
+            if (bitPos == 0)
+                Data[bytePos] = 0;
+            else
+            {
+                Data[bytePos] &= (byte)~(0xff >> bitPos);
+            }
         }
 
         /// <summary>
@@ -103,7 +111,8 @@ namespace OpenMetaverse
                     data >>= 8;
                     totalCount -= 8;
                 }
-                PackBitsFromByte((byte)data, totalCount);
+                if (totalCount > 0)
+                    PackBitsFromByte((byte)data, totalCount);
             }
         }
 
@@ -124,7 +133,8 @@ namespace OpenMetaverse
                     data >>= 8;
                     totalCount -= 8;
                 }
-                PackBitsFromByte((byte)data, totalCount);
+                if (totalCount > 0)
+                    PackBitsFromByte((byte)data, totalCount);
             }
         }
 
@@ -137,35 +147,39 @@ namespace OpenMetaverse
         /// <param name="fracBits"></param>
         public void PackFixed(float data, bool isSigned, int intBits, int fracBits)
         {
-            int unsignedBits = intBits + fracBits;
-            int totalBits = unsignedBits;
-            int min, max;
+            int totalBits = intBits + fracBits;
+            int max = 1 << intBits;
 
             if (isSigned)
             {
                 totalBits++;
-                min = 1 << intBits;
-                min *= -1;
+                data += max;
             }
+
+            if (totalBits > 32)
+                throw new Exception("Can't use fixed point packing for " + totalBits);
+            
+            if(data <= 0)
+                data = 0;
             else
             {
-                min = 0;
+                if(data > max)
+                    data = max;
+                data *= 1 << fracBits;
             }
 
-            max = 1 << intBits;
+            int v = (int)data;
 
-            float fixedVal = Utils.Clamp(data, (float)min, (float)max);
-            if (isSigned) fixedVal += max;
-            fixedVal *= 1 << fracBits;
-
-            if (totalBits <= 8)
-                PackBits((uint)fixedVal, 8);
-            else if (totalBits <= 16)
-                PackBits((uint)fixedVal, 16);
-            else if (totalBits <= 31)
-                PackBits((uint)fixedVal, 32);
-            else
-                throw new Exception("Can't use fixed point packing for " + totalBits);
+            PackBitsFromByte((byte)v);
+            if(totalBits > 8)
+            {
+                PackBitsFromByte((byte)(v >> 8));
+                if (totalBits > 16)
+                {
+                    PackBitsFromByte((byte)(v >> 16));
+                    PackBitsFromByte((byte)(v >> 24));
+                }
+            }
         }
 
         /// <summary>
@@ -349,12 +363,8 @@ namespace OpenMetaverse
 
                 while (count >= 0)
                 {
-                    byte curBit = (byte)(0x80 >> bitPos);
-
                     if ((data[curBytePos] & (0x01 << count)) != 0)
-                        Data[bytePos] |= curBit;
-                    else
-                        Data[bytePos] &= (byte)~curBit;
+                        Data[bytePos] |= (byte)(0x80 >> bitPos);
 
                     --count;
                     ++bitPos;
@@ -364,6 +374,8 @@ namespace OpenMetaverse
                     {
                         bitPos = 0;
                         ++bytePos;
+                        if (bytePos < Data.Length)
+                            Data[bytePos] = 0;
                     }
                     if (curBitPos >= MAX_BITS)
                     {
@@ -375,21 +387,27 @@ namespace OpenMetaverse
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private void PackBitsFromByte(byte inbyte)
+        public void PackBitsFromByte(byte inbyte)
         {
             if(bitPos == 0)
             {
                 Data[bytePos++] = inbyte;
+                if (bytePos < Data.Length)
+                    Data[bytePos] = 0;
                 return;
             }
-            byte cleanmask = (byte)(0x0ff >> bitPos);
-            Data[bytePos] &= (byte)~cleanmask;
+            if (inbyte == 0)
+            {
+                ++bytePos;
+                Data[bytePos] = 0;
+                return;
+            }
             Data[bytePos++] |= (byte)(inbyte >> bitPos);
             Data[bytePos] = (byte)(inbyte << (8 - bitPos));
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private void PackBitsFromByte(byte inbyte, int count)
+        public void PackBitsFromByte(byte inbyte, int count)
         {
             if (count > 8) //should not happen
                 count = 7;
@@ -398,12 +416,8 @@ namespace OpenMetaverse
 
             while (count >= 0)
             {
-                byte curBit = (byte)(0x80 >> bitPos);
-
                 if ((inbyte & (0x01 << count)) != 0)
-                    Data[bytePos] |= curBit;
-                else
-                    Data[bytePos] &= (byte)~curBit;
+                    Data[bytePos] |= (byte)(0x80 >> bitPos);
 
                 --count;
                 ++bitPos;
@@ -412,19 +426,17 @@ namespace OpenMetaverse
                 {
                     bitPos = 0;
                     ++bytePos;
+                    if (bytePos < Data.Length)
+                        Data[bytePos] = 0;
                 }
             }
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private void PackBitFromBit(byte inbyte)
+        public void PackBitFromBit(byte inbyte)
         {
-            byte curBit = (byte)(0x80 >> bitPos);
-
-            if (inbyte != 0)
-                Data[bytePos] |= curBit;
-            else
-                Data[bytePos] &= (byte)~curBit;
+            if ((inbyte & 0x01) != 0)
+                Data[bytePos] |= (byte)(0x80 >> bitPos);
 
             ++bitPos;
 
@@ -432,6 +444,8 @@ namespace OpenMetaverse
             {
                 bitPos = 0;
                 ++bytePos;
+                if (bytePos < Data.Length)
+                    Data[bytePos] = 0;
             }
         }
 
@@ -443,12 +457,8 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void PackBit(bool bit)
         {
-            byte curBit = (byte)(0x80 >> bitPos);
-
             if (bit)
-                Data[bytePos] |= curBit;
-            else
-                Data[bytePos] &= (byte)~curBit;
+                Data[bytePos] |= (byte)(0x80 >> bitPos);
 
             ++bitPos;
 
@@ -456,6 +466,8 @@ namespace OpenMetaverse
             {
                 bitPos = 0;
                 ++bytePos;
+                if (bytePos < Data.Length)
+                    Data[bytePos] = 0;
             }
         }
 
