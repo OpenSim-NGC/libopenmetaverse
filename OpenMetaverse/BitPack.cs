@@ -154,6 +154,7 @@ namespace OpenMetaverse
             {
                 totalBits++;
                 data += max;
+                max += max;
             }
 
             if (totalBits > 32)
