@@ -137,61 +137,17 @@ namespace OpenMetaverse
         /// be read.</param>
         public void FromBytes(byte[] byteArray, int pos, bool normalized)
         {
-            if (!normalized)
+            X = Utils.BytesToFloat(byteArray, pos);
+            Y = Utils.BytesToFloat(byteArray, pos + 4);
+            Z = Utils.BytesToFloat(byteArray, pos + 8);
+            if (normalized)
             {
-                if (!BitConverter.IsLittleEndian)
-                {
-                    // Big endian architecture
-                    byte[] conversionBuffer = new byte[16];
-
-                    Buffer.BlockCopy(byteArray, pos, conversionBuffer, 0, 16);
-
-                    Array.Reverse(conversionBuffer, 0, 4);
-                    Array.Reverse(conversionBuffer, 4, 4);
-                    Array.Reverse(conversionBuffer, 8, 4);
-                    Array.Reverse(conversionBuffer, 12, 4);
-
-                    X = BitConverter.ToSingle(conversionBuffer, 0);
-                    Y = BitConverter.ToSingle(conversionBuffer, 4);
-                    Z = BitConverter.ToSingle(conversionBuffer, 8);
-                    W = BitConverter.ToSingle(conversionBuffer, 12);
-                }
-                else
-                {
-                    // Little endian architecture
-                    X = BitConverter.ToSingle(byteArray, pos);
-                    Y = BitConverter.ToSingle(byteArray, pos + 4);
-                    Z = BitConverter.ToSingle(byteArray, pos + 8);
-                    W = BitConverter.ToSingle(byteArray, pos + 12);
-                }
+                float xyzsum = 1f - X * X - Y * Y - Z * Z;
+                W = (xyzsum > 1e-6) ? (float)Math.Sqrt(xyzsum) : 0f;
             }
             else
             {
-                if (!BitConverter.IsLittleEndian)
-                {
-                    // Big endian architecture
-                    byte[] conversionBuffer = new byte[16];
-
-                    Buffer.BlockCopy(byteArray, pos, conversionBuffer, 0, 12);
-
-                    Array.Reverse(conversionBuffer, 0, 4);
-                    Array.Reverse(conversionBuffer, 4, 4);
-                    Array.Reverse(conversionBuffer, 8, 4);
-
-                    X = BitConverter.ToSingle(conversionBuffer, 0);
-                    Y = BitConverter.ToSingle(conversionBuffer, 4);
-                    Z = BitConverter.ToSingle(conversionBuffer, 8);
-                }
-                else
-                {
-                    // Little endian architecture
-                    X = BitConverter.ToSingle(byteArray, pos);
-                    Y = BitConverter.ToSingle(byteArray, pos + 4);
-                    Z = BitConverter.ToSingle(byteArray, pos + 8);
-                }
-
-                float xyzsum = 1f - X * X - Y * Y - Z * Z;
-                W = (xyzsum > 0f) ? (float)Math.Sqrt(xyzsum) : 0f;
+                W = Utils.BytesToFloat(byteArray, pos + 12);
             }
         }
 
@@ -216,36 +172,21 @@ namespace OpenMetaverse
         public void ToBytes(byte[] dest, int pos)
         {
             float norm = (float)Math.Sqrt(X * X + Y * Y + Z * Z + W * W);
-
-            if (norm != 0f)
+            if (norm > 0)
             {
-                norm = 1f / norm;
-
-                float x, y, z;
-                if (W >= 0f)
-                {
-                    x = X; y = Y; z = Z;
-                }
+                if (W < 0f)
+                    norm = -1f / norm;
                 else
-                {
-                    x = -X; y = -Y; z = -Z;
-                }
-
-                Buffer.BlockCopy(BitConverter.GetBytes(norm * x), 0, dest, pos + 0, 4);
-                Buffer.BlockCopy(BitConverter.GetBytes(norm * y), 0, dest, pos + 4, 4);
-                Buffer.BlockCopy(BitConverter.GetBytes(norm * z), 0, dest, pos + 8, 4);
-
-                if (!BitConverter.IsLittleEndian)
-                {
-                    Array.Reverse(dest, pos + 0, 4);
-                    Array.Reverse(dest, pos + 4, 4);
-                    Array.Reverse(dest, pos + 8, 4);
-                }
+                    norm = 1f / norm;
+                Utils.FloatToBytes(norm * X, dest, pos);
+                Utils.FloatToBytes(norm * Y, dest, pos + 4);
+                Utils.FloatToBytes(norm * Z, dest, pos + 8);
             }
             else
             {
-                throw new InvalidOperationException(String.Format(
-                    "Quaternion {0} normalized to zero", ToString()));
+                Utils.FloatToBytes(0, dest, pos);
+                Utils.FloatToBytes(0, dest, pos + 4);
+                Utils.FloatToBytes(0, dest, pos + 8);
             }
         }
 

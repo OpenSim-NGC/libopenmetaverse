@@ -999,62 +999,67 @@ namespace OpenMetaverse
 
                         for (int i = 0; i < FaceTextures.Length; i++)
                         {
-                            if (FaceTextures[i] == null) continue;
+                            if (FaceTextures[i] == null)
+                                continue;
+
+                            uint curMask = (uint)(1 << i);
 
                             if (FaceTextures[i].TextureID != DefaultTexture.TextureID)
                             {
-                                if (textures[i] == UInt32.MaxValue) textures[i] = 0;
-                                textures[i] |= (uint)(1 << i);
+                                if (textures[i] == UInt32.MaxValue)
+                                    textures[i] = curMask;
+                                else
+                                    textures[i] |= curMask;
                             }
                             if (FaceTextures[i].RGBA != DefaultTexture.RGBA)
                             {
                                 if (rgbas[i] == UInt32.MaxValue) rgbas[i] = 0;
-                                rgbas[i] |= (uint)(1 << i);
+                                rgbas[i] |= curMask;
                             }
                             if (FaceTextures[i].RepeatU != DefaultTexture.RepeatU)
                             {
                                 if (repeatus[i] == UInt32.MaxValue) repeatus[i] = 0;
-                                repeatus[i] |= (uint)(1 << i);
+                                repeatus[i] |= curMask;
                             }
                             if (FaceTextures[i].RepeatV != DefaultTexture.RepeatV)
                             {
                                 if (repeatvs[i] == UInt32.MaxValue) repeatvs[i] = 0;
-                                repeatvs[i] |= (uint)(1 << i);
+                                repeatvs[i] |= curMask;
                             }
                             if (Helpers.TEOffsetShort(FaceTextures[i].OffsetU) != Helpers.TEOffsetShort(DefaultTexture.OffsetU))
                             {
                                 if (offsetus[i] == UInt32.MaxValue) offsetus[i] = 0;
-                                offsetus[i] |= (uint)(1 << i);
+                                offsetus[i] |= curMask;
                             }
                             if (Helpers.TEOffsetShort(FaceTextures[i].OffsetV) != Helpers.TEOffsetShort(DefaultTexture.OffsetV))
                             {
                                 if (offsetvs[i] == UInt32.MaxValue) offsetvs[i] = 0;
-                                offsetvs[i] |= (uint)(1 << i);
+                                offsetvs[i] |= curMask;
                             }
                             if (Helpers.TERotationShort(FaceTextures[i].Rotation) != Helpers.TERotationShort(DefaultTexture.Rotation))
                             {
                                 if (rotations[i] == UInt32.MaxValue) rotations[i] = 0;
-                                rotations[i] |= (uint)(1 << i);
+                                rotations[i] |= curMask;
                             }
                             if (FaceTextures[i].material != DefaultTexture.material)
                             {
                                 if (materials[i] == UInt32.MaxValue) materials[i] = 0;
-                                materials[i] |= (uint)(1 << i);
+                                materials[i] |= curMask;
                             }
                             if (FaceTextures[i].media != DefaultTexture.media)
                             {
                                 if (medias[i] == UInt32.MaxValue) medias[i] = 0;
-                                medias[i] |= (uint)(1 << i);
+                                medias[i] |= curMask;
                             }
                             if (Helpers.TEGlowByte(FaceTextures[i].Glow) != Helpers.TEGlowByte(DefaultTexture.Glow))
                             {
                                 if (glows[i] == UInt32.MaxValue) glows[i] = 0;
-                                glows[i] |= (uint)(1 << i);
+                                glows[i] |= curMask;
                             }
                             if (FaceTextures[i].MaterialID != DefaultTexture.MaterialID)
                             {
                                 if (materialIDs[i] == UInt32.MaxValue) materialIDs[i] = 0;
-                                materialIDs[i] |= (uint)(1 << i);
+                                materialIDs[i] |= curMask;
                             }
                         }
 
@@ -1270,6 +1275,9 @@ namespace OpenMetaverse
 
             private byte[] GetFaceBitfieldBytes(uint bitfield)
             {
+                if (bitfield == 0)
+                    return new byte[1] { 0 };
+
                 int byteLength = 0;
                 uint tmpBitfield = bitfield;
                 while (tmpBitfield != 0)
@@ -1277,9 +1285,6 @@ namespace OpenMetaverse
                     tmpBitfield >>= 7;
                     byteLength++;
                 }
-
-                if (byteLength == 0)
-                    return new byte[1] { 0 };
 
                 byte[] bytes = new byte[byteLength];
                 for (int i = 0; i < byteLength; i++)

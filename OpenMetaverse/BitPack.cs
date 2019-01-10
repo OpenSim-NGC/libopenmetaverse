@@ -138,6 +138,15 @@ namespace OpenMetaverse
             }
         }
 
+        public void PackBitsFromUInt(uint data)
+        {
+            PackBitsFromByte((byte)data);
+            PackBitsFromByte((byte)(data >> 8));
+            PackBitsFromByte((byte)(data >> 16));
+            PackBitsFromByte((byte)(data >> 24));
+        }
+
+
         /// <summary>
         /// 
         /// </summary>

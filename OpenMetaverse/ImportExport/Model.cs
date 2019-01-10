@@ -121,13 +121,13 @@ namespace OpenMetaverse.ImportExport
 
                 foreach (var v in face.Vertices)
                 {
-                    posBytes.AddRange(Utils.UInt16ToBytes(Utils.FloatToUInt16(v.Position.X, -0.5f, 0.5f)));
-                    posBytes.AddRange(Utils.UInt16ToBytes(Utils.FloatToUInt16(v.Position.Y, -0.5f, 0.5f)));
-                    posBytes.AddRange(Utils.UInt16ToBytes(Utils.FloatToUInt16(v.Position.Z, -0.5f, 0.5f)));
+                    posBytes.AddRange(Utils.FloatToUInt16Bytes(v.Position.X, 0.5f));
+                    posBytes.AddRange(Utils.FloatToUInt16Bytes(v.Position.Y, 0.5f));
+                    posBytes.AddRange(Utils.FloatToUInt16Bytes(v.Position.Z, 0.5f));
 
-                    norBytes.AddRange(Utils.UInt16ToBytes(Utils.FloatToUInt16(v.Normal.X, -1f, 1f)));
-                    norBytes.AddRange(Utils.UInt16ToBytes(Utils.FloatToUInt16(v.Normal.Y, -1f, 1f)));
-                    norBytes.AddRange(Utils.UInt16ToBytes(Utils.FloatToUInt16(v.Normal.Z, -1f, 1f)));
+                    norBytes.AddRange(Utils.FloatToUInt16Bytes(v.Normal.X, 1f));
+                    norBytes.AddRange(Utils.FloatToUInt16Bytes(v.Normal.Y, 1f));
+                    norBytes.AddRange(Utils.FloatToUInt16Bytes(v.Normal.Z, 1f));
 
                     uvBytes.AddRange(Utils.UInt16ToBytes(Utils.FloatToUInt16(v.TexCoord.X, uvMin.X, uvMax.X)));
                     uvBytes.AddRange(Utils.UInt16ToBytes(Utils.FloatToUInt16(v.TexCoord.Y, uvMin.Y, uvMax.Y)));

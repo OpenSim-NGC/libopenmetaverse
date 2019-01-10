@@ -98,12 +98,10 @@ namespace mapgenerator
                         field.Name + " = (bytes[i++] != 0) ? (bool)true : (bool)false;");
                     break;
                 case FieldType.F32:
-                    writer.WriteLine("                    " +
-                        field.Name + " = Utils.BytesToFloat(bytes, i); i += 4;");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToFloat(bytes, i); i += 4;");
                     break;
                 case FieldType.F64:
-                    writer.WriteLine("                    " +
-                        field.Name + " = Utils.BytesToDouble(bytes, i); i += 8;");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToDouble(bytes, i); i += 8;");
                     break;
                 case FieldType.Fixed:
                     writer.WriteLine("                    " + field.Name + " = new byte[" + field.Count + "];");
@@ -112,17 +110,15 @@ namespace mapgenerator
                     break;
                 case FieldType.IPADDR:
                 case FieldType.U32:
-                    writer.WriteLine("                    " + field.Name +
-                        " = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToUInt(bytes, i); i += 4;");
                     break;
                 case FieldType.IPPORT:
                     // IPPORT is big endian while U16/S16 are little endian. Go figure
-                    writer.WriteLine("                    " + field.Name +
+                    writer.WriteLine("                    " + field.Name + 
                         " = (ushort)((bytes[i++] << 8) + bytes[i++]);");
                     break;
                 case FieldType.U16:
-                    writer.WriteLine("                    " + field.Name +
-                        " = (ushort)(bytes[i++] + (bytes[i++] << 8));");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToUInt16(bytes, i); i+=2;");
                     break;
                 case FieldType.LLQuaternion:
                     writer.WriteLine("                    " + field.Name + ".FromBytes(bytes, i, true); i += 12;");
@@ -140,27 +136,19 @@ namespace mapgenerator
                     writer.WriteLine("                    " + field.Name + ".FromBytes(bytes, i); i += 16;");
                     break;
                 case FieldType.S16:
-                    writer.WriteLine("                    " + field.Name +
-                        " = (short)(bytes[i++] + (bytes[i++] << 8));");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToInt16(bytes, i); i+=2;");
                     break;
                 case FieldType.S32:
-                    writer.WriteLine("                    " + field.Name +
-                        " = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToInt(bytes, i); i +=4;");
                     break;
                 case FieldType.S8:
-                    writer.WriteLine("                    " + field.Name +
-                        " = (sbyte)bytes[i++];");
+                    writer.WriteLine("                    " + field.Name + " = (sbyte)bytes[i++];");
                     break;
                 case FieldType.U64:
-                    writer.WriteLine("                    " + field.Name +
-                        " = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + " +
-                        "((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + " +
-                        "((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + " +
-                        "((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToUInt64(bytes, i); i += 8;");
                     break;
                 case FieldType.U8:
-                    writer.WriteLine("                    " + field.Name +
-                        " = (byte)bytes[i++];");
+                    writer.WriteLine("                    " + field.Name + " = (byte)bytes[i++];");
                     break;
                 case FieldType.Variable:
                     if (field.Count == 1)
@@ -205,9 +193,10 @@ namespace mapgenerator
                     writer.WriteLine("                bytes[i++] = (byte)(" + field.Name + " % 256);");
                     break;
                 case FieldType.U16:
+                    writer.WriteLine("Utils.UInt16ToBytes(" + field.Name + ", bytes, i); i += 2;");
+                    break;
                 case FieldType.S16:
-                    writer.WriteLine("bytes[i++] = (byte)(" + field.Name + " % 256);");
-                    writer.WriteLine("                bytes[i++] = (byte)((" + field.Name + " >> 8) % 256);");
+                    writer.WriteLine("Utils.Int16ToBytes(" + field.Name + ", bytes, i); i += 2;");
                     break;
                 case FieldType.LLQuaternion:
                 case FieldType.LLVector3:

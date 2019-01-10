@@ -1920,7 +1920,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Test1 = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Test1 = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -1960,9 +1960,9 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Test0 = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Test1 = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Test2 = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Test0 = Utils.BytesToUInt(bytes, i); i += 4;
+                    Test1 = Utils.BytesToUInt(bytes, i); i += 4;
+                    Test2 = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -2098,7 +2098,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Code = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Code = Utils.BytesToUInt(bytes, i); i += 4;
                     SessionID.FromBytes(bytes, i); i += 16;
                     ID.FromBytes(bytes, i); i += 16;
                 }
@@ -2536,23 +2536,23 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectCapacity = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ObjectCount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    PriceEnergyUnit = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    PriceObjectClaim = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    PricePublicObjectDecay = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    PricePublicObjectDelete = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    PriceParcelClaim = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectCapacity = Utils.BytesToInt(bytes, i); i +=4;
+                    ObjectCount = Utils.BytesToInt(bytes, i); i +=4;
+                    PriceEnergyUnit = Utils.BytesToInt(bytes, i); i +=4;
+                    PriceObjectClaim = Utils.BytesToInt(bytes, i); i +=4;
+                    PricePublicObjectDecay = Utils.BytesToInt(bytes, i); i +=4;
+                    PricePublicObjectDelete = Utils.BytesToInt(bytes, i); i +=4;
+                    PriceParcelClaim = Utils.BytesToInt(bytes, i); i +=4;
                     PriceParcelClaimFactor = Utils.BytesToFloat(bytes, i); i += 4;
-                    PriceUpload = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    PriceRentLight = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    TeleportMinPrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    PriceUpload = Utils.BytesToInt(bytes, i); i +=4;
+                    PriceRentLight = Utils.BytesToInt(bytes, i); i +=4;
+                    TeleportMinPrice = Utils.BytesToInt(bytes, i); i +=4;
                     TeleportPriceExponent = Utils.BytesToFloat(bytes, i); i += 4;
                     EnergyEfficiency = Utils.BytesToFloat(bytes, i); i += 4;
                     PriceObjectRent = Utils.BytesToFloat(bytes, i); i += 4;
                     PriceObjectScaleFactor = Utils.BytesToFloat(bytes, i); i += 4;
-                    PriceParcelRent = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    PriceGroupCreate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    PriceParcelRent = Utils.BytesToInt(bytes, i); i +=4;
+                    PriceGroupCreate = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -3185,7 +3185,7 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     QueryText = new byte[length];
                     Buffer.BlockCopy(bytes, i, QueryText, 0, length); i += length;
-                    QueryFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    QueryFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     Category = (sbyte)bytes[i++];
                     length = bytes[i++];
                     SimName = new byte[length];
@@ -3423,8 +3423,8 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
-                    ActualArea = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    BillableArea = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ActualArea = Utils.BytesToInt(bytes, i); i +=4;
+                    BillableArea = Utils.BytesToInt(bytes, i); i +=4;
                     Flags = (byte)bytes[i++];
                     GlobalX = Utils.BytesToFloat(bytes, i); i += 4;
                     GlobalY = Utils.BytesToFloat(bytes, i); i += 4;
@@ -3434,7 +3434,7 @@ namespace OpenMetaverse.Packets
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     SnapshotID.FromBytes(bytes, i); i += 16;
                     Dwell = Utils.BytesToFloat(bytes, i); i += 4;
-                    Price = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Price = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -3698,8 +3698,8 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     QueryText = new byte[length];
                     Buffer.BlockCopy(bytes, i, QueryText, 0, length); i += length;
-                    QueryFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    QueryStart = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    QueryFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    QueryStart = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -3876,12 +3876,12 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     QueryText = new byte[length];
                     Buffer.BlockCopy(bytes, i, QueryText, 0, length); i += length;
-                    QueryFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    QueryFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     Category = (sbyte)bytes[i++];
                     length = bytes[i++];
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
-                    QueryStart = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    QueryStart = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -4139,7 +4139,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Status = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Status = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -4509,7 +4509,7 @@ namespace OpenMetaverse.Packets
                     Group = new byte[length];
                     Buffer.BlockCopy(bytes, i, Group, 0, length); i += length;
                     Online = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    Reputation = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Reputation = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -4804,12 +4804,12 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    EventID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    EventID = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     Date = new byte[length];
                     Buffer.BlockCopy(bytes, i, Date, 0, length); i += length;
-                    UnixTime = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EventFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    UnixTime = Utils.BytesToUInt(bytes, i); i += 4;
+                    EventFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -4854,7 +4854,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Status = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Status = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -5180,7 +5180,7 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     GroupName = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupName, 0, length); i += length;
-                    Members = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Members = Utils.BytesToInt(bytes, i); i +=4;
                     SearchOrder = Utils.BytesToFloat(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -5435,9 +5435,9 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     QueryText = new byte[length];
                     Buffer.BlockCopy(bytes, i, QueryText, 0, length); i += length;
-                    QueryFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Category = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    QueryStart = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    QueryFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    Category = Utils.BytesToUInt(bytes, i); i += 4;
+                    QueryStart = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -5650,9 +5650,9 @@ namespace OpenMetaverse.Packets
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     ClassifiedFlags = (byte)bytes[i++];
-                    CreationDate = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ExpirationDate = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    PriceForListing = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToUInt(bytes, i); i += 4;
+                    ExpirationDate = Utils.BytesToUInt(bytes, i); i += 4;
+                    PriceForListing = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -5696,7 +5696,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Status = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Status = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -6394,9 +6394,9 @@ namespace OpenMetaverse.Packets
                 {
                     ClassifiedID.FromBytes(bytes, i); i += 16;
                     CreatorID.FromBytes(bytes, i); i += 16;
-                    CreationDate = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ExpirationDate = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Category = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToUInt(bytes, i); i += 4;
+                    ExpirationDate = Utils.BytesToUInt(bytes, i); i += 4;
+                    Category = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
@@ -6404,7 +6404,7 @@ namespace OpenMetaverse.Packets
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
                     ParcelID.FromBytes(bytes, i); i += 16;
-                    ParentEstate = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ParentEstate = Utils.BytesToUInt(bytes, i); i += 4;
                     SnapshotID.FromBytes(bytes, i); i += 16;
                     length = bytes[i++];
                     SimName = new byte[length];
@@ -6414,7 +6414,7 @@ namespace OpenMetaverse.Packets
                     ParcelName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ParcelName, 0, length); i += length;
                     ClassifiedFlags = (byte)bytes[i++];
-                    PriceForListing = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    PriceForListing = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -6606,7 +6606,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ClassifiedID.FromBytes(bytes, i); i += 16;
-                    Category = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Category = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
@@ -6614,11 +6614,11 @@ namespace OpenMetaverse.Packets
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
                     ParcelID.FromBytes(bytes, i); i += 16;
-                    ParentEstate = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ParentEstate = Utils.BytesToUInt(bytes, i); i += 4;
                     SnapshotID.FromBytes(bytes, i); i += 16;
                     PosGlobal.FromBytes(bytes, i); i += 24;
                     ClassifiedFlags = (byte)bytes[i++];
-                    PriceForListing = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    PriceForListing = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -7116,11 +7116,11 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     QueryID.FromBytes(bytes, i); i += 16;
-                    QueryFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SearchType = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Price = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Area = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    QueryStart = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    QueryFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    SearchType = Utils.BytesToUInt(bytes, i); i += 4;
+                    Price = Utils.BytesToInt(bytes, i); i +=4;
+                    Area = Utils.BytesToInt(bytes, i); i +=4;
+                    QueryStart = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -7334,8 +7334,8 @@ namespace OpenMetaverse.Packets
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     Auction = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     ForSale = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ActualArea = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
+                    ActualArea = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -7582,7 +7582,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     QueryID.FromBytes(bytes, i); i += 16;
-                    QueryFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    QueryFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -8212,8 +8212,8 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
-                    ActualArea = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    BillableArea = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ActualArea = Utils.BytesToInt(bytes, i); i +=4;
+                    BillableArea = Utils.BytesToInt(bytes, i); i +=4;
                     Flags = (byte)bytes[i++];
                     GlobalX = Utils.BytesToFloat(bytes, i); i += 4;
                     GlobalY = Utils.BytesToFloat(bytes, i); i += 4;
@@ -8223,8 +8223,8 @@ namespace OpenMetaverse.Packets
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     SnapshotID.FromBytes(bytes, i); i += 16;
                     Dwell = Utils.BytesToFloat(bytes, i); i += 4;
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    AuctionID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
+                    AuctionID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -8401,7 +8401,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -8524,7 +8524,7 @@ namespace OpenMetaverse.Packets
                 {
                     OwnerID.FromBytes(bytes, i); i += 16;
                     IsGroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    Count = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Count = Utils.BytesToInt(bytes, i); i +=4;
                     OnlineStatus = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -8918,7 +8918,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     NoticeID.FromBytes(bytes, i); i += 16;
-                    Timestamp = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Timestamp = Utils.BytesToUInt(bytes, i); i += 4;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     FromName = new byte[length];
                     Buffer.BlockCopy(bytes, i, FromName, 0, length); i += length;
@@ -9490,7 +9490,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
                     Position.FromBytes(bytes, i); i += 12;
                     LookAt.FromBytes(bytes, i); i += 12;
                 }
@@ -9617,10 +9617,10 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    LocationID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocationID = Utils.BytesToUInt(bytes, i); i += 4;
                     Position.FromBytes(bytes, i); i += 12;
                     LookAt.FromBytes(bytes, i); i += 12;
-                    TeleportFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TeleportFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -9895,7 +9895,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    TeleportFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TeleportFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
@@ -10029,15 +10029,15 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    LocationID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SimIP = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocationID = Utils.BytesToUInt(bytes, i); i += 4;
+                    SimIP = Utils.BytesToUInt(bytes, i); i += 4;
                     SimPort = (ushort)((bytes[i++] << 8) + bytes[i++]);
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     SeedCapability = new byte[length];
                     Buffer.BlockCopy(bytes, i, SeedCapability, 0, length); i += length;
                     SimAccess = (byte)bytes[i++];
-                    TeleportFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TeleportFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -10449,7 +10449,7 @@ namespace OpenMetaverse.Packets
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
                     LureID.FromBytes(bytes, i); i += 16;
-                    TeleportFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TeleportFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -10677,7 +10677,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    TeleportFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TeleportFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -11618,7 +11618,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    SerialNum = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SerialNum = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -11735,7 +11735,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    SerialNum = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SerialNum = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -11898,7 +11898,7 @@ namespace OpenMetaverse.Packets
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
                     Type = (byte)bytes[i++];
-                    Channel = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Channel = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -12025,7 +12025,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    CircuitCode = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CircuitCode = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -12069,7 +12069,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    GenCounter = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    GenCounter = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     Throttles = new byte[length];
                     Buffer.BlockCopy(bytes, i, Throttles, 0, length); i += length;
@@ -12197,7 +12197,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    CircuitCode = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CircuitCode = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -12238,7 +12238,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    GenCounter = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    GenCounter = Utils.BytesToUInt(bytes, i); i += 4;
                     VerticalAngle = Utils.BytesToFloat(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -12362,7 +12362,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    CircuitCode = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CircuitCode = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -12404,9 +12404,9 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    GenCounter = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Height = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    Width = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    GenCounter = Utils.BytesToUInt(bytes, i); i += 4;
+                    Height = Utils.BytesToUInt16(bytes, i); i+=2;
+                    Width = Utils.BytesToUInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -12417,10 +12417,8 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytes(GenCounter, bytes, i); i += 4;
-                bytes[i++] = (byte)(Height % 256);
-                bytes[i++] = (byte)((Height >> 8) % 256);
-                bytes[i++] = (byte)(Width % 256);
-                bytes[i++] = (byte)((Width >> 8) % 256);
+                Utils.UInt16ToBytes(Height, bytes, i); i += 2;
+                Utils.UInt16ToBytes(Width, bytes, i); i += 2;
             }
 
         }
@@ -12533,7 +12531,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    SerialNum = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SerialNum = Utils.BytesToUInt(bytes, i); i += 4;
                     Size.FromBytes(bytes, i); i += 12;
                 }
                 catch (Exception)
@@ -12869,7 +12867,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ViewerCircuitCode = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ViewerCircuitCode = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -13370,7 +13368,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -13605,7 +13603,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     Offset.FromBytes(bytes, i); i += 12;
-                    DuplicateFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    DuplicateFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -13644,7 +13642,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -13862,7 +13860,7 @@ namespace OpenMetaverse.Packets
                     CopyCenters = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     CopyRotates = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     RayTargetID.FromBytes(bytes, i); i += 16;
-                    DuplicateFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    DuplicateFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -13910,7 +13908,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -14141,7 +14139,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     Scale.FromBytes(bytes, i); i += 12;
                 }
                 catch (Exception)
@@ -14374,7 +14372,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     Rotation.FromBytes(bytes, i, true); i += 12;
                 }
                 catch (Exception)
@@ -14573,7 +14571,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     UsePhysics = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     IsTemporary = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     IsPhantom = (bytes[i++] != 0) ? (bool)true : (bool)false;
@@ -14864,7 +14862,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     ClickAction = (byte)bytes[i++];
                 }
                 catch (Exception)
@@ -15102,7 +15100,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     MediaURL = new byte[length];
                     Buffer.BlockCopy(bytes, i, MediaURL, 0, length); i += length;
@@ -15344,7 +15342,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     Material = (byte)bytes[i++];
                 }
                 catch (Exception)
@@ -15594,11 +15592,11 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     PathCurve = (byte)bytes[i++];
                     ProfileCurve = (byte)bytes[i++];
-                    PathBegin = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    PathEnd = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    PathBegin = Utils.BytesToUInt16(bytes, i); i+=2;
+                    PathEnd = Utils.BytesToUInt16(bytes, i); i+=2;
                     PathScaleX = (byte)bytes[i++];
                     PathScaleY = (byte)bytes[i++];
                     PathShearX = (byte)bytes[i++];
@@ -15610,9 +15608,9 @@ namespace OpenMetaverse.Packets
                     PathTaperY = (sbyte)bytes[i++];
                     PathRevolutions = (byte)bytes[i++];
                     PathSkew = (sbyte)bytes[i++];
-                    ProfileBegin = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    ProfileEnd = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    ProfileHollow = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    ProfileBegin = Utils.BytesToUInt16(bytes, i); i+=2;
+                    ProfileEnd = Utils.BytesToUInt16(bytes, i); i+=2;
+                    ProfileHollow = Utils.BytesToUInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -15625,10 +15623,8 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytes(ObjectLocalID, bytes, i); i += 4;
                 bytes[i++] = PathCurve;
                 bytes[i++] = ProfileCurve;
-                bytes[i++] = (byte)(PathBegin % 256);
-                bytes[i++] = (byte)((PathBegin >> 8) % 256);
-                bytes[i++] = (byte)(PathEnd % 256);
-                bytes[i++] = (byte)((PathEnd >> 8) % 256);
+                Utils.UInt16ToBytes(PathBegin, bytes, i); i += 2;
+                Utils.UInt16ToBytes(PathEnd, bytes, i); i += 2;
                 bytes[i++] = PathScaleX;
                 bytes[i++] = PathScaleY;
                 bytes[i++] = PathShearX;
@@ -15640,12 +15636,9 @@ namespace OpenMetaverse.Packets
                 bytes[i++] = (byte)PathTaperY;
                 bytes[i++] = PathRevolutions;
                 bytes[i++] = (byte)PathSkew;
-                bytes[i++] = (byte)(ProfileBegin % 256);
-                bytes[i++] = (byte)((ProfileBegin >> 8) % 256);
-                bytes[i++] = (byte)(ProfileEnd % 256);
-                bytes[i++] = (byte)((ProfileEnd >> 8) % 256);
-                bytes[i++] = (byte)(ProfileHollow % 256);
-                bytes[i++] = (byte)((ProfileHollow >> 8) % 256);
+                Utils.UInt16ToBytes(ProfileBegin, bytes, i); i += 2;
+                Utils.UInt16ToBytes(ProfileEnd, bytes, i); i += 2;
+                Utils.UInt16ToBytes(ProfileHollow, bytes, i); i += 2;
             }
 
         }
@@ -15872,10 +15865,10 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ParamType = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
+                    ParamType = Utils.BytesToUInt16(bytes, i); i+=2;
                     ParamInUse = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    ParamSize = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ParamSize = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     ParamData = new byte[length];
                     Buffer.BlockCopy(bytes, i, ParamData, 0, length); i += length;
@@ -15889,8 +15882,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytes(ObjectLocalID, bytes, i); i += 4;
-                bytes[i++] = (byte)(ParamType % 256);
-                bytes[i++] = (byte)((ParamType >> 8) % 256);
+                Utils.UInt16ToBytes(ParamType, bytes, i); i += 2;
                 bytes[i++] = (byte)((ParamInUse) ? 1 : 0);
                 Utils.UIntToBytes(ParamSize, bytes, i); i += 4;
                 bytes[i++] = (byte)ParamData.Length;
@@ -16158,7 +16150,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -16400,7 +16392,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -16638,9 +16630,9 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -17194,10 +17186,10 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     Field = (byte)bytes[i++];
                     Set = (byte)bytes[i++];
-                    Mask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Mask = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -17441,9 +17433,9 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -17679,7 +17671,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    LocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
@@ -17918,7 +17910,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    LocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
@@ -18154,8 +18146,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Category = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToUInt(bytes, i); i += 4;
+                    Category = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -18386,7 +18378,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -18616,7 +18608,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -18850,7 +18842,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     Rotation.FromBytes(bytes, i, true); i += 12;
                 }
                 catch (Exception)
@@ -19082,7 +19074,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -19311,7 +19303,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -19540,7 +19532,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -19769,7 +19761,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -19999,7 +19991,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     GrabOffset.FromBytes(bytes, i); i += 12;
                 }
                 catch (Exception)
@@ -20046,7 +20038,7 @@ namespace OpenMetaverse.Packets
                 {
                     UVCoord.FromBytes(bytes, i); i += 12;
                     STCoord.FromBytes(bytes, i); i += 12;
-                    FaceIndex = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    FaceIndex = Utils.BytesToInt(bytes, i); i +=4;
                     Position.FromBytes(bytes, i); i += 12;
                     Normal.FromBytes(bytes, i); i += 12;
                     Binormal.FromBytes(bytes, i); i += 12;
@@ -20299,7 +20291,7 @@ namespace OpenMetaverse.Packets
                     ObjectID.FromBytes(bytes, i); i += 16;
                     GrabOffsetInitial.FromBytes(bytes, i); i += 12;
                     GrabPosition.FromBytes(bytes, i); i += 12;
-                    TimeSinceLast = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TimeSinceLast = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -20347,7 +20339,7 @@ namespace OpenMetaverse.Packets
                 {
                     UVCoord.FromBytes(bytes, i); i += 12;
                     STCoord.FromBytes(bytes, i); i += 12;
-                    FaceIndex = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    FaceIndex = Utils.BytesToInt(bytes, i); i +=4;
                     Position.FromBytes(bytes, i); i += 12;
                     Normal.FromBytes(bytes, i); i += 12;
                     Binormal.FromBytes(bytes, i); i += 12;
@@ -20594,7 +20586,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -20639,7 +20631,7 @@ namespace OpenMetaverse.Packets
                 {
                     UVCoord.FromBytes(bytes, i); i += 12;
                     STCoord.FromBytes(bytes, i); i += 12;
-                    FaceIndex = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    FaceIndex = Utils.BytesToInt(bytes, i); i +=4;
                     Position.FromBytes(bytes, i); i += 12;
                     Normal.FromBytes(bytes, i); i += 12;
                     Binormal.FromBytes(bytes, i); i += 12;
@@ -21331,7 +21323,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     RequestID.FromBytes(bytes, i); i += 16;
-                    VolumeDetail = (short)(bytes[i++] + (bytes[i++] << 8));
+                    VolumeDetail = Utils.BytesToInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -21343,8 +21335,7 @@ namespace OpenMetaverse.Packets
             {
                 AgentID.ToBytes(bytes, i); i += 16;
                 RequestID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)(VolumeDetail % 256);
-                bytes[i++] = (byte)((VolumeDetail >> 8) % 256);
+                Utils.Int16ToBytes(VolumeDetail, bytes, i); i += 2;
             }
 
         }
@@ -21653,7 +21644,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                     West = Utils.BytesToFloat(bytes, i); i += 4;
                     South = Utils.BytesToFloat(bytes, i); i += 4;
                     East = Utils.BytesToFloat(bytes, i); i += 4;
@@ -22333,8 +22324,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    PID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Status = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    PID = Utils.BytesToInt(bytes, i); i +=4;
+                    Status = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -22489,7 +22480,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TargetID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -22788,16 +22779,16 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    IP = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    StartTime = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    IP = Utils.BytesToUInt(bytes, i); i += 4;
+                    StartTime = Utils.BytesToUInt(bytes, i); i += 4;
                     RunTime = Utils.BytesToFloat(bytes, i); i += 4;
                     SimFPS = Utils.BytesToFloat(bytes, i); i += 4;
                     FPS = Utils.BytesToFloat(bytes, i); i += 4;
                     AgentsInView = (byte)bytes[i++];
                     Ping = Utils.BytesToFloat(bytes, i); i += 4;
                     MetersTraveled = Utils.BytesToDouble(bytes, i); i += 8;
-                    RegionsVisited = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SysRAM = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RegionsVisited = Utils.BytesToInt(bytes, i); i +=4;
+                    SysRAM = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     SysOS = new byte[length];
                     Buffer.BlockCopy(bytes, i, SysOS, 0, length); i += length;
@@ -22863,9 +22854,9 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    World = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Objects = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Textures = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    World = Utils.BytesToUInt(bytes, i); i += 4;
+                    Objects = Utils.BytesToUInt(bytes, i); i += 4;
+                    Textures = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -22908,10 +22899,10 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Bytes = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Packets = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Compressed = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Savings = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Bytes = Utils.BytesToUInt(bytes, i); i += 4;
+                    Packets = Utils.BytesToUInt(bytes, i); i += 4;
+                    Compressed = Utils.BytesToUInt(bytes, i); i += 4;
+                    Savings = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -22957,12 +22948,12 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    SendPacket = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Dropped = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Resent = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    FailedResends = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OffCircuit = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Invalid = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SendPacket = Utils.BytesToUInt(bytes, i); i += 4;
+                    Dropped = Utils.BytesToUInt(bytes, i); i += 4;
+                    Resent = Utils.BytesToUInt(bytes, i); i += 4;
+                    FailedResends = Utils.BytesToUInt(bytes, i); i += 4;
+                    OffCircuit = Utils.BytesToUInt(bytes, i); i += 4;
+                    Invalid = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -23006,7 +22997,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Type = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Type = Utils.BytesToUInt(bytes, i); i += 4;
                     Value = Utils.BytesToDouble(bytes, i); i += 8;
                 }
                 catch (Exception)
@@ -23282,7 +23273,7 @@ namespace OpenMetaverse.Packets
                 {
                     TaskID.FromBytes(bytes, i); i += 16;
                     ItemID.FromBytes(bytes, i); i += 16;
-                    Questions = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Questions = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -24110,7 +24101,7 @@ namespace OpenMetaverse.Packets
                 {
                     Victim.FromBytes(bytes, i); i += 16;
                     Perp.FromBytes(bytes, i); i += 16;
-                    Time = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Time = Utils.BytesToUInt(bytes, i); i += 4;
                     Mag = Utils.BytesToFloat(bytes, i); i += 4;
                     Type = (byte)bytes[i++];
                 }
@@ -24665,10 +24656,10 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionX = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RegionY = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RegionFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ObjectCapacity = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RegionX = Utils.BytesToUInt(bytes, i); i += 4;
+                    RegionY = Utils.BytesToUInt(bytes, i); i += 4;
+                    RegionFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    ObjectCapacity = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -24710,7 +24701,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    StatID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    StatID = Utils.BytesToUInt(bytes, i); i += 4;
                     StatValue = Utils.BytesToFloat(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -24750,7 +24741,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    PID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    PID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -24788,7 +24779,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionFlagsExtended = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    RegionFlagsExtended = Utils.BytesToUInt64(bytes, i); i += 8;
                 }
                 catch (Exception)
                 {
@@ -25130,9 +25121,9 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
-                    EstateID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ParentEstateID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RegionFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    EstateID = Utils.BytesToUInt(bytes, i); i += 4;
+                    ParentEstateID = Utils.BytesToUInt(bytes, i); i += 4;
+                    RegionFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     SimAccess = (byte)bytes[i++];
                     MaxAgents = (byte)bytes[i++];
                     BillableFactor = Utils.BytesToFloat(bytes, i); i += 4;
@@ -25140,9 +25131,9 @@ namespace OpenMetaverse.Packets
                     WaterHeight = Utils.BytesToFloat(bytes, i); i += 4;
                     TerrainRaiseLimit = Utils.BytesToFloat(bytes, i); i += 4;
                     TerrainLowerLimit = Utils.BytesToFloat(bytes, i); i += 4;
-                    PricePerMeter = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RedirectGridX = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RedirectGridY = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    PricePerMeter = Utils.BytesToInt(bytes, i); i +=4;
+                    RedirectGridX = Utils.BytesToInt(bytes, i); i +=4;
+                    RedirectGridY = Utils.BytesToInt(bytes, i); i +=4;
                     UseEstateSun = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     SunHour = Utils.BytesToFloat(bytes, i); i += 4;
                 }
@@ -25212,9 +25203,9 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     ProductName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProductName, 0, length); i += length;
-                    MaxAgents32 = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    HardMaxAgents = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    HardMaxObjects = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    MaxAgents32 = Utils.BytesToUInt(bytes, i); i += 4;
+                    HardMaxAgents = Utils.BytesToUInt(bytes, i); i += 4;
+                    HardMaxObjects = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -25258,7 +25249,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionFlagsExtended = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    RegionFlagsExtended = Utils.BytesToUInt64(bytes, i); i += 8;
                 }
                 catch (Exception)
                 {
@@ -25519,13 +25510,13 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
-                    EstateID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ParentEstateID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RegionFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    EstateID = Utils.BytesToUInt(bytes, i); i += 4;
+                    ParentEstateID = Utils.BytesToUInt(bytes, i); i += 4;
+                    RegionFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     BillableFactor = Utils.BytesToFloat(bytes, i); i += 4;
-                    PricePerMeter = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RedirectGridX = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RedirectGridY = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    PricePerMeter = Utils.BytesToInt(bytes, i); i +=4;
+                    RedirectGridX = Utils.BytesToInt(bytes, i); i +=4;
+                    RedirectGridY = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -25571,7 +25562,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionFlagsExtended = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    RegionFlagsExtended = Utils.BytesToUInt64(bytes, i); i += 8;
                 }
                 catch (Exception)
                 {
@@ -25795,7 +25786,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    RegionFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RegionFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     SimAccess = (byte)bytes[i++];
                     length = bytes[i++];
                     SimName = new byte[length];
@@ -25929,8 +25920,8 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    CPUClassID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CPURatio = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CPUClassID = Utils.BytesToInt(bytes, i); i +=4;
+                    CPURatio = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     ColoName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ColoName, 0, length); i += length;
@@ -25985,8 +25976,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionFlagsExtended = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    RegionProtocols = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    RegionFlagsExtended = Utils.BytesToUInt64(bytes, i); i += 8;
+                    RegionProtocols = Utils.BytesToUInt64(bytes, i); i += 8;
                 }
                 catch (Exception)
                 {
@@ -26235,7 +26226,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -26359,9 +26350,9 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    UsecSinceStart = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    SecPerDay = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SecPerYear = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    UsecSinceStart = Utils.BytesToUInt64(bytes, i); i += 8;
+                    SecPerDay = Utils.BytesToUInt(bytes, i); i += 4;
+                    SecPerYear = Utils.BytesToUInt(bytes, i); i += 4;
                     SunDirection.FromBytes(bytes, i); i += 12;
                     SunPhase = Utils.BytesToFloat(bytes, i); i += 4;
                     SunAngVelocity.FromBytes(bytes, i); i += 12;
@@ -26482,8 +26473,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Handle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    IP = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Handle = Utils.BytesToUInt64(bytes, i); i += 8;
+                    IP = Utils.BytesToUInt(bytes, i); i += 4;
                     Port = (ushort)((bytes[i++] << 8) + bytes[i++]);
                 }
                 catch (Exception)
@@ -26672,8 +26663,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TransferID.FromBytes(bytes, i); i += 16;
-                    ChannelType = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SourceType = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ChannelType = Utils.BytesToInt(bytes, i); i +=4;
+                    SourceType = Utils.BytesToInt(bytes, i); i +=4;
                     Priority = Utils.BytesToFloat(bytes, i); i += 4;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     Params = new byte[length];
@@ -26804,10 +26795,10 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TransferID.FromBytes(bytes, i); i += 16;
-                    ChannelType = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    TargetType = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Status = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Size = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ChannelType = Utils.BytesToInt(bytes, i); i +=4;
+                    TargetType = Utils.BytesToInt(bytes, i); i +=4;
+                    Status = Utils.BytesToInt(bytes, i); i +=4;
+                    Size = Utils.BytesToInt(bytes, i); i +=4;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     Params = new byte[length];
                     Buffer.BlockCopy(bytes, i, Params, 0, length); i += length;
@@ -26931,7 +26922,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TransferID.FromBytes(bytes, i); i += 16;
-                    ChannelType = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ChannelType = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -27053,7 +27044,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    ID = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    ID = Utils.BytesToUInt64(bytes, i); i += 8;
                     length = bytes[i++];
                     Filename = new byte[length];
                     Buffer.BlockCopy(bytes, i, Filename, 0, length); i += length;
@@ -27061,7 +27052,7 @@ namespace OpenMetaverse.Packets
                     DeleteOnCompletion = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     UseBigPackets = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     VFileID.FromBytes(bytes, i); i += 16;
-                    VFileType = (short)(bytes[i++] + (bytes[i++] << 8));
+                    VFileType = Utils.BytesToInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -27078,8 +27069,7 @@ namespace OpenMetaverse.Packets
                 bytes[i++] = (byte)((DeleteOnCompletion) ? 1 : 0);
                 bytes[i++] = (byte)((UseBigPackets) ? 1 : 0);
                 VFileID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)(VFileType % 256);
-                bytes[i++] = (byte)((VFileType >> 8) % 256);
+                Utils.Int16ToBytes(VFileType, bytes, i); i += 2;
             }
 
         }
@@ -27182,8 +27172,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ID = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    Result = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ID = Utils.BytesToUInt64(bytes, i); i += 8;
+                    Result = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -27422,8 +27412,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AppearanceVersion = (byte)bytes[i++];
-                    CofVersion = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CofVersion = Utils.BytesToInt(bytes, i); i +=4;
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -27784,7 +27774,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Type = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Type = Utils.BytesToInt(bytes, i); i +=4;
                     Value = Utils.BytesToFloat(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -28198,7 +28188,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectID.FromBytes(bytes, i); i += 16;
-                    DefaultPayPrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    DefaultPayPrice = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -28237,7 +28227,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    PayButton = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    PayButton = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -28426,7 +28416,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    TargetIP = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TargetIP = Utils.BytesToUInt(bytes, i); i += 4;
                     TargetPort = (ushort)((bytes[i++] << 8) + bytes[i++]);
                 }
                 catch (Exception)
@@ -28608,7 +28598,7 @@ namespace OpenMetaverse.Packets
                     GodID.FromBytes(bytes, i); i += 16;
                     GodSessionID.FromBytes(bytes, i); i += 16;
                     AgentID.FromBytes(bytes, i); i += 16;
-                    KickFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    KickFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     Reason = new byte[length];
                     Buffer.BlockCopy(bytes, i, Reason, 0, length); i += length;
@@ -28771,7 +28761,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TargetID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -28933,7 +28923,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TargetID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -29243,7 +29233,7 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     CharterMember = new byte[length];
                     Buffer.BlockCopy(bytes, i, CharterMember, 0, length); i += length;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -29426,11 +29416,11 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    WantToMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    WantToMask = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     WantToText = new byte[length];
                     Buffer.BlockCopy(bytes, i, WantToText, 0, length); i += length;
-                    SkillsMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SkillsMask = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     SkillsText = new byte[length];
                     Buffer.BlockCopy(bytes, i, SkillsText, 0, length); i += length;
@@ -29612,7 +29602,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    GroupPowers = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    GroupPowers = Utils.BytesToUInt64(bytes, i); i += 8;
                     AcceptNotices = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     length = bytes[i++];
                     GroupTitle = new byte[length];
@@ -30052,11 +30042,11 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    WantToMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    WantToMask = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     WantToText = new byte[length];
                     Buffer.BlockCopy(bytes, i, WantToText, 0, length); i += length;
-                    SkillsMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SkillsMask = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     SkillsText = new byte[length];
                     Buffer.BlockCopy(bytes, i, SkillsText, 0, length); i += length;
@@ -30802,7 +30792,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    EventID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    EventID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -30978,7 +30968,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    EventID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    EventID = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     Creator = new byte[length];
                     Buffer.BlockCopy(bytes, i, Creator, 0, length); i += length;
@@ -30994,15 +30984,15 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     Date = new byte[length];
                     Buffer.BlockCopy(bytes, i, Date, 0, length); i += length;
-                    DateUTC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Duration = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Cover = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Amount = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    DateUTC = Utils.BytesToUInt(bytes, i); i += 4;
+                    Duration = Utils.BytesToUInt(bytes, i); i += 4;
+                    Cover = Utils.BytesToUInt(bytes, i); i += 4;
+                    Amount = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     GlobalPos.FromBytes(bytes, i); i += 24;
-                    EventFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    EventFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -31180,7 +31170,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    EventID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    EventID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -31339,7 +31329,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    EventID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    EventID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -31498,7 +31488,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    EventID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    EventID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -31546,8 +31536,8 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     QueryText = new byte[length];
                     Buffer.BlockCopy(bytes, i, QueryText, 0, length); i += length;
-                    QueryFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    QueryStart = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    QueryFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    QueryStart = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -31754,7 +31744,7 @@ namespace OpenMetaverse.Packets
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     PosGlobal.FromBytes(bytes, i); i += 24;
-                    SortOrder = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SortOrder = Utils.BytesToInt(bytes, i); i +=4;
                     Enabled = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -31957,7 +31947,7 @@ namespace OpenMetaverse.Packets
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
                     SnapshotID.FromBytes(bytes, i); i += 16;
                     PosGlobal.FromBytes(bytes, i); i += 24;
-                    SortOrder = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SortOrder = Utils.BytesToInt(bytes, i); i +=4;
                     Enabled = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -32425,7 +32415,7 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     ObjectOwner = new byte[length];
                     Buffer.BlockCopy(bytes, i, ObjectOwner, 0, length); i += length;
-                    Questions = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Questions = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -32590,7 +32580,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TakeControls = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    Controls = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Controls = Utils.BytesToUInt(bytes, i); i += 4;
                     PassToAgent = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -32797,7 +32787,7 @@ namespace OpenMetaverse.Packets
                     length = (bytes[i++] + (bytes[i++] << 8));
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
-                    ChatChannel = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ChatChannel = Utils.BytesToInt(bytes, i); i +=4;
                     ImageID.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -33170,8 +33160,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectID.FromBytes(bytes, i); i += 16;
-                    ChatChannel = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ButtonIndex = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ChatChannel = Utils.BytesToInt(bytes, i); i +=4;
+                    ButtonIndex = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     ButtonLabel = new byte[length];
                     Buffer.BlockCopy(bytes, i, ButtonLabel, 0, length); i += length;
@@ -33454,7 +33444,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectID.FromBytes(bytes, i); i += 16;
-                    ObjectPermissions = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectPermissions = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -33847,7 +33837,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    SequenceID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SequenceID = Utils.BytesToInt(bytes, i); i +=4;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
@@ -34007,8 +33997,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    SequenceID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SequenceID = Utils.BytesToInt(bytes, i); i +=4;
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -34193,10 +34183,10 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ParcelFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
+                    ParcelFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
@@ -34212,7 +34202,7 @@ namespace OpenMetaverse.Packets
                     MediaID.FromBytes(bytes, i); i += 16;
                     MediaAutoScale = (byte)bytes[i++];
                     GroupID.FromBytes(bytes, i); i += 16;
-                    PassPrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    PassPrice = Utils.BytesToInt(bytes, i); i +=4;
                     PassHours = Utils.BytesToFloat(bytes, i); i += 4;
                     Category = (byte)bytes[i++];
                     AuthBuyerID.FromBytes(bytes, i); i += 16;
@@ -34402,8 +34392,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ReturnType = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
+                    ReturnType = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -34762,8 +34752,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OtherCleanTime = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
+                    OtherCleanTime = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -34925,8 +34915,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ReturnType = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
+                    ReturnType = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -35285,8 +35275,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ReturnType = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
+                    ReturnType = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -35644,7 +35634,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     CovenantID.FromBytes(bytes, i); i += 16;
-                    CovenantTimestamp = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CovenantTimestamp = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     EstateName = new byte[length];
                     Buffer.BlockCopy(bytes, i, EstateName, 0, length); i += length;
@@ -35801,7 +35791,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -36030,7 +36020,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -36191,7 +36181,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -36351,7 +36341,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -37138,7 +37128,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -37304,7 +37294,7 @@ namespace OpenMetaverse.Packets
                     GroupID.FromBytes(bytes, i); i += 16;
                     IsGroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     RemoveContribution = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                     Final = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -37348,8 +37338,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Price = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Area = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Price = Utils.BytesToInt(bytes, i); i +=4;
+                    Area = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -37519,7 +37509,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -37682,9 +37672,9 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    SequenceID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SequenceID = Utils.BytesToInt(bytes, i); i +=4;
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -37809,9 +37799,9 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    SequenceID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SequenceID = Utils.BytesToInt(bytes, i); i +=4;
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -37855,8 +37845,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ID.FromBytes(bytes, i); i += 16;
-                    Time = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Time = Utils.BytesToInt(bytes, i); i +=4;
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -38092,11 +38082,11 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    SequenceID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Sections = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SequenceID = Utils.BytesToInt(bytes, i); i +=4;
+                    Sections = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -38141,8 +38131,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ID.FromBytes(bytes, i); i += 16;
-                    Time = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Time = Utils.BytesToInt(bytes, i); i +=4;
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -38384,7 +38374,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                     ParcelID.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -38544,7 +38534,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                     ParcelID.FromBytes(bytes, i); i += 16;
                     Dwell = Utils.BytesToFloat(bytes, i); i += 4;
                 }
@@ -38707,7 +38697,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -38867,7 +38857,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                     SnapshotID.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -40536,10 +40526,10 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     SearchName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SearchName, 0, length); i += length;
-                    Type = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Type = Utils.BytesToInt(bytes, i); i +=4;
                     Range = Utils.BytesToFloat(bytes, i); i += 4;
                     Arc = Utils.BytesToFloat(bytes, i); i += 4;
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
                     SearchRegions = (byte)bytes[i++];
                 }
                 catch (Exception)
@@ -40721,7 +40711,7 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    Type = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Type = Utils.BytesToInt(bytes, i); i +=4;
                     Range = Utils.BytesToFloat(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -40924,7 +40914,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    CircuitCode = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CircuitCode = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -41083,8 +41073,8 @@ namespace OpenMetaverse.Packets
                 {
                     Position.FromBytes(bytes, i); i += 12;
                     LookAt.FromBytes(bytes, i); i += 12;
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    Timestamp = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
+                    Timestamp = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -41660,13 +41650,13 @@ namespace OpenMetaverse.Packets
                 {
                     FromGroup = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     ToAgentID.FromBytes(bytes, i); i += 16;
-                    ParentEstateID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ParentEstateID = Utils.BytesToUInt(bytes, i); i += 4;
                     RegionID.FromBytes(bytes, i); i += 16;
                     Position.FromBytes(bytes, i); i += 12;
                     Offline = (byte)bytes[i++];
                     Dialog = (byte)bytes[i++];
                     ID.FromBytes(bytes, i); i += 16;
-                    Timestamp = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Timestamp = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     FromAgentName = new byte[length];
                     Buffer.BlockCopy(bytes, i, FromAgentName, 0, length); i += length;
@@ -41729,7 +41719,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    EstateID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    EstateID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -41973,7 +41963,7 @@ namespace OpenMetaverse.Packets
                 {
                     Hunter.FromBytes(bytes, i); i += 16;
                     Prey.FromBytes(bytes, i); i += 16;
-                    SpaceIP = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SpaceIP = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -43454,7 +43444,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    MuteCRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    MuteCRC = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -43623,8 +43613,8 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     MuteName = new byte[length];
                     Buffer.BlockCopy(bytes, i, MuteName, 0, length); i += length;
-                    MuteType = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    MuteFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    MuteType = Utils.BytesToInt(bytes, i); i +=4;
+                    MuteFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -44268,30 +44258,30 @@ namespace OpenMetaverse.Packets
                 {
                     ItemID.FromBytes(bytes, i); i += 16;
                     FolderID.FromBytes(bytes, i); i += 16;
-                    CallbackID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CallbackID = Utils.BytesToUInt(bytes, i); i += 4;
                     CreatorID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    BaseMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    BaseMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     TransactionID.FromBytes(bytes, i); i += 16;
                     Type = (sbyte)bytes[i++];
                     InvType = (sbyte)bytes[i++];
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    CreationDate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToInt(bytes, i); i +=4;
+                    CRC = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -44574,30 +44564,30 @@ namespace OpenMetaverse.Packets
                 {
                     ItemID.FromBytes(bytes, i); i += 16;
                     FolderID.FromBytes(bytes, i); i += 16;
-                    CallbackID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CallbackID = Utils.BytesToUInt(bytes, i); i += 4;
                     CreatorID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    BaseMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    BaseMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     AssetID.FromBytes(bytes, i); i += 16;
                     Type = (sbyte)bytes[i++];
                     InvType = (sbyte)bytes[i++];
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    CreationDate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToInt(bytes, i); i +=4;
+                    CRC = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -45102,7 +45092,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    CallbackID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CallbackID = Utils.BytesToUInt(bytes, i); i += 4;
                     OldAgentID.FromBytes(bytes, i); i += 16;
                     OldItemID.FromBytes(bytes, i); i += 16;
                     NewFolderID.FromBytes(bytes, i); i += 16;
@@ -45574,7 +45564,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ItemID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -46852,7 +46842,7 @@ namespace OpenMetaverse.Packets
                 {
                     FolderID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    SortOrder = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SortOrder = Utils.BytesToInt(bytes, i); i +=4;
                     FetchFolders = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     FetchItems = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
@@ -46984,8 +46974,8 @@ namespace OpenMetaverse.Packets
                     AgentID.FromBytes(bytes, i); i += 16;
                     FolderID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    Version = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Descendents = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Version = Utils.BytesToInt(bytes, i); i +=4;
+                    Descendents = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -47109,26 +47099,26 @@ namespace OpenMetaverse.Packets
                     CreatorID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    BaseMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    BaseMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     AssetID.FromBytes(bytes, i); i += 16;
                     Type = (sbyte)bytes[i++];
                     InvType = (sbyte)bytes[i++];
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    CreationDate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToInt(bytes, i); i +=4;
+                    CRC = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -47681,26 +47671,26 @@ namespace OpenMetaverse.Packets
                     CreatorID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    BaseMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    BaseMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     AssetID.FromBytes(bytes, i); i += 16;
                     Type = (sbyte)bytes[i++];
                     InvType = (sbyte)bytes[i++];
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    CreationDate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToInt(bytes, i); i +=4;
+                    CRC = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -48031,31 +48021,31 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ItemID.FromBytes(bytes, i); i += 16;
-                    CallbackID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CallbackID = Utils.BytesToUInt(bytes, i); i += 4;
                     FolderID.FromBytes(bytes, i); i += 16;
                     CreatorID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    BaseMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    BaseMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     AssetID.FromBytes(bytes, i); i += 16;
                     Type = (sbyte)bytes[i++];
                     InvType = (sbyte)bytes[i++];
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    CreationDate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToInt(bytes, i); i +=4;
+                    CRC = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -48820,7 +48810,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     Key = (byte)bytes[i++];
                 }
                 catch (Exception)
@@ -48889,26 +48879,26 @@ namespace OpenMetaverse.Packets
                     CreatorID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    BaseMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    BaseMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     TransactionID.FromBytes(bytes, i); i += 16;
                     Type = (sbyte)bytes[i++];
                     InvType = (sbyte)bytes[i++];
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    CreationDate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToInt(bytes, i); i +=4;
+                    CRC = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -49098,7 +49088,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     ItemID.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -49264,7 +49254,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     ItemID.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -49425,7 +49415,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    LocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -49549,7 +49539,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TaskID.FromBytes(bytes, i); i += 16;
-                    Serial = (short)(bytes[i++] + (bytes[i++] << 8));
+                    Serial = Utils.BytesToInt16(bytes, i); i+=2;
                     length = bytes[i++];
                     Filename = new byte[length];
                     Buffer.BlockCopy(bytes, i, Filename, 0, length); i += length;
@@ -49563,8 +49553,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 TaskID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)(Serial % 256);
-                bytes[i++] = (byte)((Serial >> 8) % 256);
+                Utils.Int16ToBytes(Serial, bytes, i); i += 2;
                 bytes[i++] = (byte)Filename.Length;
                 Buffer.BlockCopy(Filename, 0, bytes, i, Filename.Length); i += Filename.Length;
             }
@@ -49762,7 +49751,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -50137,10 +50126,10 @@ namespace OpenMetaverse.Packets
                     RayEndIsIntersection = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     RezSelected = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     RemoveItem = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    ItemFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ItemFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -50218,26 +50207,26 @@ namespace OpenMetaverse.Packets
                     CreatorID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    BaseMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    BaseMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     TransactionID.FromBytes(bytes, i); i += 16;
                     Type = (sbyte)bytes[i++];
                     InvType = (sbyte)bytes[i++];
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    CreationDate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToInt(bytes, i); i +=4;
+                    CRC = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -50448,10 +50437,10 @@ namespace OpenMetaverse.Packets
                     RayEndIsIntersection = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     RezSelected = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     RemoveItem = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    ItemFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ItemFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -51984,7 +51973,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     Enabled = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -52053,26 +52042,26 @@ namespace OpenMetaverse.Packets
                     CreatorID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    BaseMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    BaseMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     TransactionID.FromBytes(bytes, i); i += 16;
                     Type = (sbyte)bytes[i++];
                     InvType = (sbyte)bytes[i++];
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    CreationDate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToInt(bytes, i); i +=4;
+                    CRC = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -52273,10 +52262,10 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    CallbackID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CallbackID = Utils.BytesToUInt(bytes, i); i += 4;
                     FolderID.FromBytes(bytes, i); i += 16;
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     Type = (sbyte)bytes[i++];
                     InvType = (sbyte)bytes[i++];
                     WearableType = (byte)bytes[i++];
@@ -52455,7 +52444,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    EventID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    EventID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -52741,7 +52730,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     RegionID.FromBytes(bytes, i); i += 16;
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
                 }
                 catch (Exception)
                 {
@@ -52907,10 +52896,10 @@ namespace OpenMetaverse.Packets
                     SourceID.FromBytes(bytes, i); i += 16;
                     DestID.FromBytes(bytes, i); i += 16;
                     Flags = (byte)bytes[i++];
-                    Amount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Amount = Utils.BytesToInt(bytes, i); i +=4;
                     AggregatePermNextOwner = (byte)bytes[i++];
                     AggregatePermInventory = (byte)bytes[i++];
-                    TransactionType = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TransactionType = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
@@ -53212,9 +53201,9 @@ namespace OpenMetaverse.Packets
                     AgentID.FromBytes(bytes, i); i += 16;
                     TransactionID.FromBytes(bytes, i); i += 16;
                     TransactionSuccess = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    MoneyBalance = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SquareMetersCredit = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SquareMetersCommitted = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    MoneyBalance = Utils.BytesToInt(bytes, i); i +=4;
+                    SquareMetersCredit = Utils.BytesToInt(bytes, i); i +=4;
+                    SquareMetersCommitted = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
@@ -53271,12 +53260,12 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    TransactionType = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TransactionType = Utils.BytesToInt(bytes, i); i +=4;
                     SourceID.FromBytes(bytes, i); i += 16;
                     IsSourceGroup = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     DestID.FromBytes(bytes, i); i += 16;
                     IsDestGroup = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    Amount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Amount = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     ItemDescription = new byte[length];
                     Buffer.BlockCopy(bytes, i, ItemDescription, 0, length); i += length;
@@ -53406,7 +53395,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    TargetIP = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TargetIP = Utils.BytesToUInt(bytes, i); i += 4;
                     TargetPort = (ushort)((bytes[i++] << 8) + bytes[i++]);
                 }
                 catch (Exception)
@@ -53459,9 +53448,9 @@ namespace OpenMetaverse.Packets
                     AgentID.FromBytes(bytes, i); i += 16;
                     TransactionID.FromBytes(bytes, i); i += 16;
                     TransactionSuccess = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    MoneyBalance = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SquareMetersCredit = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SquareMetersCommitted = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    MoneyBalance = Utils.BytesToInt(bytes, i); i +=4;
+                    SquareMetersCredit = Utils.BytesToInt(bytes, i); i +=4;
+                    SquareMetersCommitted = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
@@ -53518,12 +53507,12 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    TransactionType = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TransactionType = Utils.BytesToInt(bytes, i); i +=4;
                     SourceID.FromBytes(bytes, i); i += 16;
                     IsSourceGroup = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     DestID.FromBytes(bytes, i); i += 16;
                     IsDestGroup = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    Amount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Amount = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     ItemDescription = new byte[length];
                     Buffer.BlockCopy(bytes, i, ItemDescription, 0, length); i += length;
@@ -53663,7 +53652,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -53707,7 +53696,7 @@ namespace OpenMetaverse.Packets
                 {
                     ItemID.FromBytes(bytes, i); i += 16;
                     AssetID.FromBytes(bytes, i); i += 16;
-                    GestureFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    GestureFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -53901,7 +53890,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -53943,7 +53932,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ItemID.FromBytes(bytes, i); i += 16;
-                    GestureFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    GestureFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -54406,7 +54395,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentRelated.FromBytes(bytes, i); i += 16;
-                    RelatedRights = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RelatedRights = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -54635,7 +54624,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentRelated.FromBytes(bytes, i); i += 16;
-                    RelatedRights = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RelatedRights = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -55232,7 +55221,7 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
-                    LocationID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocationID = Utils.BytesToUInt(bytes, i); i += 4;
                     LocationPos.FromBytes(bytes, i); i += 12;
                     LocationLookAt.FromBytes(bytes, i); i += 12;
                 }
@@ -55664,7 +55653,7 @@ namespace OpenMetaverse.Packets
                     Buffer.BlockCopy(bytes, i, Charter, 0, length); i += length;
                     ShowInList = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     InsigniaID.FromBytes(bytes, i); i += 16;
-                    MembershipFee = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    MembershipFee = Utils.BytesToInt(bytes, i); i +=4;
                     OpenEnrollment = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     AllowPublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     MaturePublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
@@ -56021,7 +56010,7 @@ namespace OpenMetaverse.Packets
                     Buffer.BlockCopy(bytes, i, Charter, 0, length); i += length;
                     ShowInList = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     InsigniaID.FromBytes(bytes, i); i += 16;
-                    MembershipFee = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    MembershipFee = Utils.BytesToInt(bytes, i); i +=4;
                     OpenEnrollment = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     AllowPublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     MaturePublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
@@ -56200,7 +56189,7 @@ namespace OpenMetaverse.Packets
                 {
                     RoleID.FromBytes(bytes, i); i += 16;
                     MemberID.FromBytes(bytes, i); i += 16;
-                    Change = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Change = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -58011,14 +58000,14 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     MemberTitle = new byte[length];
                     Buffer.BlockCopy(bytes, i, MemberTitle, 0, length); i += length;
-                    PowersMask = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    PowersMask = Utils.BytesToUInt64(bytes, i); i += 8;
                     InsigniaID.FromBytes(bytes, i); i += 16;
                     FounderID.FromBytes(bytes, i); i += 16;
-                    MembershipFee = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    MembershipFee = Utils.BytesToInt(bytes, i); i +=4;
                     OpenEnrollment = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    Money = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMembershipCount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupRolesCount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Money = Utils.BytesToInt(bytes, i); i +=4;
+                    GroupMembershipCount = Utils.BytesToInt(bytes, i); i +=4;
+                    GroupRolesCount = Utils.BytesToInt(bytes, i); i +=4;
                     AllowPublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     MaturePublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     OwnerRole.FromBytes(bytes, i); i += 16;
@@ -58206,8 +58195,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     RequestID.FromBytes(bytes, i); i += 16;
-                    IntervalDays = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CurrentInterval = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    IntervalDays = Utils.BytesToInt(bytes, i); i +=4;
+                    CurrentInterval = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -58394,25 +58383,25 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     RequestID.FromBytes(bytes, i); i += 16;
-                    IntervalDays = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CurrentInterval = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    IntervalDays = Utils.BytesToInt(bytes, i); i +=4;
+                    CurrentInterval = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     StartDate = new byte[length];
                     Buffer.BlockCopy(bytes, i, StartDate, 0, length); i += length;
-                    Balance = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    TotalCredits = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    TotalDebits = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ObjectTaxCurrent = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    LightTaxCurrent = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    LandTaxCurrent = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupTaxCurrent = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ParcelDirFeeCurrent = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ObjectTaxEstimate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    LightTaxEstimate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    LandTaxEstimate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupTaxEstimate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ParcelDirFeeEstimate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NonExemptMembers = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Balance = Utils.BytesToInt(bytes, i); i +=4;
+                    TotalCredits = Utils.BytesToInt(bytes, i); i +=4;
+                    TotalDebits = Utils.BytesToInt(bytes, i); i +=4;
+                    ObjectTaxCurrent = Utils.BytesToInt(bytes, i); i +=4;
+                    LightTaxCurrent = Utils.BytesToInt(bytes, i); i +=4;
+                    LandTaxCurrent = Utils.BytesToInt(bytes, i); i +=4;
+                    GroupTaxCurrent = Utils.BytesToInt(bytes, i); i +=4;
+                    ParcelDirFeeCurrent = Utils.BytesToInt(bytes, i); i +=4;
+                    ObjectTaxEstimate = Utils.BytesToInt(bytes, i); i +=4;
+                    LightTaxEstimate = Utils.BytesToInt(bytes, i); i +=4;
+                    LandTaxEstimate = Utils.BytesToInt(bytes, i); i +=4;
+                    GroupTaxEstimate = Utils.BytesToInt(bytes, i); i +=4;
+                    ParcelDirFeeEstimate = Utils.BytesToInt(bytes, i); i +=4;
+                    NonExemptMembers = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     LastTaxDate = new byte[length];
                     Buffer.BlockCopy(bytes, i, LastTaxDate, 0, length); i += length;
@@ -58606,8 +58595,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     RequestID.FromBytes(bytes, i); i += 16;
-                    IntervalDays = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CurrentInterval = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    IntervalDays = Utils.BytesToInt(bytes, i); i +=4;
+                    CurrentInterval = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -58776,8 +58765,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     RequestID.FromBytes(bytes, i); i += 16;
-                    IntervalDays = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CurrentInterval = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    IntervalDays = Utils.BytesToInt(bytes, i); i +=4;
+                    CurrentInterval = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     StartDate = new byte[length];
                     Buffer.BlockCopy(bytes, i, StartDate, 0, length); i += length;
@@ -58829,7 +58818,7 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    Amount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Amount = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -59076,8 +59065,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     RequestID.FromBytes(bytes, i); i += 16;
-                    IntervalDays = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CurrentInterval = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    IntervalDays = Utils.BytesToInt(bytes, i); i +=4;
+                    CurrentInterval = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -59246,8 +59235,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     RequestID.FromBytes(bytes, i); i += 16;
-                    IntervalDays = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CurrentInterval = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    IntervalDays = Utils.BytesToInt(bytes, i); i +=4;
+                    CurrentInterval = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     StartDate = new byte[length];
                     Buffer.BlockCopy(bytes, i, StartDate, 0, length); i += length;
@@ -59307,11 +59296,11 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     User = new byte[length];
                     Buffer.BlockCopy(bytes, i, User, 0, length); i += length;
-                    Type = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Type = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Item = new byte[length];
                     Buffer.BlockCopy(bytes, i, Item, 0, length); i += length;
-                    Amount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Amount = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -59763,7 +59752,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    TotalNumItems = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TotalNumItems = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -59834,7 +59823,7 @@ namespace OpenMetaverse.Packets
                     VoteCast = new byte[length];
                     Buffer.BlockCopy(bytes, i, VoteCast, 0, length); i += length;
                     Majority = Utils.BytesToFloat(bytes, i); i += 4;
-                    Quorum = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Quorum = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     ProposalText = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProposalText, 0, length); i += length;
@@ -60296,7 +60285,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    TotalNumItems = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TotalNumItems = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -60370,7 +60359,7 @@ namespace OpenMetaverse.Packets
                     VoteResult = new byte[length];
                     Buffer.BlockCopy(bytes, i, VoteResult, 0, length); i += length;
                     Majority = Utils.BytesToFloat(bytes, i); i += 4;
-                    Quorum = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Quorum = Utils.BytesToInt(bytes, i); i +=4;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     ProposalText = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProposalText, 0, length); i += length;
@@ -60436,7 +60425,7 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     VoteCast = new byte[length];
                     Buffer.BlockCopy(bytes, i, VoteCast, 0, length); i += length;
-                    NumVotes = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    NumVotes = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -60695,9 +60684,9 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    Quorum = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Quorum = Utils.BytesToInt(bytes, i); i +=4;
                     Majority = Utils.BytesToFloat(bytes, i); i += 4;
-                    Duration = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Duration = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     ProposalText = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProposalText, 0, length); i += length;
@@ -61199,7 +61188,7 @@ namespace OpenMetaverse.Packets
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
                     RequestID.FromBytes(bytes, i); i += 16;
-                    MemberCount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    MemberCount = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -61249,11 +61238,11 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    Contribution = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Contribution = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     OnlineStatus = new byte[length];
                     Buffer.BlockCopy(bytes, i, OnlineStatus, 0, length); i += length;
-                    AgentPowers = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    AgentPowers = Utils.BytesToUInt64(bytes, i); i += 8;
                     length = bytes[i++];
                     Title = new byte[length];
                     Buffer.BlockCopy(bytes, i, Title, 0, length); i += length;
@@ -61623,7 +61612,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    Contribution = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Contribution = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -62153,7 +62142,7 @@ namespace OpenMetaverse.Packets
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
                     RequestID.FromBytes(bytes, i); i += 16;
-                    RoleCount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RoleCount = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -62213,8 +62202,8 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    Powers = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    Members = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Powers = Utils.BytesToUInt64(bytes, i); i += 8;
+                    Members = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -62587,7 +62576,7 @@ namespace OpenMetaverse.Packets
                     AgentID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
                     RequestID.FromBytes(bytes, i); i += 16;
-                    TotalPairs = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TotalPairs = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -63368,7 +63357,7 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     Title = new byte[length];
                     Buffer.BlockCopy(bytes, i, Title, 0, length); i += length;
-                    Powers = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    Powers = Utils.BytesToUInt64(bytes, i); i += 8;
                     UpdateType = (byte)bytes[i++];
                 }
                 catch (Exception)
@@ -63920,7 +63909,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    SerialNum = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SerialNum = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -64392,7 +64381,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    SerialNum = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SerialNum = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -64627,7 +64616,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    SerialNum = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SerialNum = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -65004,7 +64993,7 @@ namespace OpenMetaverse.Packets
                     GroupTitle = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupTitle, 0, length); i += length;
                     ActiveGroupID.FromBytes(bytes, i); i += 16;
-                    GroupPowers = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    GroupPowers = Utils.BytesToUInt64(bytes, i); i += 8;
                     length = bytes[i++];
                     GroupName = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupName, 0, length); i += length;
@@ -65137,7 +65126,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    AgentPowers = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    AgentPowers = Utils.BytesToUInt64(bytes, i); i += 8;
                     length = bytes[i++];
                     GroupTitle = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupTitle, 0, length); i += length;
@@ -65371,10 +65360,10 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    GroupPowers = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    GroupPowers = Utils.BytesToUInt64(bytes, i); i += 8;
                     AcceptNotices = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     GroupInsigniaID.FromBytes(bytes, i); i += 16;
-                    Contribution = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Contribution = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     GroupName = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupName, 0, length); i += length;
@@ -65743,10 +65732,10 @@ namespace OpenMetaverse.Packets
                     ItemID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     AttachmentPt = (byte)bytes[i++];
-                    ItemFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ItemFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
@@ -65981,10 +65970,10 @@ namespace OpenMetaverse.Packets
                     ItemID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     AttachmentPt = (byte)bytes[i++];
-                    ItemFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ItemFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
@@ -67221,8 +67210,8 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EstateID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
+                    EstateID = Utils.BytesToUInt(bytes, i); i += 4;
                     Godlike = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -67340,7 +67329,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -67383,10 +67372,10 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Left = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Right = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Top = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Bottom = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Left = Utils.BytesToUInt(bytes, i); i += 4;
+                    Right = Utils.BytesToUInt(bytes, i); i += 4;
+                    Top = Utils.BytesToUInt(bytes, i); i += 4;
+                    Bottom = Utils.BytesToUInt(bytes, i); i += 4;
                     ImageID.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -67585,8 +67574,8 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EstateID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
+                    EstateID = Utils.BytesToUInt(bytes, i); i += 4;
                     Godlike = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -67632,10 +67621,10 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    MinX = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    MaxX = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    MinY = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    MaxY = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    MinX = Utils.BytesToUInt16(bytes, i); i+=2;
+                    MaxX = Utils.BytesToUInt16(bytes, i); i+=2;
+                    MinY = Utils.BytesToUInt16(bytes, i); i+=2;
+                    MaxY = Utils.BytesToUInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -67645,14 +67634,10 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(MinX % 256);
-                bytes[i++] = (byte)((MinX >> 8) % 256);
-                bytes[i++] = (byte)(MaxX % 256);
-                bytes[i++] = (byte)((MaxX >> 8) % 256);
-                bytes[i++] = (byte)(MinY % 256);
-                bytes[i++] = (byte)((MinY >> 8) % 256);
-                bytes[i++] = (byte)(MaxY % 256);
-                bytes[i++] = (byte)((MaxY >> 8) % 256);
+                Utils.UInt16ToBytes(MinX, bytes, i); i += 2;
+                Utils.UInt16ToBytes(MaxX, bytes, i); i += 2;
+                Utils.UInt16ToBytes(MinY, bytes, i); i += 2;
+                Utils.UInt16ToBytes(MaxY, bytes, i); i += 2;
             }
 
         }
@@ -67766,8 +67751,8 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EstateID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
+                    EstateID = Utils.BytesToUInt(bytes, i); i += 4;
                     Godlike = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -67936,7 +67921,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -67985,13 +67970,13 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    X = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    Y = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    X = Utils.BytesToUInt16(bytes, i); i+=2;
+                    Y = Utils.BytesToUInt16(bytes, i); i+=2;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     Access = (byte)bytes[i++];
-                    RegionFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RegionFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     WaterHeight = (byte)bytes[i++];
                     Agents = (byte)bytes[i++];
                     MapImageID.FromBytes(bytes, i); i += 16;
@@ -68004,10 +67989,8 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(X % 256);
-                bytes[i++] = (byte)((X >> 8) % 256);
-                bytes[i++] = (byte)(Y % 256);
-                bytes[i++] = (byte)((Y >> 8) % 256);
+                Utils.UInt16ToBytes(X, bytes, i); i += 2;
+                Utils.UInt16ToBytes(Y, bytes, i); i += 2;
                 bytes[i++] = (byte)Name.Length;
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
                 bytes[i++] = Access;
@@ -68043,8 +68026,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    SizeX = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    SizeY = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    SizeX = Utils.BytesToUInt16(bytes, i); i+=2;
+                    SizeY = Utils.BytesToUInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -68054,10 +68037,8 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(SizeX % 256);
-                bytes[i++] = (byte)((SizeX >> 8) % 256);
-                bytes[i++] = (byte)(SizeY % 256);
-                bytes[i++] = (byte)((SizeY >> 8) % 256);
+                Utils.UInt16ToBytes(SizeX, bytes, i); i += 2;
+                Utils.UInt16ToBytes(SizeY, bytes, i); i += 2;
             }
 
         }
@@ -68283,8 +68264,8 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EstateID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
+                    EstateID = Utils.BytesToUInt(bytes, i); i += 4;
                     Godlike = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -68328,8 +68309,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ItemType = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    ItemType = Utils.BytesToUInt(bytes, i); i += 4;
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
                 }
                 catch (Exception)
                 {
@@ -68450,7 +68431,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -68489,7 +68470,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ItemType = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ItemType = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -68535,11 +68516,11 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    X = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Y = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    X = Utils.BytesToUInt(bytes, i); i += 4;
+                    Y = Utils.BytesToUInt(bytes, i); i += 4;
                     ID.FromBytes(bytes, i); i += 16;
-                    Extra = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Extra2 = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Extra = Utils.BytesToInt(bytes, i); i +=4;
+                    Extra2 = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
@@ -68911,8 +68892,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Command = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
+                    Command = Utils.BytesToUInt(bytes, i); i += 4;
                     Time = Utils.BytesToFloat(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -69090,8 +69071,8 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     MediaDesc = new byte[length];
                     Buffer.BlockCopy(bytes, i, MediaDesc, 0, length); i += length;
-                    MediaWidth = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    MediaHeight = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    MediaWidth = Utils.BytesToInt(bytes, i); i +=4;
+                    MediaHeight = Utils.BytesToInt(bytes, i); i +=4;
                     MediaLoop = (byte)bytes[i++];
                 }
                 catch (Exception)
@@ -69263,12 +69244,12 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    ReportType = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RequestFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ReportType = Utils.BytesToUInt(bytes, i); i += 4;
+                    RequestFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     length = bytes[i++];
                     Filter = new byte[length];
                     Buffer.BlockCopy(bytes, i, Filter, 0, length); i += length;
-                    ParcelLocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ParcelLocalID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -69392,9 +69373,9 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ReportType = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RequestFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    TotalObjectCount = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ReportType = Utils.BytesToUInt(bytes, i); i += 4;
+                    RequestFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    TotalObjectCount = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -69445,7 +69426,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    TaskLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    TaskLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     TaskID.FromBytes(bytes, i); i += 16;
                     LocationX = Utils.BytesToFloat(bytes, i); i += 4;
                     LocationY = Utils.BytesToFloat(bytes, i); i += 4;
@@ -69702,7 +69683,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    Code = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Code = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Token = new byte[length];
                     Buffer.BlockCopy(bytes, i, Token, 0, length); i += length;
@@ -69887,7 +69868,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     IncludeInSearch = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -70147,26 +70128,26 @@ namespace OpenMetaverse.Packets
                     CreatorID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    BaseMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    BaseMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
                     GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     TransactionID.FromBytes(bytes, i); i += 16;
                     Type = (sbyte)bytes[i++];
                     InvType = (sbyte)bytes[i++];
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     length = bytes[i++];
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    CreationDate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToInt(bytes, i); i +=4;
+                    CRC = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -70358,7 +70339,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    CallbackID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CallbackID = Utils.BytesToUInt(bytes, i); i += 4;
                     FolderID.FromBytes(bytes, i); i += 16;
                     TransactionID.FromBytes(bytes, i); i += 16;
                     OldItemID.FromBytes(bytes, i); i += 16;
@@ -70618,7 +70599,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    GroupLimit = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    GroupLimit = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -70780,7 +70761,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    GroupLimit = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    GroupLimit = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -70839,7 +70820,7 @@ namespace OpenMetaverse.Packets
                     Buffer.BlockCopy(bytes, i, Charter, 0, length); i += length;
                     ShowInList = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     InsigniaID.FromBytes(bytes, i); i += 16;
-                    MembershipFee = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    MembershipFee = Utils.BytesToInt(bytes, i); i +=4;
                     OpenEnrollment = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     AllowPublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
                     MaturePublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
@@ -70970,7 +70951,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -71150,7 +71131,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    IP = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    IP = Utils.BytesToUInt(bytes, i); i += 4;
                     Port = (ushort)((bytes[i++] << 8) + bytes[i++]);
                 }
                 catch (Exception)
@@ -71404,11 +71385,11 @@ namespace OpenMetaverse.Packets
                 {
                     PCode = (byte)bytes[i++];
                     Material = (byte)bytes[i++];
-                    AddFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    AddFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     PathCurve = (byte)bytes[i++];
                     ProfileCurve = (byte)bytes[i++];
-                    PathBegin = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    PathEnd = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    PathBegin = Utils.BytesToUInt16(bytes, i); i+=2;
+                    PathEnd = Utils.BytesToUInt16(bytes, i); i+=2;
                     PathScaleX = (byte)bytes[i++];
                     PathScaleY = (byte)bytes[i++];
                     PathShearX = (byte)bytes[i++];
@@ -71420,9 +71401,9 @@ namespace OpenMetaverse.Packets
                     PathTaperY = (sbyte)bytes[i++];
                     PathRevolutions = (byte)bytes[i++];
                     PathSkew = (sbyte)bytes[i++];
-                    ProfileBegin = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    ProfileEnd = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    ProfileHollow = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    ProfileBegin = Utils.BytesToUInt16(bytes, i); i+=2;
+                    ProfileEnd = Utils.BytesToUInt16(bytes, i); i+=2;
+                    ProfileHollow = Utils.BytesToUInt16(bytes, i); i+=2;
                     BypassRaycast = (byte)bytes[i++];
                     RayStart.FromBytes(bytes, i); i += 12;
                     RayEnd.FromBytes(bytes, i); i += 12;
@@ -71445,10 +71426,8 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytes(AddFlags, bytes, i); i += 4;
                 bytes[i++] = PathCurve;
                 bytes[i++] = ProfileCurve;
-                bytes[i++] = (byte)(PathBegin % 256);
-                bytes[i++] = (byte)((PathBegin >> 8) % 256);
-                bytes[i++] = (byte)(PathEnd % 256);
-                bytes[i++] = (byte)((PathEnd >> 8) % 256);
+                Utils.UInt16ToBytes(PathBegin, bytes, i); i += 2;
+                Utils.UInt16ToBytes(PathEnd, bytes, i); i += 2;
                 bytes[i++] = PathScaleX;
                 bytes[i++] = PathScaleY;
                 bytes[i++] = PathShearX;
@@ -71460,12 +71439,9 @@ namespace OpenMetaverse.Packets
                 bytes[i++] = (byte)PathTaperY;
                 bytes[i++] = PathRevolutions;
                 bytes[i++] = (byte)PathSkew;
-                bytes[i++] = (byte)(ProfileBegin % 256);
-                bytes[i++] = (byte)((ProfileBegin >> 8) % 256);
-                bytes[i++] = (byte)(ProfileEnd % 256);
-                bytes[i++] = (byte)((ProfileEnd >> 8) % 256);
-                bytes[i++] = (byte)(ProfileHollow % 256);
-                bytes[i++] = (byte)((ProfileHollow >> 8) % 256);
+                Utils.UInt16ToBytes(ProfileBegin, bytes, i); i += 2;
+                Utils.UInt16ToBytes(ProfileEnd, bytes, i); i += 2;
+                Utils.UInt16ToBytes(ProfileHollow, bytes, i); i += 2;
                 bytes[i++] = BypassRaycast;
                 RayStart.ToBytes(bytes, i); i += 12;
                 RayEnd.ToBytes(bytes, i); i += 12;
@@ -71628,7 +71604,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     Type = (byte)bytes[i++];
                     length = bytes[i++];
                     Data = new byte[length];
@@ -71867,7 +71843,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     CacheMissType = (byte)bytes[i++];
-                    ID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -72099,7 +72075,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ObjectLocalID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ObjectLocalID = Utils.BytesToUInt(bytes, i); i += 4;
                     Position.FromBytes(bytes, i); i += 12;
                 }
                 catch (Exception)
@@ -72332,7 +72308,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RequestFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RequestFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     ObjectID.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -72498,8 +72474,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    You = (short)(bytes[i++] + (bytes[i++] << 8));
-                    Prey = (short)(bytes[i++] + (bytes[i++] << 8));
+                    You = Utils.BytesToInt16(bytes, i); i+=2;
+                    Prey = Utils.BytesToInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -72509,10 +72485,8 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(You % 256);
-                bytes[i++] = (byte)((You >> 8) % 256);
-                bytes[i++] = (byte)(Prey % 256);
-                bytes[i++] = (byte)((Prey >> 8) % 256);
+                Utils.Int16ToBytes(You, bytes, i); i += 2;
+                Utils.Int16ToBytes(Prey, bytes, i); i += 2;
             }
 
         }
@@ -72746,9 +72720,9 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    SimIP = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SimIP = Utils.BytesToUInt(bytes, i); i += 4;
                     SimPort = (ushort)((bytes[i++] << 8) + bytes[i++]);
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     SeedCapability = new byte[length];
                     Buffer.BlockCopy(bytes, i, SeedCapability, 0, length); i += length;
@@ -73074,20 +73048,20 @@ namespace OpenMetaverse.Packets
                     CreatorID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    CreationDate = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    BaseMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnershipCost = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CreationDate = Utils.BytesToUInt64(bytes, i); i += 8;
+                    BaseMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnershipCost = Utils.BytesToInt(bytes, i); i +=4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     AggregatePerms = (byte)bytes[i++];
                     AggregatePermTextures = (byte)bytes[i++];
                     AggregatePermTexturesOwner = (byte)bytes[i++];
-                    Category = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    InventorySerial = (short)(bytes[i++] + (bytes[i++] << 8));
+                    Category = Utils.BytesToUInt(bytes, i); i += 4;
+                    InventorySerial = Utils.BytesToInt16(bytes, i); i+=2;
                     ItemID.FromBytes(bytes, i); i += 16;
                     FolderID.FromBytes(bytes, i); i += 16;
                     FromTaskID.FromBytes(bytes, i); i += 16;
@@ -73133,8 +73107,7 @@ namespace OpenMetaverse.Packets
                 bytes[i++] = AggregatePermTextures;
                 bytes[i++] = AggregatePermTexturesOwner;
                 Utils.UIntToBytes(Category, bytes, i); i += 4;
-                bytes[i++] = (byte)(InventorySerial % 256);
-                bytes[i++] = (byte)((InventorySerial >> 8) % 256);
+                Utils.Int16ToBytes(InventorySerial, bytes, i); i += 2;
                 ItemID.ToBytes(bytes, i); i += 16;
                 FolderID.ToBytes(bytes, i); i += 16;
                 FromTaskID.ToBytes(bytes, i); i += 16;
@@ -73337,19 +73310,19 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    RequestFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RequestFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     ObjectID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    BaseMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    EveryoneMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    NextOwnerMask = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnershipCost = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    BaseMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    GroupMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    EveryoneMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    NextOwnerMask = Utils.BytesToUInt(bytes, i); i += 4;
+                    OwnershipCost = Utils.BytesToInt(bytes, i); i +=4;
                     SaleType = (byte)bytes[i++];
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Category = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
+                    Category = Utils.BytesToUInt(bytes, i); i += 4;
                     LastOwnerID.FromBytes(bytes, i); i += 16;
                     length = bytes[i++];
                     Name = new byte[length];
@@ -73531,7 +73504,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    SequenceID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SequenceID = Utils.BytesToInt(bytes, i); i +=4;
                     West = Utils.BytesToFloat(bytes, i); i += 4;
                     South = Utils.BytesToFloat(bytes, i); i += 4;
                     East = Utils.BytesToFloat(bytes, i); i += 4;
@@ -74336,7 +74309,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     PingID = (byte)bytes[i++];
-                    OldestUnacked = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    OldestUnacked = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -74580,7 +74553,7 @@ namespace OpenMetaverse.Packets
                     CameraLeftAxis.FromBytes(bytes, i); i += 12;
                     CameraUpAxis.FromBytes(bytes, i); i += 12;
                     Far = Utils.BytesToFloat(bytes, i); i += 4;
-                    ControlFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ControlFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     Flags = (byte)bytes[i++];
                 }
                 catch (Exception)
@@ -75347,7 +75320,7 @@ namespace OpenMetaverse.Packets
                     Image.FromBytes(bytes, i); i += 16;
                     DiscardLevel = (sbyte)bytes[i++];
                     DownloadPriority = Utils.BytesToFloat(bytes, i); i += 4;
-                    Packet = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Packet = Utils.BytesToUInt(bytes, i); i += 4;
                     Type = (byte)bytes[i++];
                 }
                 catch (Exception)
@@ -75545,8 +75518,8 @@ namespace OpenMetaverse.Packets
                 {
                     ID.FromBytes(bytes, i); i += 16;
                     Codec = (byte)bytes[i++];
-                    Size = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Packets = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    Size = Utils.BytesToUInt(bytes, i); i += 4;
+                    Packets = Utils.BytesToUInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -75559,8 +75532,7 @@ namespace OpenMetaverse.Packets
                 ID.ToBytes(bytes, i); i += 16;
                 bytes[i++] = Codec;
                 Utils.UIntToBytes(Size, bytes, i); i += 4;
-                bytes[i++] = (byte)(Packets % 256);
-                bytes[i++] = (byte)((Packets >> 8) % 256);
+                Utils.UInt16ToBytes(Packets, bytes, i); i += 2;
             }
 
         }
@@ -75715,7 +75687,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ID.FromBytes(bytes, i); i += 16;
-                    Packet = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    Packet = Utils.BytesToUInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -75726,8 +75698,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)(Packet % 256);
-                bytes[i++] = (byte)((Packet >> 8) % 256);
+                Utils.UInt16ToBytes(Packet, bytes, i); i += 2;
             }
 
         }
@@ -76044,8 +76015,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    TimeDilation = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
+                    TimeDilation = Utils.BytesToUInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -76056,8 +76027,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UInt64ToBytes(RegionHandle, bytes, i); i += 8;
-                bytes[i++] = (byte)(TimeDilation % 256);
-                bytes[i++] = (byte)((TimeDilation >> 8) % 256);
+                Utils.UInt16ToBytes(TimeDilation, bytes, i); i += 2;
             }
 
         }
@@ -76141,10 +76111,10 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    ID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ID = Utils.BytesToUInt(bytes, i); i += 4;
                     State = (byte)bytes[i++];
                     FullID.FromBytes(bytes, i); i += 16;
-                    CRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    CRC = Utils.BytesToUInt(bytes, i); i += 4;
                     PCode = (byte)bytes[i++];
                     Material = (byte)bytes[i++];
                     ClickAction = (byte)bytes[i++];
@@ -76152,12 +76122,12 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     ObjectData = new byte[length];
                     Buffer.BlockCopy(bytes, i, ObjectData, 0, length); i += length;
-                    ParentID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    UpdateFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ParentID = Utils.BytesToUInt(bytes, i); i += 4;
+                    UpdateFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     PathCurve = (byte)bytes[i++];
                     ProfileCurve = (byte)bytes[i++];
-                    PathBegin = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    PathEnd = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    PathBegin = Utils.BytesToUInt16(bytes, i); i+=2;
+                    PathEnd = Utils.BytesToUInt16(bytes, i); i+=2;
                     PathScaleX = (byte)bytes[i++];
                     PathScaleY = (byte)bytes[i++];
                     PathShearX = (byte)bytes[i++];
@@ -76169,9 +76139,9 @@ namespace OpenMetaverse.Packets
                     PathTaperY = (sbyte)bytes[i++];
                     PathRevolutions = (byte)bytes[i++];
                     PathSkew = (sbyte)bytes[i++];
-                    ProfileBegin = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    ProfileEnd = (ushort)(bytes[i++] + (bytes[i++] << 8));
-                    ProfileHollow = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    ProfileBegin = Utils.BytesToUInt16(bytes, i); i+=2;
+                    ProfileEnd = Utils.BytesToUInt16(bytes, i); i+=2;
+                    ProfileHollow = Utils.BytesToUInt16(bytes, i); i+=2;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     TextureEntry = new byte[length];
                     Buffer.BlockCopy(bytes, i, TextureEntry, 0, length); i += length;
@@ -76229,10 +76199,8 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytes(UpdateFlags, bytes, i); i += 4;
                 bytes[i++] = PathCurve;
                 bytes[i++] = ProfileCurve;
-                bytes[i++] = (byte)(PathBegin % 256);
-                bytes[i++] = (byte)((PathBegin >> 8) % 256);
-                bytes[i++] = (byte)(PathEnd % 256);
-                bytes[i++] = (byte)((PathEnd >> 8) % 256);
+                Utils.UInt16ToBytes(PathBegin, bytes, i); i += 2;
+                Utils.UInt16ToBytes(PathEnd, bytes, i); i += 2;
                 bytes[i++] = PathScaleX;
                 bytes[i++] = PathScaleY;
                 bytes[i++] = PathShearX;
@@ -76244,12 +76212,9 @@ namespace OpenMetaverse.Packets
                 bytes[i++] = (byte)PathTaperY;
                 bytes[i++] = PathRevolutions;
                 bytes[i++] = (byte)PathSkew;
-                bytes[i++] = (byte)(ProfileBegin % 256);
-                bytes[i++] = (byte)((ProfileBegin >> 8) % 256);
-                bytes[i++] = (byte)(ProfileEnd % 256);
-                bytes[i++] = (byte)((ProfileEnd >> 8) % 256);
-                bytes[i++] = (byte)(ProfileHollow % 256);
-                bytes[i++] = (byte)((ProfileHollow >> 8) % 256);
+                Utils.UInt16ToBytes(ProfileBegin, bytes, i); i += 2;
+                Utils.UInt16ToBytes(ProfileEnd, bytes, i); i += 2;
+                Utils.UInt16ToBytes(ProfileHollow, bytes, i); i += 2;
                 bytes[i++] = (byte)(TextureEntry.Length % 256);
                 bytes[i++] = (byte)((TextureEntry.Length >> 8) % 256);
                 Buffer.BlockCopy(TextureEntry, 0, bytes, i, TextureEntry.Length); i += TextureEntry.Length;
@@ -76457,8 +76422,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    TimeDilation = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
+                    TimeDilation = Utils.BytesToUInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -76469,8 +76434,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UInt64ToBytes(RegionHandle, bytes, i); i += 8;
-                bytes[i++] = (byte)(TimeDilation % 256);
-                bytes[i++] = (byte)((TimeDilation >> 8) % 256);
+                Utils.UInt16ToBytes(TimeDilation, bytes, i); i += 2;
             }
 
         }
@@ -76502,7 +76466,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    UpdateFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    UpdateFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
@@ -76697,8 +76661,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    TimeDilation = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
+                    TimeDilation = Utils.BytesToUInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -76709,8 +76673,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UInt64ToBytes(RegionHandle, bytes, i); i += 8;
-                bytes[i++] = (byte)(TimeDilation % 256);
-                bytes[i++] = (byte)((TimeDilation >> 8) % 256);
+                Utils.UInt16ToBytes(TimeDilation, bytes, i); i += 2;
             }
 
         }
@@ -76740,9 +76703,9 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    CRC = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    UpdateFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ID = Utils.BytesToUInt(bytes, i); i += 4;
+                    CRC = Utils.BytesToUInt(bytes, i); i += 4;
+                    UpdateFlags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -76933,8 +76896,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    TimeDilation = (ushort)(bytes[i++] + (bytes[i++] << 8));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
+                    TimeDilation = Utils.BytesToUInt16(bytes, i); i+=2;
                 }
                 catch (Exception)
                 {
@@ -76945,8 +76908,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UInt64ToBytes(RegionHandle, bytes, i); i += 8;
-                bytes[i++] = (byte)(TimeDilation % 256);
-                bytes[i++] = (byte)((TimeDilation >> 8) % 256);
+                Utils.UInt16ToBytes(TimeDilation, bytes, i); i += 2;
             }
 
         }
@@ -77176,7 +77138,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ID = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -77363,9 +77325,9 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TransferID.FromBytes(bytes, i); i += 16;
-                    ChannelType = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Packet = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    Status = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ChannelType = Utils.BytesToInt(bytes, i); i +=4;
+                    Packet = Utils.BytesToInt(bytes, i); i +=4;
+                    Status = Utils.BytesToInt(bytes, i); i +=4;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
@@ -77486,8 +77448,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ID = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    Packet = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ID = Utils.BytesToUInt64(bytes, i); i += 8;
+                    Packet = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -77652,8 +77614,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ID = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    Packet = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ID = Utils.BytesToUInt64(bytes, i); i += 8;
+                    Packet = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -77805,7 +77767,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AnimID.FromBytes(bytes, i); i += 16;
-                    AnimSequenceID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    AnimSequenceID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {
@@ -78499,38 +78461,38 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    RequestResult = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SequenceID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RequestResult = Utils.BytesToInt(bytes, i); i +=4;
+                    SequenceID = Utils.BytesToInt(bytes, i); i +=4;
                     SnapSelection = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    SelfCount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OtherCount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    PublicCount = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    LocalID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SelfCount = Utils.BytesToInt(bytes, i); i +=4;
+                    OtherCount = Utils.BytesToInt(bytes, i); i +=4;
+                    PublicCount = Utils.BytesToInt(bytes, i); i +=4;
+                    LocalID = Utils.BytesToInt(bytes, i); i +=4;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     IsGroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    AuctionID = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ClaimDate = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ClaimPrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    RentPrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    AuctionID = Utils.BytesToUInt(bytes, i); i += 4;
+                    ClaimDate = Utils.BytesToInt(bytes, i); i +=4;
+                    ClaimPrice = Utils.BytesToInt(bytes, i); i +=4;
+                    RentPrice = Utils.BytesToInt(bytes, i); i +=4;
                     AABBMin.FromBytes(bytes, i); i += 12;
                     AABBMax.FromBytes(bytes, i); i += 12;
                     length = (bytes[i++] + (bytes[i++] << 8));
                     Bitmap = new byte[length];
                     Buffer.BlockCopy(bytes, i, Bitmap, 0, length); i += length;
-                    Area = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Area = Utils.BytesToInt(bytes, i); i +=4;
                     Status = (byte)bytes[i++];
-                    SimWideMaxPrims = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SimWideTotalPrims = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    MaxPrims = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    TotalPrims = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OwnerPrims = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    GroupPrims = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    OtherPrims = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SelectedPrims = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    SimWideMaxPrims = Utils.BytesToInt(bytes, i); i +=4;
+                    SimWideTotalPrims = Utils.BytesToInt(bytes, i); i +=4;
+                    MaxPrims = Utils.BytesToInt(bytes, i); i +=4;
+                    TotalPrims = Utils.BytesToInt(bytes, i); i +=4;
+                    OwnerPrims = Utils.BytesToInt(bytes, i); i +=4;
+                    GroupPrims = Utils.BytesToInt(bytes, i); i +=4;
+                    OtherPrims = Utils.BytesToInt(bytes, i); i +=4;
+                    SelectedPrims = Utils.BytesToInt(bytes, i); i +=4;
                     ParcelPrimBonus = Utils.BytesToFloat(bytes, i); i += 4;
-                    OtherCleanTime = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    ParcelFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
-                    SalePrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    OtherCleanTime = Utils.BytesToInt(bytes, i); i +=4;
+                    ParcelFlags = Utils.BytesToUInt(bytes, i); i += 4;
+                    SalePrice = Utils.BytesToInt(bytes, i); i +=4;
                     length = bytes[i++];
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
@@ -78546,7 +78508,7 @@ namespace OpenMetaverse.Packets
                     MediaID.FromBytes(bytes, i); i += 16;
                     MediaAutoScale = (byte)bytes[i++];
                     GroupID.FromBytes(bytes, i); i += 16;
-                    PassPrice = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    PassPrice = Utils.BytesToInt(bytes, i); i +=4;
                     PassHours = Utils.BytesToFloat(bytes, i); i += 4;
                     Category = (byte)bytes[i++];
                     AuthBuyerID.FromBytes(bytes, i); i += 16;
@@ -78842,8 +78804,8 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    ViewerCircuitCode = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
+                    ViewerCircuitCode = Utils.BytesToUInt(bytes, i); i += 4;
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
                     AgentPos.FromBytes(bytes, i); i += 12;
@@ -78859,10 +78821,10 @@ namespace OpenMetaverse.Packets
                     length = bytes[i++];
                     Throttles = new byte[length];
                     Buffer.BlockCopy(bytes, i, Throttles, 0, length); i += length;
-                    LocomotionState = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    LocomotionState = Utils.BytesToUInt(bytes, i); i += 4;
                     HeadRotation.FromBytes(bytes, i, true); i += 12;
                     BodyRotation.FromBytes(bytes, i, true); i += 12;
-                    ControlFlags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    ControlFlags = Utils.BytesToUInt(bytes, i); i += 4;
                     EnergyLevel = Utils.BytesToFloat(bytes, i); i += 4;
                     GodLevel = (byte)bytes[i++];
                     AlwaysRun = (bytes[i++] != 0) ? (bool)true : (bool)false;
@@ -78940,7 +78902,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    GroupPowers = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    GroupPowers = Utils.BytesToUInt64(bytes, i); i += 8;
                     AcceptNotices = (bytes[i++] != 0) ? (bool)true : (bool)false;
                 }
                 catch (Exception)
@@ -79184,7 +79146,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Flags = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    Flags = Utils.BytesToUInt(bytes, i); i += 4;
                 }
                 catch (Exception)
                 {
@@ -79714,8 +79676,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    ViewerCircuitCode = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
+                    ViewerCircuitCode = Utils.BytesToUInt(bytes, i); i += 4;
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
                 }
@@ -79842,8 +79804,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionHandle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
-                    ViewerCircuitCode = (uint)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    RegionHandle = Utils.BytesToUInt64(bytes, i); i += 8;
+                    ViewerCircuitCode = Utils.BytesToUInt(bytes, i); i += 4;
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
                     AgentPos.FromBytes(bytes, i); i += 12;
@@ -79985,7 +79947,7 @@ namespace OpenMetaverse.Packets
                     OwnerID.FromBytes(bytes, i); i += 16;
                     ObjectID.FromBytes(bytes, i); i += 16;
                     ParentID.FromBytes(bytes, i); i += 16;
-                    Handle = (ulong)((ulong)bytes[i++] + ((ulong)bytes[i++] << 8) + ((ulong)bytes[i++] << 16) + ((ulong)bytes[i++] << 24) + ((ulong)bytes[i++] << 32) + ((ulong)bytes[i++] << 40) + ((ulong)bytes[i++] << 48) + ((ulong)bytes[i++] << 56));
+                    Handle = Utils.BytesToUInt64(bytes, i); i += 8;
                     Position.FromBytes(bytes, i); i += 12;
                     Gain = Utils.BytesToFloat(bytes, i); i += 4;
                 }
@@ -80144,7 +80106,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AnimID.FromBytes(bytes, i); i += 16;
-                    AnimSequenceID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                    AnimSequenceID = Utils.BytesToInt(bytes, i); i +=4;
                 }
                 catch (Exception)
                 {

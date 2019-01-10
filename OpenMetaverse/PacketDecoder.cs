@@ -258,9 +258,9 @@ namespace OpenMetaverse.Packets
             result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
                                         "Velocity",
                                         new Vector3(
-                Utils.UInt16ToFloat(block, i, -128.0f, 128.0f),
-                Utils.UInt16ToFloat(block, i + 2, -128.0f, 128.0f),
-                Utils.UInt16ToFloat(block, i + 4, -128.0f, 128.0f)),
+                Utils.BytesUInt16ToFloat(block, i, -128.0f, 128.0f),
+                Utils.BytesUInt16ToFloat(block, i + 2, -128.0f, 128.0f),
+                Utils.BytesUInt16ToFloat(block, i + 4, -128.0f, 128.0f)),
                                         "Vector3");
             i += 6;
 
@@ -268,9 +268,9 @@ namespace OpenMetaverse.Packets
             result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
                                         "Acceleration",
                                         new Vector3(
-                Utils.UInt16ToFloat(block, i, -64.0f, 64.0f),
-                Utils.UInt16ToFloat(block, i + 2, -64.0f, 64.0f),
-                Utils.UInt16ToFloat(block, i + 4, -64.0f, 64.0f)),
+                Utils.BytesUInt16ToFloat(block, i, -64.0f, 64.0f),
+                Utils.BytesUInt16ToFloat(block, i + 2, -64.0f, 64.0f),
+                Utils.BytesUInt16ToFloat(block, i + 4, -64.0f, 64.0f)),
                                         "Vector3");
 
             i += 6;
@@ -278,19 +278,19 @@ namespace OpenMetaverse.Packets
             result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
                                         "Rotation",
                               new Quaternion(
-                Utils.UInt16ToFloat(block, i, -1.0f, 1.0f),
-                Utils.UInt16ToFloat(block, i + 2, -1.0f, 1.0f),
-                Utils.UInt16ToFloat(block, i + 4, -1.0f, 1.0f),
-                Utils.UInt16ToFloat(block, i + 6, -1.0f, 1.0f)),
+                Utils.BytesUInt16ToFloat(block, i, -1.0f, 1.0f),
+                Utils.BytesUInt16ToFloat(block, i + 2, -1.0f, 1.0f),
+                Utils.BytesUInt16ToFloat(block, i + 4, -1.0f, 1.0f),
+                Utils.BytesUInt16ToFloat(block, i + 6, -1.0f, 1.0f)),
                                         "Quaternion");
             i += 8;
             // Angular velocity (omega)
             result.AppendFormat("{0,30}: {1,-40} [{2}]",
                                         "AngularVelocity",
                               new Vector3(
-                Utils.UInt16ToFloat(block, i, -64.0f, 64.0f),
-                Utils.UInt16ToFloat(block, i + 2, -64.0f, 64.0f),
-                Utils.UInt16ToFloat(block, i + 4, -64.0f, 64.0f)),
+                Utils.BytesUInt16ToFloat(block, i, -64.0f, 64.0f),
+                Utils.BytesUInt16ToFloat(block, i + 2, -64.0f, 64.0f),
+                Utils.BytesUInt16ToFloat(block, i + 4, -64.0f, 64.0f)),
                                         "Vector3");
             //pos += 6;
             // TODO:  What is in these 6 bytes?

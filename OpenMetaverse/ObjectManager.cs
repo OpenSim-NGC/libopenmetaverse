@@ -1941,34 +1941,34 @@ namespace OpenMetaverse
 
                         // Position
                         objectupdate.Position = new Vector3(
-                            Utils.UInt16ToFloat(block.ObjectData, pos, -0.5f * 256.0f, 1.5f * 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 2, -0.5f * 256.0f, 1.5f * 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 3.0f * 256.0f));
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos, -0.5f * 256.0f, 1.5f * 256.0f),
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos + 2, -0.5f * 256.0f, 1.5f * 256.0f),
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 3.0f * 256.0f));
                         pos += 6;
                         // Velocity
                         objectupdate.Velocity = new Vector3(
-                            Utils.UInt16ToFloat(block.ObjectData, pos, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 256.0f));
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos, -256.0f, 256.0f),
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f),
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 256.0f));
                         pos += 6;
                         // Acceleration
                         objectupdate.Acceleration = new Vector3(
-                            Utils.UInt16ToFloat(block.ObjectData, pos, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 256.0f));
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos, -256.0f, 256.0f),
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f),
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 256.0f));
                         pos += 6;
                         // Rotation (theta)
                         objectupdate.Rotation = new Quaternion(
-                            Utils.UInt16ToFloat(block.ObjectData, pos, -1.0f, 1.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 2, -1.0f, 1.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 4, -1.0f, 1.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 6, -1.0f, 1.0f));
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos, -1.0f, 1.0f),
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos + 2, -1.0f, 1.0f),
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos + 4, -1.0f, 1.0f),
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos + 6, -1.0f, 1.0f));
                         pos += 8;
                         // Angular velocity (omega)
                         objectupdate.AngularVelocity = new Vector3(
-                            Utils.UInt16ToFloat(block.ObjectData, pos, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 256.0f));
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos, -256.0f, 256.0f),
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f),
+                            Utils.BytesUInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 256.0f));
                         pos += 6;
 
                         break;
@@ -2301,28 +2301,28 @@ namespace OpenMetaverse
                     pos += 12;
                     // Velocity
                     update.Velocity = new Vector3(
-                        Utils.UInt16ToFloat(block.Data, pos, -128.0f, 128.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 2, -128.0f, 128.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 4, -128.0f, 128.0f));
+                        Utils.BytesUInt16ToFloat(block.Data, pos, -128.0f, 128.0f),
+                        Utils.BytesUInt16ToFloat(block.Data, pos + 2, -128.0f, 128.0f),
+                        Utils.BytesUInt16ToFloat(block.Data, pos + 4, -128.0f, 128.0f));
                     pos += 6;
                     // Acceleration
                     update.Acceleration = new Vector3(
-                        Utils.UInt16ToFloat(block.Data, pos, -64.0f, 64.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 2, -64.0f, 64.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 4, -64.0f, 64.0f));
+                        Utils.BytesUInt16ToFloat(block.Data, pos, -64.0f, 64.0f),
+                        Utils.BytesUInt16ToFloat(block.Data, pos + 2, -64.0f, 64.0f),
+                        Utils.BytesUInt16ToFloat(block.Data, pos + 4, -64.0f, 64.0f));
                     pos += 6;
                     // Rotation (theta)
                     update.Rotation = new Quaternion(
-                        Utils.UInt16ToFloat(block.Data, pos, -1.0f, 1.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 2, -1.0f, 1.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 4, -1.0f, 1.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 6, -1.0f, 1.0f));
+                        Utils.BytesUInt16ToFloat(block.Data, pos, -1.0f, 1.0f),
+                        Utils.BytesUInt16ToFloat(block.Data, pos + 2, -1.0f, 1.0f),
+                        Utils.BytesUInt16ToFloat(block.Data, pos + 4, -1.0f, 1.0f),
+                        Utils.BytesUInt16ToFloat(block.Data, pos + 6, -1.0f, 1.0f));
                     pos += 8;
                     // Angular velocity (omega)
                     update.AngularVelocity = new Vector3(
-                        Utils.UInt16ToFloat(block.Data, pos, -64.0f, 64.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 2, -64.0f, 64.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 4, -64.0f, 64.0f));
+                        Utils.BytesUInt16ToFloat(block.Data, pos, -64.0f, 64.0f),
+                        Utils.BytesUInt16ToFloat(block.Data, pos + 2, -64.0f, 64.0f),
+                        Utils.BytesUInt16ToFloat(block.Data, pos + 4, -64.0f, 64.0f));
                     pos += 6;
 
                     // Textures

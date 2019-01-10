@@ -104,25 +104,8 @@ namespace OpenMetaverse
         /// <param name="pos">Beginning position in the byte array</param>
         public void FromBytes(byte[] byteArray, int pos)
         {
-            if (!BitConverter.IsLittleEndian)
-            {
-                // Big endian architecture
-                byte[] conversionBuffer = new byte[8];
-
-                Buffer.BlockCopy(byteArray, pos, conversionBuffer, 0, 8);
-
-                Array.Reverse(conversionBuffer, 0, 4);
-                Array.Reverse(conversionBuffer, 4, 4);
-
-                X = BitConverter.ToSingle(conversionBuffer, 0);
-                Y = BitConverter.ToSingle(conversionBuffer, 4);
-            }
-            else
-            {
-                // Little endian architecture
-                X = BitConverter.ToSingle(byteArray, pos);
-                Y = BitConverter.ToSingle(byteArray, pos + 4);
-            }
+            X = Utils.BytesToFloat(byteArray, pos);
+            Y = Utils.BytesToFloat(byteArray, pos + 4);
         }
 
         /// <summary>
@@ -131,9 +114,10 @@ namespace OpenMetaverse
         /// <returns>An eight-byte array containing X and Y</returns>
         public byte[] GetBytes()
         {
-            byte[] byteArray = new byte[8];
-            ToBytes(byteArray, 0);
-            return byteArray;
+            byte[] dest = new byte[8];
+            Utils.FloatToBytes(X, dest, 0);
+            Utils.FloatToBytes(Y, dest, 4);
+            return dest;
         }
 
         /// <summary>
@@ -144,14 +128,8 @@ namespace OpenMetaverse
         /// writing. Must be at least 8 bytes before the end of the array</param>
         public void ToBytes(byte[] dest, int pos)
         {
-            Buffer.BlockCopy(BitConverter.GetBytes(X), 0, dest, pos + 0, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(Y), 0, dest, pos + 4, 4);
-
-            if (!BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(dest, pos + 0, 4);
-                Array.Reverse(dest, pos + 4, 4);
-            }
+            Utils.FloatToBytes(X, dest, pos);
+            Utils.FloatToBytes(Y, dest, pos + 4);
         }
 
         public float Length()

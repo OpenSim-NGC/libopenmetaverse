@@ -142,28 +142,9 @@ namespace OpenMetaverse
         /// <param name="pos">Beginning position in the byte array</param>
         public void FromBytes(byte[] byteArray, int pos)
         {
-            if (!BitConverter.IsLittleEndian)
-            {
-                // Big endian architecture
-                byte[] conversionBuffer = new byte[24];
-
-                Buffer.BlockCopy(byteArray, pos, conversionBuffer, 0, 24);
-
-                Array.Reverse(conversionBuffer, 0, 8);
-                Array.Reverse(conversionBuffer, 8, 8);
-                Array.Reverse(conversionBuffer, 16, 8);
-
-                X = BitConverter.ToDouble(conversionBuffer, 0);
-                Y = BitConverter.ToDouble(conversionBuffer, 8);
-                Z = BitConverter.ToDouble(conversionBuffer, 16);
-            }
-            else
-            {
-                // Little endian architecture
-                X = BitConverter.ToDouble(byteArray, pos);
-                Y = BitConverter.ToDouble(byteArray, pos + 8);
-                Z = BitConverter.ToDouble(byteArray, pos + 16);
-            }
+            X = Utils.BytesToDouble(byteArray, pos);
+            Y = Utils.BytesToDouble(byteArray, pos + 8);
+            Z = Utils.BytesToDouble(byteArray, pos + 16);
         }
 
         /// <summary>
@@ -173,7 +154,9 @@ namespace OpenMetaverse
         public byte[] GetBytes()
         {
             byte[] byteArray = new byte[24];
-            ToBytes(byteArray, 0);
+            Utils.DoubleToBytes(X, byteArray, 0);
+            Utils.DoubleToBytes(Y, byteArray, 8);
+            Utils.DoubleToBytes(Z, byteArray, 16);
             return byteArray;
         }
 
@@ -185,16 +168,9 @@ namespace OpenMetaverse
         /// writing. Must be at least 24 bytes before the end of the array</param>
         public void ToBytes(byte[] dest, int pos)
         {
-            Buffer.BlockCopy(BitConverter.GetBytes(X), 0, dest, pos + 0, 8);
-            Buffer.BlockCopy(BitConverter.GetBytes(Y), 0, dest, pos + 8, 8);
-            Buffer.BlockCopy(BitConverter.GetBytes(Z), 0, dest, pos + 16, 8);
-
-            if (!BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(dest, pos + 0, 8);
-                Array.Reverse(dest, pos + 8, 8);
-                Array.Reverse(dest, pos + 16, 8);
-            }
+            Utils.DoubleToBytes(X, dest, pos);
+            Utils.DoubleToBytes(Y, dest, pos + 8);
+            Utils.DoubleToBytes(Z, dest, pos + 16);
         }
 
         #endregion Public Methods

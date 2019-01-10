@@ -99,8 +99,8 @@ namespace OpenMetaverse
             /// <summary>Attachment point to an avatar</summary>
             public AttachmentPoint AttachmentPoint
             {
-                get { return (AttachmentPoint)Utils.SwapWords(State); }
-                set { State = (byte)Utils.SwapWords((byte)value); }
+                get { return (AttachmentPoint)Utils.SwapNibbles(State); }
+                set { State = (byte)Utils.SwapNibbles((byte)value); }
             }
 
             /// <summary></summary>

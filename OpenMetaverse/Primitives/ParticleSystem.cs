@@ -381,9 +381,9 @@ namespace OpenMetaverse
 
             void PackSystemBytes(ref BitPack pack)
             {
-                pack.PackBits(CRC, 32);
-                pack.PackBits((uint)PartFlags, 32);
-                pack.PackBits((uint)Pattern, 8);
+                pack.PackBitsFromUInt(CRC);
+                pack.PackBitsFromUInt(PartFlags);
+                pack.PackBitsFromByte((byte)Pattern);
                 pack.PackFixed(MaxAge, false, 8, 8);
                 pack.PackFixed(StartAge, false, 8, 8);
                 pack.PackFixed(InnerAngle, false, 3, 5);
@@ -392,7 +392,7 @@ namespace OpenMetaverse
                 pack.PackFixed(BurstRadius, false, 8, 8);
                 pack.PackFixed(BurstSpeedMin, false, 8, 8);
                 pack.PackFixed(BurstSpeedMax, false, 8, 8);
-                pack.PackBits(BurstPartCount, 8);
+                pack.PackBitsFromByte(BurstPartCount);
                 pack.PackFixed(AngularVelocity.X, true, 8, 7);
                 pack.PackFixed(AngularVelocity.Y, true, 8, 7);
                 pack.PackFixed(AngularVelocity.Z, true, 8, 7);
@@ -405,7 +405,7 @@ namespace OpenMetaverse
 
             void PackLegacyData(ref BitPack pack)
             {
-                pack.PackBits((uint)PartDataFlags, 32);
+                pack.PackBitsFromUInt((uint)PartDataFlags);
                 pack.PackFixed(PartMaxAge, false, 8, 8);
                 pack.PackColor(PartStartColor);
                 pack.PackColor(PartEndColor);

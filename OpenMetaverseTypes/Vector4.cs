@@ -153,31 +153,10 @@ namespace OpenMetaverse
         /// <param name="pos">Beginning position in the byte array</param>
         public void FromBytes(byte[] byteArray, int pos)
         {
-            if (!BitConverter.IsLittleEndian)
-            {
-                // Big endian architecture
-                byte[] conversionBuffer = new byte[16];
-
-                Buffer.BlockCopy(byteArray, pos, conversionBuffer, 0, 16);
-
-                Array.Reverse(conversionBuffer, 0, 4);
-                Array.Reverse(conversionBuffer, 4, 4);
-                Array.Reverse(conversionBuffer, 8, 4);
-                Array.Reverse(conversionBuffer, 12, 4);
-
-                X = BitConverter.ToSingle(conversionBuffer, 0);
-                Y = BitConverter.ToSingle(conversionBuffer, 4);
-                Z = BitConverter.ToSingle(conversionBuffer, 8);
-                W = BitConverter.ToSingle(conversionBuffer, 12);
-            }
-            else
-            {
-                // Little endian architecture
-                X = BitConverter.ToSingle(byteArray, pos);
-                Y = BitConverter.ToSingle(byteArray, pos + 4);
-                Z = BitConverter.ToSingle(byteArray, pos + 8);
-                W = BitConverter.ToSingle(byteArray, pos + 12);
-            }
+            X = Utils.BytesToFloat(byteArray, pos);
+            Y = Utils.BytesToFloat(byteArray, pos + 4);
+            Z = Utils.BytesToFloat(byteArray, pos + 8);
+            W = Utils.BytesToFloat(byteArray, pos + 12);
         }
 
         /// <summary>
@@ -186,9 +165,12 @@ namespace OpenMetaverse
         /// <returns>A 16 byte array containing X, Y, Z, and W</returns>
         public byte[] GetBytes()
         {
-            byte[] byteArray = new byte[16];
-            ToBytes(byteArray, 0);
-            return byteArray;
+            byte[] dest = new byte[16];
+            Utils.FloatToBytes(X, dest, 0);
+            Utils.FloatToBytes(Y, dest, 4);
+            Utils.FloatToBytes(Z, dest, 8);
+            Utils.FloatToBytes(W, dest, 12);
+            return dest;
         }
 
         /// <summary>
@@ -199,18 +181,10 @@ namespace OpenMetaverse
         /// writing. Must be at least 16 bytes before the end of the array</param>
         public void ToBytes(byte[] dest, int pos)
         {
-            Buffer.BlockCopy(BitConverter.GetBytes(X), 0, dest, pos + 0, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(Y), 0, dest, pos + 4, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(Z), 0, dest, pos + 8, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(W), 0, dest, pos + 12, 4);
-
-            if (!BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(dest, pos + 0, 4);
-                Array.Reverse(dest, pos + 4, 4);
-                Array.Reverse(dest, pos + 8, 4);
-                Array.Reverse(dest, pos + 12, 4);
-            }
+            Utils.FloatToBytes(X, dest, pos);
+            Utils.FloatToBytes(Y, dest, pos + 4);
+            Utils.FloatToBytes(Z, dest, pos + 8);
+            Utils.FloatToBytes(W, dest, pos + 12);
         }
 
         #endregion Public Methods
