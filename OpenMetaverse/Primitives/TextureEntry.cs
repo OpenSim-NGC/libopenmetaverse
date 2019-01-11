@@ -938,7 +938,7 @@ namespace OpenMetaverse
                         if ((faceBits & bit) != 0)
                             CreateFace(face).Glow = tmpFloat;
                 }
- 	  	        #endregion Glow
+                #endregion Glow
 
                 #region MaterialID
                 if (i - pos + 16 <= length)
@@ -976,6 +976,7 @@ namespace OpenMetaverse
                         ulong cur = 0;
                         ulong next = 0;
                         ulong nulls = 0;
+
                         int last = FaceTextures.Length - 1;
                         bool onLastastNulls = true;
 
@@ -1065,7 +1066,8 @@ namespace OpenMetaverse
                         #endregion Color
 
                         #region RepeatU
-                        binWriter.Write(DefaultTexture.RepeatU);
+                        float deff = DefaultTexture.RepeatU;
+                        binWriter.Write(Utils.FloatToBytes(deff));
                         done = nulls;
                         for (int i = last; i >= 0; --i)
                         {
@@ -1074,7 +1076,7 @@ namespace OpenMetaverse
                                 continue;
 
                             float repeat = FaceTextures[i].RepeatU;
-                            if (repeat == DefaultTexture.RepeatU)
+                            if (repeat == deff)
                                 continue;
 
                             for (int j = i - 1; j >= 0; --j)
@@ -1090,13 +1092,14 @@ namespace OpenMetaverse
                                 cur |= next;
                             }
                             WriteFaceBitfieldBytes(binWriter, cur);
-                            binWriter.Write(repeat);
+                            binWriter.Write(Utils.FloatToBytes(repeat));
                         }
                         binWriter.Write((byte)0);
                         #endregion RepeatU
 
                         #region RepeatV
-                        binWriter.Write(DefaultTexture.RepeatV);
+                        deff = DefaultTexture.RepeatV;
+                        binWriter.Write(Utils.FloatToBytes(deff));
                         done = nulls;
                         for (int i = last; i >= 0; --i)
                         {
@@ -1105,7 +1108,7 @@ namespace OpenMetaverse
                                 continue;
 
                             float repeat = FaceTextures[i].RepeatV;
-                            if (repeat == DefaultTexture.RepeatV)
+                            if (repeat == deff)
                                 continue;
 
                             for (int j = i - 1; j >= 0; --j)
@@ -1121,14 +1124,15 @@ namespace OpenMetaverse
                                 cur |= next;
                             }
                             WriteFaceBitfieldBytes(binWriter, cur);
-                            binWriter.Write(repeat);
+                            binWriter.Write(Utils.FloatToBytes(repeat));
                         }
                         binWriter.Write((byte)0);
 
                         #endregion RepeatV
 
                         #region OffsetU
-                        binWriter.Write(Helpers.TEOffsetShort(DefaultTexture.OffsetU));
+                        short def = Helpers.TEOffsetShort(DefaultTexture.OffsetU);
+                        binWriter.Write(Utils.Int16ToBytes(def));
                         done = nulls;
                         for (int i = last; i >= 0; --i)
                         {
@@ -1136,8 +1140,8 @@ namespace OpenMetaverse
                             if ((done & cur) != 0)
                                 continue;
 
-                            float offset = FaceTextures[i].OffsetU;
-                            if (offset == DefaultTexture.OffsetU)
+                            short offset = Helpers.TEOffsetShort(FaceTextures[i].OffsetU);
+                            if (offset == def)
                                 continue;
 
                             for (int j = i - 1; j >= 0; --j)
@@ -1146,20 +1150,21 @@ namespace OpenMetaverse
                                 if ((done & next) != 0)
                                     continue;
 
-                                if (FaceTextures[j].OffsetU != offset)
+                                if (Helpers.TEOffsetShort(FaceTextures[j].OffsetU) != offset)
                                     continue;
 
                                 done |= next;
                                 cur |= next;
                             }
                             WriteFaceBitfieldBytes(binWriter, cur);
-                            binWriter.Write(Helpers.TEOffsetShort(offset));
+                            binWriter.Write(Utils.Int16ToBytes(offset));
                         }
                         binWriter.Write((byte)0);
                         #endregion OffsetU
 
                         #region OffsetV
-                        binWriter.Write(Helpers.TEOffsetShort(DefaultTexture.OffsetV));
+                        def = Helpers.TEOffsetShort(DefaultTexture.OffsetV);
+                        binWriter.Write(Utils.Int16ToBytes(def));
                         done = nulls;
                         for (int i = last; i >= 0; --i)
                         {
@@ -1167,8 +1172,8 @@ namespace OpenMetaverse
                             if ((done & cur) != 0)
                                 continue;
 
-                            float offset = FaceTextures[i].OffsetV;
-                            if (offset == DefaultTexture.OffsetV)
+                            short offset = Helpers.TEOffsetShort(FaceTextures[i].OffsetV);
+                            if (offset == def)
                                 continue;
 
                             for (int j = i - 1; j >= 0; --j)
@@ -1177,20 +1182,21 @@ namespace OpenMetaverse
                                 if ((done & next) != 0)
                                     continue;
 
-                                if (FaceTextures[j].OffsetV != offset)
+                                if (Helpers.TEOffsetShort(FaceTextures[j].OffsetV) != offset)
                                     continue;
 
                                 done |= next;
                                 cur |= next;
                             }
                             WriteFaceBitfieldBytes(binWriter, cur);
-                            binWriter.Write(Helpers.TEOffsetShort(offset));
+                            binWriter.Write(Utils.Int16ToBytes(offset));
                         }
                         binWriter.Write((byte)0);
                         #endregion OffsetV
 
                         #region Rotation
-                        binWriter.Write(Helpers.TERotationShort(DefaultTexture.Rotation));
+                        def = Helpers.TERotationShort(DefaultTexture.Rotation);
+                        binWriter.Write(Utils.Int16ToBytes(def));
                         done = nulls;
                         for (int i = last; i >= 0; --i)
                         {
@@ -1198,8 +1204,8 @@ namespace OpenMetaverse
                             if ((done & cur) != 0)
                                 continue;
 
-                            float rotation = FaceTextures[i].Rotation;
-                            if (rotation == DefaultTexture.Rotation)
+                            short rotation = Helpers.TERotationShort(FaceTextures[i].Rotation);
+                            if (rotation == def)
                                 continue;
 
                             for (int j = i - 1; j >= 0; --j)
@@ -1208,14 +1214,14 @@ namespace OpenMetaverse
                                 if ((done & next) != 0)
                                     continue;
 
-                                if (FaceTextures[j] == null || FaceTextures[j].Rotation != rotation)
+                                if (Helpers.TERotationShort(FaceTextures[j].Rotation) != rotation)
                                     continue;
 
                                 done |= next;
                                 cur |= next;
                             }
                             WriteFaceBitfieldBytes(binWriter, cur);
-                            binWriter.Write(Helpers.TERotationShort(rotation));
+                            binWriter.Write(Utils.Int16ToBytes(rotation));
                         }
                         binWriter.Write((byte)0);
                         #endregion Rotation
@@ -1283,7 +1289,8 @@ namespace OpenMetaverse
                         #endregion Media
 
                         #region Glow
-                        binWriter.Write(Helpers.TEGlowByte(DefaultTexture.Glow));
+                        byte defg = Helpers.TEGlowByte(DefaultTexture.Glow);
+                        binWriter.Write(defg);
                         done = nulls;
                         for (int i = last; i >= 0; --i)
                         {
@@ -1291,8 +1298,8 @@ namespace OpenMetaverse
                             if ((done & cur) != 0)
                                 continue;
 
-                            float glow = FaceTextures[i].Glow;
-                            if (glow == DefaultTexture.Glow)
+                            byte glow = Helpers.TEGlowByte(FaceTextures[i].Glow);
+                            if (glow == defg)
                                 continue;
 
                             for (int j = i - 1; j >= 0; --j)
@@ -1301,14 +1308,14 @@ namespace OpenMetaverse
                                 if ((done & next) != 0)
                                     continue;
 
-                                if (FaceTextures[j].Glow != glow)
+                                if (Helpers.TEGlowByte(FaceTextures[j].Glow) != glow)
                                     continue;
 
                                 done |= next;
                                 cur |= next;
                             }
                             WriteFaceBitfieldBytes(binWriter, cur);
-                            binWriter.Write(Helpers.TEGlowByte(glow));
+                            binWriter.Write(glow);
                         }
                         binWriter.Write((byte)0);
                         #endregion Glow
@@ -1409,11 +1416,11 @@ namespace OpenMetaverse
 
                 byte b;
 
-                if (bitfield > 0x80)
+                if (bitfield >= 0x80)
                 {
                     if (bitfield >= 0x4000)
                     {
-                        if (bitfield >= 0x20000)
+                        if (bitfield >= 0x200000)
                         {
                             if (bitfield >= 0x10000000)
                             {

@@ -454,6 +454,7 @@ namespace OpenMetaverse
         /// <param name="pos">Position to start reading the uint from</param>
         /// <returns>An unsigned integer, will be zero if a uint can't be read
         /// at the given position</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static uint BytesToUInt(byte[] bytes, int pos)
         {
             if (CanDirectCopyLE)
@@ -477,6 +478,7 @@ namespace OpenMetaverse
         /// <param name="bytes">An array four bytes or longer</param>
         /// <returns>An unsigned integer, will be zero if the array contains
         /// less than four bytes</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static uint BytesToUInt(byte[] bytes)
         {
             if (CanDirectCopyLE)
