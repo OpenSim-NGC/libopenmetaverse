@@ -972,108 +972,156 @@ namespace OpenMetaverse
                 {
                     using (BinaryWriter binWriter = new BinaryWriter(memStream))
                     {
-                        #region Bitfield Setup
-
-                        ulong IDBitField = 0;
-                        ulong colorBitField = 0;
-                        ulong RepeatUBitField = 0;
-                        ulong RepeatVBitField = 0;
-                        ulong OffsetUBitField = 0;
-                        ulong OffsetVBitField = 0;
-                        ulong rotationBitField = 0;
-                        ulong materialBitField = 0;
-                        ulong mediaBitField = 0;
-                        ulong glowBitField = 0;
-                        ulong materialIDBitField = 0;
-
-                        for (int i = 0; i < FaceTextures.Length; ++i)
-                        {
-                            if (FaceTextures[i] == null)
-                                continue;
-
-                            ulong curMask = (ulong)(1 << i);
-
-                            if (FaceTextures[i].TextureID != null && FaceTextures[i].TextureID != DefaultTexture.TextureID)
-                                IDBitField |= curMask;
-
-                            if (FaceTextures[i].RGBA != DefaultTexture.RGBA)
-                                colorBitField |= curMask;
-
-                            if (FaceTextures[i].RepeatU != DefaultTexture.RepeatU)
-                                RepeatUBitField |= curMask;
-
-                            if (FaceTextures[i].RepeatV != DefaultTexture.RepeatV)
-                                RepeatVBitField |= curMask;
-
-                            if (Helpers.TEOffsetShort(FaceTextures[i].OffsetU) != Helpers.TEOffsetShort(DefaultTexture.OffsetU))
-                                OffsetUBitField |= curMask;
-
-                            if (Helpers.TEOffsetShort(FaceTextures[i].OffsetV) != Helpers.TEOffsetShort(DefaultTexture.OffsetV))
-                                OffsetVBitField |= curMask;
-
-                            if (Helpers.TERotationShort(FaceTextures[i].Rotation) != Helpers.TERotationShort(DefaultTexture.Rotation))
-                                rotationBitField |= curMask;
-
-                            if (FaceTextures[i].material != DefaultTexture.material)
-                                materialBitField |= curMask;
-
-                            if (FaceTextures[i].media != DefaultTexture.media)
-                                mediaBitField |= curMask;
-
-                            if (Helpers.TEGlowByte(FaceTextures[i].Glow) != Helpers.TEGlowByte(DefaultTexture.Glow))
-                                glowBitField |= curMask;
-
-                            if (FaceTextures[i].MaterialID != null && FaceTextures[i].MaterialID != DefaultTexture.MaterialID)
-                                materialIDBitField |= curMask;
-                        }
-
-                        #endregion Bitfield Setup
+                        ulong done = 0;
+                        ulong cur = 0;
+                        ulong next = 0;
+                        ulong nulls = 0;
+                        int last = FaceTextures.Length - 1;
+                        bool onLastastNulls = true;
 
                         #region Texture
                         binWriter.Write(DefaultTexture.TextureID.GetBytes());
-                        WriteFaceBitfieldBytes(binWriter, IDBitField);
-                        for (int i = 0; IDBitField != 0 && i < FaceTextures.Length; ++i)
+                        for (int i = last; i >= 0; --i)
                         {
-                            if ((IDBitField & 0x01) != 0)
-                                binWriter.Write(FaceTextures[i].TextureID.GetBytes());
-                            IDBitField >>= 1;
+                            cur = (ulong)(1 << i);
+
+                            if (FaceTextures[i] == null)
+                            {
+                                nulls |= cur;
+                                continue;
+                            }
+
+                            if (onLastastNulls)
+                            {
+                                last = i;
+                                onLastastNulls = false;
+                            }
+
+                            if ((done & cur) != 0)
+                                continue;
+
+                            UUID id = FaceTextures[i].TextureID;
+                            if (id == null || id == DefaultTexture.TextureID)
+                                continue;
+
+                            for (int j = i - 1; j >= 0; --j)
+                            {
+                                next = (ulong)(1 << j);
+                                if ((done & next) != 0)
+                                    continue;
+
+                                if (FaceTextures[j] == null)
+                                {
+                                    nulls |= next;
+                                    done |= next;
+                                    continue;
+                                }
+
+                                if(FaceTextures[j].TextureID != id)
+                                    continue;
+
+                                done |= next;
+                                cur |= next;
+                            }
+                            WriteFaceBitfieldBytes(binWriter, cur);
+                            binWriter.Write(id.GetBytes());
                         }
                         binWriter.Write((byte)0);
                         #endregion Texture
 
+                        if (onLastastNulls)
+                            last = -1;
+
                         #region Color
                         // Serialize the color bytes inverted to optimize for zerocoding
                         binWriter.Write(DefaultTexture.RGBA.GetBytes(true));
-                        WriteFaceBitfieldBytes(binWriter, colorBitField);
-                        for (int i = 0; colorBitField != 0 && i < FaceTextures.Length; ++i)
+                        done = nulls;
+                        for (int i = last; i >= 0; --i)
                         {
-                            if ((colorBitField & 0x01) != 0)
-                                binWriter.Write(FaceTextures[i].RGBA.GetBytes(true));
-                            colorBitField >>= 1;
+                            cur = (ulong)(1 << i);
+                            if ((done & cur) != 0)
+                                continue;
+
+                            Color4 c = FaceTextures[i].RGBA;
+                            if (c == DefaultTexture.RGBA)
+                                continue;
+
+                            for (int j = i - 1; j >= 0; --j)
+                            {
+                                next = (ulong)(1 << j);
+                                if ((done & next) != 0)
+                                    continue;
+
+                                if (FaceTextures[j].RGBA != c)
+                                    continue;
+
+                                done |= next;
+                                cur |= next;
+                            }
+                            WriteFaceBitfieldBytes(binWriter, cur);
+                            binWriter.Write(c.GetBytes(true));
                         }
                         binWriter.Write((byte)0);
                         #endregion Color
 
                         #region RepeatU
                         binWriter.Write(DefaultTexture.RepeatU);
-                        WriteFaceBitfieldBytes(binWriter, RepeatUBitField);
-                        for (int i = 0; RepeatUBitField != 0 && i < FaceTextures.Length; ++i)
+                        done = nulls;
+                        for (int i = last; i >= 0; --i)
                         {
-                            if ((RepeatUBitField & 0x01) != 0)
-                                binWriter.Write(FaceTextures[i].RepeatU);
-                            RepeatUBitField >>= 1;
+                            cur = (ulong)(1 << i);
+                            if ((done & cur) != 0)
+                                continue;
+
+                            float repeat = FaceTextures[i].RepeatU;
+                            if (repeat == DefaultTexture.RepeatU)
+                                continue;
+
+                            for (int j = i - 1; j >= 0; --j)
+                            {
+                                next = (ulong)(1 << j);
+                                if ((done & next) != 0)
+                                    continue;
+
+                                if (FaceTextures[j].RepeatU != repeat)
+                                    continue;
+
+                                done |= next;
+                                cur |= next;
+                            }
+                            WriteFaceBitfieldBytes(binWriter, cur);
+                            binWriter.Write(repeat);
                         }
                         binWriter.Write((byte)0);
                         #endregion RepeatU
 
                         #region RepeatV
                         binWriter.Write(DefaultTexture.RepeatV);
-                        WriteFaceBitfieldBytes(binWriter, RepeatVBitField);
-                        for (int i = 0; RepeatVBitField != 0 && i < FaceTextures.Length; ++i)
+                        done = nulls;
+                        for (int i = last; i >= 0; --i)
                         {
-                            if ((RepeatVBitField & 0x01) != 0)
-                                binWriter.Write(FaceTextures[i].RepeatV);
-                            RepeatVBitField >>= 1;
+                            cur = (ulong)(1 << i);
+                            if ((done & cur) != 0)
+                                continue;
+
+                            float repeat = FaceTextures[i].RepeatV;
+                            if (repeat == DefaultTexture.RepeatV)
+                                continue;
+
+                            for (int j = i - 1; j >= 0; --j)
+                            {
+                                next = (ulong)(1 << j);
+                                if ((done & next) != 0)
+                                    continue;
+
+                                if (FaceTextures[j].RepeatV != repeat)
+                                    continue;
+
+                                done |= next;
+                                cur |= next;
+                            }
+                            WriteFaceBitfieldBytes(binWriter, cur);
+                            binWriter.Write(repeat);
                         }
                         binWriter.Write((byte)0);
 
@@ -1081,84 +1129,217 @@ namespace OpenMetaverse
 
                         #region OffsetU
                         binWriter.Write(Helpers.TEOffsetShort(DefaultTexture.OffsetU));
-                        WriteFaceBitfieldBytes(binWriter, OffsetUBitField);
-                        for (int i = 0; OffsetUBitField != 0 && i < FaceTextures.Length; ++i)
+                        done = nulls;
+                        for (int i = last; i >= 0; --i)
                         {
-                            if ((OffsetUBitField & 0x01) != 0)
-                                binWriter.Write(Helpers.TEOffsetShort(FaceTextures[i].OffsetU));
-                            OffsetUBitField >>= 1;
+                            cur = (ulong)(1 << i);
+                            if ((done & cur) != 0)
+                                continue;
+
+                            float offset = FaceTextures[i].OffsetU;
+                            if (offset == DefaultTexture.OffsetU)
+                                continue;
+
+                            for (int j = i - 1; j >= 0; --j)
+                            {
+                                next = (ulong)(1 << j);
+                                if ((done & next) != 0)
+                                    continue;
+
+                                if (FaceTextures[j].OffsetU != offset)
+                                    continue;
+
+                                done |= next;
+                                cur |= next;
+                            }
+                            WriteFaceBitfieldBytes(binWriter, cur);
+                            binWriter.Write(Helpers.TEOffsetShort(offset));
                         }
                         binWriter.Write((byte)0);
                         #endregion OffsetU
 
                         #region OffsetV
                         binWriter.Write(Helpers.TEOffsetShort(DefaultTexture.OffsetV));
-                        WriteFaceBitfieldBytes(binWriter, OffsetVBitField);
-                        for (int i = 0; OffsetVBitField != 0 && i < FaceTextures.Length; ++i)
+                        done = nulls;
+                        for (int i = last; i >= 0; --i)
                         {
-                            if ((OffsetVBitField & 0x01) != 0)
-                                binWriter.Write(Helpers.TEOffsetShort(FaceTextures[i].OffsetV));
-                            OffsetVBitField >>= 1;
+                            cur = (ulong)(1 << i);
+                            if ((done & cur) != 0)
+                                continue;
+
+                            float offset = FaceTextures[i].OffsetV;
+                            if (offset == DefaultTexture.OffsetV)
+                                continue;
+
+                            for (int j = i - 1; j >= 0; --j)
+                            {
+                                next = (ulong)(1 << j);
+                                if ((done & next) != 0)
+                                    continue;
+
+                                if (FaceTextures[j].OffsetV != offset)
+                                    continue;
+
+                                done |= next;
+                                cur |= next;
+                            }
+                            WriteFaceBitfieldBytes(binWriter, cur);
+                            binWriter.Write(Helpers.TEOffsetShort(offset));
                         }
                         binWriter.Write((byte)0);
                         #endregion OffsetV
 
                         #region Rotation
                         binWriter.Write(Helpers.TERotationShort(DefaultTexture.Rotation));
-                        WriteFaceBitfieldBytes(binWriter, rotationBitField);
-                        for (int i = 0; rotationBitField != 0 && i < FaceTextures.Length; ++i)
+                        done = nulls;
+                        for (int i = last; i >= 0; --i)
                         {
-                            if ((rotationBitField & 0x01) != 0)
-                                binWriter.Write(Helpers.TERotationShort(FaceTextures[i].Rotation));
-                            rotationBitField >>= 1;
+                            cur = (ulong)(1 << i);
+                            if ((done & cur) != 0)
+                                continue;
+
+                            float rotation = FaceTextures[i].Rotation;
+                            if (rotation == DefaultTexture.Rotation)
+                                continue;
+
+                            for (int j = i - 1; j >= 0; --j)
+                            {
+                                next = (ulong)(1 << j);
+                                if ((done & next) != 0)
+                                    continue;
+
+                                if (FaceTextures[j] == null || FaceTextures[j].Rotation != rotation)
+                                    continue;
+
+                                done |= next;
+                                cur |= next;
+                            }
+                            WriteFaceBitfieldBytes(binWriter, cur);
+                            binWriter.Write(Helpers.TERotationShort(rotation));
                         }
                         binWriter.Write((byte)0);
                         #endregion Rotation
 
                         #region Material
                         binWriter.Write(DefaultTexture.material);
-                        WriteFaceBitfieldBytes(binWriter, materialBitField);
-                        for (int i = 0; materialBitField != 0 && i < FaceTextures.Length; ++i)
+                        done = nulls;
+                        for (int i = last; i >= 0; --i)
                         {
-                            if ((materialBitField & 0x01) != 0)
-                                binWriter.Write(FaceTextures[i].material);
-                            materialBitField >>= 1;
+                            cur = (ulong)(1 << i);
+                            if ((done & cur) != 0)
+                                continue;
+
+                            byte material = FaceTextures[i].material;
+                            if (material == DefaultTexture.material)
+                                continue;
+
+                            for (int j = i - 1; j >= 0; --j)
+                            {
+                                next = (ulong)(1 << j);
+                                if ((done & next) != 0)
+                                    continue;
+
+                                if (FaceTextures[j].material != material)
+                                    continue;
+
+                                done |= next;
+                                cur |= next;
+                            }
+                            WriteFaceBitfieldBytes(binWriter, cur);
+                            binWriter.Write(material);
                         }
                         binWriter.Write((byte)0);
                         #endregion Material
 
                         #region Media
                         binWriter.Write(DefaultTexture.media);
-                        WriteFaceBitfieldBytes(binWriter, mediaBitField);
-                        for (int i = 0; mediaBitField != 0 && i < FaceTextures.Length; ++i)
+                        done = nulls;
+                        for (int i = last; i >= 0; --i)
                         {
-                            if ((mediaBitField & 0x01) != 0)
-                                binWriter.Write(FaceTextures[i].media);
-                            mediaBitField >>= 1;
+                            cur = (ulong)(1 << i);
+                            if ((done & cur) != 0)
+                                continue;
+
+                            byte media = FaceTextures[i].media;
+                            if (media == DefaultTexture.media)
+                                continue;
+
+                            for (int j = i - 1; j >= 0; --j)
+                            {
+                                next = (ulong)(1 << j);
+                                if ((done & next) != 0)
+                                    continue;
+
+                                if (FaceTextures[j].media != media)
+                                    continue;
+
+                                done |= next;
+                                cur |= next;
+                            }
+                            WriteFaceBitfieldBytes(binWriter, cur);
+                            binWriter.Write(media);
                         }
                         binWriter.Write((byte)0);
                         #endregion Media
 
                         #region Glow
                         binWriter.Write(Helpers.TEGlowByte(DefaultTexture.Glow));
-                        WriteFaceBitfieldBytes(binWriter, glowBitField);
-                        for (int i = 0; glowBitField != 0 && i < FaceTextures.Length; ++i)
+                        done = nulls;
+                        for (int i = last; i >= 0; --i)
                         {
-                            if ((glowBitField & 0x01) != 0)
-                                binWriter.Write(Helpers.TEGlowByte(FaceTextures[i].Glow));
-                            glowBitField >>= 1;
+                            cur = (ulong)(1 << i);
+                            if ((done & cur) != 0)
+                                continue;
+
+                            float glow = FaceTextures[i].Glow;
+                            if (glow == DefaultTexture.Glow)
+                                continue;
+
+                            for (int j = i - 1; j >= 0; --j)
+                            {
+                                next = (ulong)(1 << j);
+                                if ((done & next) != 0)
+                                    continue;
+
+                                if (FaceTextures[j].Glow != glow)
+                                    continue;
+
+                                done |= next;
+                                cur |= next;
+                            }
+                            WriteFaceBitfieldBytes(binWriter, cur);
+                            binWriter.Write(Helpers.TEGlowByte(glow));
                         }
                         binWriter.Write((byte)0);
                         #endregion Glow
 
                         #region MaterialID
                         binWriter.Write(DefaultTexture.MaterialID.GetBytes());
-                        WriteFaceBitfieldBytes(binWriter, materialIDBitField);
-                        for (int i = 0; materialIDBitField != 0 && i < FaceTextures.Length; ++i)
+                        done = nulls;
+                        for (int i = last; i >= 0; --i)
                         {
-                            if ((materialIDBitField & 0x01) != 0)
-                                binWriter.Write(FaceTextures[i].MaterialID.GetBytes());
-                            materialIDBitField >>= 1;
+                            cur = (ulong)(1 << i);
+                            if ((done & cur) != 0)
+                                continue;
+
+                            UUID materialID = FaceTextures[i].MaterialID;
+                            if (materialID == null || materialID == DefaultTexture.MaterialID)
+                                continue;
+
+                            for (int j = i - 1; j >= 0; --j)
+                            {
+                                next = (ulong)(1 << j);
+                                if ((done & next) != 0)
+                                    continue;
+
+                                if (FaceTextures[j].MaterialID != materialID)
+                                    continue;
+
+                                done |= next;
+                                cur |= next;
+                            }
+                            WriteFaceBitfieldBytes(binWriter, cur);
+                            binWriter.Write(materialID.GetBytes());
                         }
                         binWriter.Write((byte)0);
                         #endregion MaterialID
