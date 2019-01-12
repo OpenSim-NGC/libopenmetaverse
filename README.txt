@@ -1,4 +1,4 @@
-libOpenMetaverse Library Fork for OpenSimulator
+libOpenMetaverse Library Fork for OpenSimulator (version >= 0.9.1.0)
 
 
 Finding Help
