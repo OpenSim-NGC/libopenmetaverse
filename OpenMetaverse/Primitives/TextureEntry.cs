@@ -478,7 +478,7 @@ namespace OpenMetaverse
                 }
                 set
                 {
-                    byte o = m_material;
+                    byte o = m_media;
                     if ((m_attributes & TextureAttributes.Media) == 0)
                         o = DefaultTexture.m_media;
 
@@ -505,7 +505,7 @@ namespace OpenMetaverse
                 }
                 set
                 {
-                    byte o = m_material;
+                    byte o = m_media;
                     if ((m_attributes & TextureAttributes.Media) == 0)
                         o = DefaultTexture.m_media;
 
@@ -556,7 +556,7 @@ namespace OpenMetaverse
                 }
                 set
                 {
-                    UUID od = m_textureID;
+                    UUID od = m_materialID;
                     if ((m_attributes & TextureAttributes.MaterialID) == 0)
                         od = DefaultTexture.MaterialID;
 
@@ -564,7 +564,7 @@ namespace OpenMetaverse
                     {
                         m_materialID = value;
                         m_dirtyFlags |= TextureAttributes.MaterialID;
-                        m_attributes |= TextureAttributes.TextureID;
+                        m_attributes |= TextureAttributes.MaterialID;
                     }
                 }
             }
@@ -1535,7 +1535,7 @@ namespace OpenMetaverse
                         if ((done & cur) != 0)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.Material) == 0)
+                        if ((FaceTextures[i].m_attributes & TextureAttributes.MaterialID) == 0)
                             continue;
 
                         UUID materialID = FaceTextures[i].m_materialID;
@@ -1548,7 +1548,7 @@ namespace OpenMetaverse
                             if ((done & next) != 0)
                                 continue;
 
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.Material) == 0)
+                            if ((FaceTextures[j].m_attributes & TextureAttributes.MaterialID) == 0)
                                 continue;
 
                             if (FaceTextures[j].m_materialID != materialID)

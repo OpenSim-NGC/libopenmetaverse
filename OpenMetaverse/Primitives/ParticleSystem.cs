@@ -355,24 +355,24 @@ namespace OpenMetaverse
                     if (HasGlow()) PartDataFlags |= ParticleDataFlags.DataGlow;
                     if (HasBlendFunc()) PartDataFlags |= ParticleDataFlags.DataBlend;
 
-                    pack.PackBits(SysDataSize, 32);
+                    pack.PackBitsFromUInt((uint)SysDataSize);
                     PackSystemBytes(ref pack);
                     int partSize = PartDataSize;
                     if (HasGlow()) partSize += 2; // two bytes for start and end glow
                     if (HasBlendFunc()) partSize += 2; // two bytes for start end end blend function
-                    pack.PackBits(partSize, 32);
+                    pack.PackBitsFromUInt((uint)partSize);
                     PackLegacyData(ref pack);
 
                     if (HasGlow())
                     {
-                        pack.PackBits((byte)(PartStartGlow * 255f), 8);
-                        pack.PackBits((byte)(PartEndGlow * 255f), 8);
+                        pack.PackBitsFromByte((byte)(PartStartGlow * 255f));
+                        pack.PackBitsFromByte((byte)(PartEndGlow * 255f));
                     }
 
                     if (HasBlendFunc())
                     {
-                        pack.PackBits(BlendFuncSource, 8);
-                        pack.PackBits(BlendFuncDest, 8);
+                        pack.PackBitsFromByte(BlendFuncSource);
+                        pack.PackBitsFromByte(BlendFuncDest);
                     }
                 }
 
