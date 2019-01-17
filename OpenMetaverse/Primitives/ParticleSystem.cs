@@ -262,33 +262,31 @@ namespace OpenMetaverse
                     int sysSize = pack.UnpackBits(32);
                     if (sysSize != SysDataSize) return; // unkown particle system data size
                     UnpackSystem(ref pack);
-                    int dataSize = pack.UnpackBits(32);
+                    int dataSize = pack.UnpackInt();
                     UnpackLegacyData(ref pack);
-
 
                     if ((PartDataFlags & ParticleDataFlags.DataGlow) == ParticleDataFlags.DataGlow)
                     {
                         if (pack.Data.Length - pack.BytePos < 2) return;
-                        uint glow = pack.UnpackUBits(8);
+                        uint glow = pack.UnpackByte();
                         PartStartGlow = glow / 255f;
-                        glow = pack.UnpackUBits(8);
+                        glow = pack.UnpackByte();
                         PartEndGlow = glow / 255f;
                     }
 
                     if ((PartDataFlags & ParticleDataFlags.DataBlend) == ParticleDataFlags.DataBlend)
                     {
                         if (pack.Data.Length - pack.BytePos < 2) return;
-                        BlendFuncSource = (byte)pack.UnpackUBits(8);
-                        BlendFuncDest = (byte)pack.UnpackUBits(8);
+                        BlendFuncSource = pack.UnpackByte();
+                        BlendFuncDest = pack.UnpackByte();
                     }
-
                 }
             }
 
             void UnpackSystem(ref BitPack pack)
             {
-                CRC = pack.UnpackUBits(32);
-                PartFlags = pack.UnpackUBits(32);
+                CRC = pack.UnpackUInt();
+                PartFlags = pack.UnpackUInt();
                 Pattern = (SourcePattern)pack.UnpackByte();
                 MaxAge = pack.UnpackFixed(false, 8, 8);
                 StartAge = pack.UnpackFixed(false, 8, 8);
@@ -313,7 +311,7 @@ namespace OpenMetaverse
 
             void UnpackLegacyData(ref BitPack pack)
             {
-                PartDataFlags = (ParticleDataFlags)pack.UnpackUBits(32);
+                PartDataFlags = (ParticleDataFlags)pack.UnpackUInt();
                 PartMaxAge = pack.UnpackFixed(false, 8, 8);
                 byte r = pack.UnpackByte();
                 byte g = pack.UnpackByte();

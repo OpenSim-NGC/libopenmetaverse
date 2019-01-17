@@ -102,12 +102,12 @@ namespace OpenMetaverse
 
         public float Length()
         {
-            return (float)Math.Sqrt(DistanceSquared(this, Zero));
+            return (float)Math.Sqrt(X * X + Y * Y + Z * Z + W * W);
         }
 
         public float LengthSquared()
         {
-            return DistanceSquared(this, Zero);
+            return X * X + Y * Y + Z * Z + W * W;
         }
 
         public void Normalize()
@@ -126,8 +126,10 @@ namespace OpenMetaverse
         /// is less than the given tolerance, otherwise false</returns>
         public bool ApproxEquals(Vector4 vec, float tolerance)
         {
-            Vector4 diff = this - vec;
-            return (diff.LengthSquared() <= tolerance * tolerance);
+            return Utils.ApproxEqual(X, vec.X, tolerance) &&
+                    Utils.ApproxEqual(Y, vec.Y, tolerance) &&
+                    Utils.ApproxEqual(Z, vec.Z, tolerance) &&
+                    Utils.ApproxEqual(W, vec.W, tolerance);
         }
 
         /// <summary>
@@ -153,10 +155,10 @@ namespace OpenMetaverse
         /// <param name="pos">Beginning position in the byte array</param>
         public void FromBytes(byte[] byteArray, int pos)
         {
-            X = Utils.BytesToFloat(byteArray, pos);
-            Y = Utils.BytesToFloat(byteArray, pos + 4);
-            Z = Utils.BytesToFloat(byteArray, pos + 8);
-            W = Utils.BytesToFloat(byteArray, pos + 12);
+            X = Utils.BytesToFloatSafepos(byteArray, pos);
+            Y = Utils.BytesToFloatSafepos(byteArray, pos + 4);
+            Z = Utils.BytesToFloatSafepos(byteArray, pos + 8);
+            W = Utils.BytesToFloatSafepos(byteArray, pos + 12);
         }
 
         /// <summary>
@@ -166,10 +168,10 @@ namespace OpenMetaverse
         public byte[] GetBytes()
         {
             byte[] dest = new byte[16];
-            Utils.FloatToBytes(X, dest, 0);
-            Utils.FloatToBytes(Y, dest, 4);
-            Utils.FloatToBytes(Z, dest, 8);
-            Utils.FloatToBytes(W, dest, 12);
+            Utils.FloatToBytesSafepos(X, dest, 0);
+            Utils.FloatToBytesSafepos(Y, dest, 4);
+            Utils.FloatToBytesSafepos(Z, dest, 8);
+            Utils.FloatToBytesSafepos(W, dest, 12);
             return dest;
         }
 
@@ -181,10 +183,10 @@ namespace OpenMetaverse
         /// writing. Must be at least 16 bytes before the end of the array</param>
         public void ToBytes(byte[] dest, int pos)
         {
-            Utils.FloatToBytes(X, dest, pos);
-            Utils.FloatToBytes(Y, dest, pos + 4);
-            Utils.FloatToBytes(Z, dest, pos + 8);
-            Utils.FloatToBytes(W, dest, pos + 12);
+            Utils.FloatToBytesSafepos(X, dest, pos);
+            Utils.FloatToBytesSafepos(Y, dest, pos + 4);
+            Utils.FloatToBytesSafepos(Z, dest, pos + 8);
+            Utils.FloatToBytesSafepos(W, dest, pos + 12);
         }
 
         #endregion Public Methods
@@ -303,9 +305,8 @@ namespace OpenMetaverse
 
         public static Vector4 Normalize(Vector4 vector)
         {
-            const float MAG_THRESHOLD = 0.0000001f;
-            float factor = DistanceSquared(vector, Zero);
-            if (factor > MAG_THRESHOLD)
+            float factor = vector.LengthSquared();
+            if (factor > 1e-6)
             {
                 factor = 1f / (float)Math.Sqrt(factor);
                 vector.X *= factor;

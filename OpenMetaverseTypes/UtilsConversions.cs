@@ -28,39 +28,61 @@ using System;
 using System.Net;
 using System.Text;
 using System.Reflection;
+using System.IO;
 
 namespace OpenMetaverse
 {
     public static partial class Utils
     {
-        public static readonly bool NoAlignment = CheckNeedAlignment();
-        public static readonly bool CanDirectCopyLE = CheckDirectCopyLE();
-        public static readonly bool CanDirectCopyBE = CheckDirectCopyBE();
+//        public static readonly bool NoAlignment = CheckNeedAlignment();
+        public static readonly bool CanDirectCopyLE = CheckNeedAlignment();
+//        public static readonly bool CanDirectCopyBE = CheckDirectCopyBE();
 
         public unsafe static bool CheckNeedAlignment()
         {
             if(!BitConverter.IsLittleEndian)
                 return false;
 
-            byte[] bytes = new byte[128];
+            byte[] bytes = new byte[4096];
             long ll = 0x55AA33EE55FFCCAA;
             long l;
             try
             {
-                fixed (byte* ptr = &bytes[62])
+                for (int i = 0; i < 512; i += 3)
                 {
-                    *(long*)ptr = ll;
-                    l = *(long*)ptr;
-                }
-                if (l != ll)
-                    return false;
+                    fixed (byte* ptr = &bytes[253 + i])
+                        *(long*)ptr = ll;
+
+                    fixed (byte* ptr = &bytes[1027 + i])
+                    {
+                        byte* p = ptr;
+                        *p++ = (byte)ll;
+                        *p++ = (byte)(ll >> 8);
+                        *p++ = (byte)(ll >> 16);
+                        *p++ = (byte)(ll >> 24);
+                        *p++ = (byte)(ll >> 32);
+                        *p++ = (byte)(ll >> 40);
+                        *p++ = (byte)(ll >> 48);
+                        *p = (byte)(ll >> 56);
+                    }
+
+                    fixed (byte* ptr = &bytes[253 + i])
+                        l = *(long*)ptr;
+                    if (l != ll)
+                        return false;
+
+                    fixed (byte* ptr = &bytes[1027 + i])
+                        l = *(long*)ptr;
+                    if (l != ll)
+                        return false;
+                    }
                 return true;
             }
             catch { }
             return false;
 
         }
-
+/*
         static bool CheckDirectCopyLE()
         {
             return BitConverter.IsLittleEndian && NoAlignment;
@@ -70,7 +92,7 @@ namespace OpenMetaverse
         {
             return !BitConverter.IsLittleEndian && NoAlignment;
         }
-
+*/
         #region String Arrays
 
         private static readonly string[] _AssetTypeNames = new string[]
@@ -287,6 +309,26 @@ namespace OpenMetaverse
 
         #region BytesTo
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static bool ApproxEqual(float a, float b, float tolerance, float reltolerance = 1e-6f)
+        {
+            float dif = Math.Abs(a - b);
+            if(Math.Abs(dif) <= tolerance)
+                return true;
+
+            a = Math.Abs(a);
+            b = Math.Abs(b);
+            if(b > a)
+                a = b;
+            return dif <= a * reltolerance;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static int CombineHash(int a, int b)
+        {
+            return ((a << 5) + a) ^ b;
+        }
+
         /// <summary>
         /// Convert the first two bytes starting in the byte array in
         /// little endian ordering to a signed short integer
@@ -324,6 +366,7 @@ namespace OpenMetaverse
         /// <param name="pos">Position to start reading the int from</param>
         /// <returns>A signed integer, will be zero if an int can't be read
         /// at the given position</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static int BytesToInt(byte[] bytes, int pos)
         {
             if (CanDirectCopyLE)
@@ -335,6 +378,21 @@ namespace OpenMetaverse
 
             return bytes[pos]              |
                     (bytes[pos + 1] << 8)  |
+                    (bytes[pos + 2] << 16) |
+                    (bytes[pos + 3] << 24);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static int BytesToIntSafepos(byte[] bytes, int pos)
+        {
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = &bytes[pos])
+                    return *(int*)p;
+            }
+
+            return bytes[pos] |
+                    (bytes[pos + 1] << 8) |
                     (bytes[pos + 2] << 16) |
                     (bytes[pos + 3] << 24);
         }
@@ -351,7 +409,6 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                if (bytes.Length < 4) return 0;
                 fixed (byte* p = bytes)
                     return *(int*)p;
             }
@@ -369,12 +426,11 @@ namespace OpenMetaverse
         /// <param name="bytes">An array eight bytes or longer</param>
         /// <returns>A signed long integer, will be zero if the array contains
         /// less than eight bytes</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static long BytesToInt64(byte[] bytes)
         {
-
             if (CanDirectCopyLE)
             {
-                if (bytes.Length < 8) return 0;
                 fixed (byte* p = bytes)
                     return *(long*)p;
             }
@@ -398,6 +454,7 @@ namespace OpenMetaverse
         /// <param name="pos">Position to start reading the long from</param>
         /// <returns>A signed long integer, will be zero if a long can't be read
         /// at the given position</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static long BytesToInt64(byte[] bytes, int pos)
         {
             if (CanDirectCopyLE)
@@ -408,7 +465,27 @@ namespace OpenMetaverse
             }
             else
                 return
-                    (bytes[pos]                  |
+                    (bytes[pos] |
+                    ((long)bytes[pos + 1] << 8)) |
+                    ((long)bytes[pos + 2] << 16) |
+                    ((long)bytes[pos + 3] << 24) |
+                    ((long)bytes[pos + 4] << 32) |
+                    ((long)bytes[pos + 5] << 40) |
+                    ((long)bytes[pos + 6] << 48) |
+                    ((long)bytes[pos + 7] << 56);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static long BytesToInt64Safepos(byte[] bytes, int pos)
+        {
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = &bytes[pos])
+                    return *(long*)p;
+            }
+            else
+                return
+                    (bytes[pos] |
                     ((long)bytes[pos + 1] << 8)) |
                     ((long)bytes[pos + 2] << 16) |
                     ((long)bytes[pos + 3] << 24) |
@@ -465,8 +542,24 @@ namespace OpenMetaverse
             }
             else
                 return (uint)(
-                    (bytes[pos])           |
-                    (bytes[pos + 1] << 8)  |
+                    (bytes[pos]) |
+                    (bytes[pos + 1] << 8) |
+                    (bytes[pos + 2] << 16) |
+                    (bytes[pos + 3] << 24));
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static uint BytesToUIntSafepos(byte[] bytes, int pos)
+        {
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = &bytes[pos])
+                    return *(uint*)p;
+            }
+            else
+                return (uint)(
+                    (bytes[pos]) |
+                    (bytes[pos + 1] << 8) |
                     (bytes[pos + 2] << 16) |
                     (bytes[pos + 3] << 24));
         }
@@ -483,7 +576,6 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                if (bytes.Length < 4) return 0;
                 fixed (byte* p = bytes)
                     return *(uint*)p;
             }
@@ -502,6 +594,7 @@ namespace OpenMetaverse
         /// <param name="bytes">An array eight bytes or longer</param>
         /// <returns>An unsigned 64-bit integer, will be zero if the array
         /// contains less than eight bytes</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static ulong BytesToUInt64(byte[] bytes, int pos)
         {
             if (CanDirectCopyLE)
@@ -512,8 +605,28 @@ namespace OpenMetaverse
             }
             else
                 return (ulong)(
-                    bytes[pos]                   |
-                    ((long)bytes[pos + 1] << 8)  |
+                    bytes[pos] |
+                    ((long)bytes[pos + 1] << 8) |
+                    ((long)bytes[pos + 2] << 16) |
+                    ((long)bytes[pos + 3] << 24) |
+                    ((long)bytes[pos + 4] << 32) |
+                    ((long)bytes[pos + 5] << 40) |
+                    ((long)bytes[pos + 6] << 48) |
+                    ((long)bytes[pos + 7] << 56));
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static ulong BytesToUInt64Safepos(byte[] bytes, int pos)
+        {
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = &bytes[pos])
+                    return *(ulong*)p;
+            }
+            else
+                return (ulong)(
+                    bytes[pos] |
+                    ((long)bytes[pos + 1] << 8) |
                     ((long)bytes[pos + 2] << 16) |
                     ((long)bytes[pos + 3] << 24) |
                     ((long)bytes[pos + 4] << 32) |
@@ -529,11 +642,11 @@ namespace OpenMetaverse
         /// <param name="bytes">An array eight bytes or longer</param>
         /// <returns>An unsigned 64-bit integer, will be zero if the array
         /// contains less than eight bytes</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static ulong BytesToUInt64(byte[] bytes)
         {
             if (CanDirectCopyLE)
             {
-                if (bytes.Length < 8) return 0;
                 fixed (byte* p = bytes)
                     return *(ulong*)p;
             }
@@ -558,11 +671,11 @@ namespace OpenMetaverse
         /// <param name="pos">Starting position of the floating point value in
         /// the byte array</param>
         /// <returns>Single precision value</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static float BytesToFloat(byte[] bytes)
         {
             if (CanDirectCopyLE)
             {
-                if (bytes.Length < 4) return 0;
                 fixed (byte* p = bytes)
                     return *(float*)p;
             }
@@ -577,6 +690,7 @@ namespace OpenMetaverse
             }
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static float BytesToFloat(byte[] bytes, int pos)
         {
             if (CanDirectCopyLE)
@@ -596,11 +710,30 @@ namespace OpenMetaverse
             }
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static float BytesToFloatSafepos(byte[] bytes, int pos)
+        {
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = &bytes[pos])
+                    return *(float*)p;
+            }
+            else
+            {
+                int tmp =
+                    bytes[pos] |
+                    (bytes[pos + 1] << 8) |
+                    (bytes[pos + 2] << 16) |
+                    (bytes[pos + 3] << 24);
+                return *(float*)&tmp;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static double BytesToDouble(byte[] bytes)
         {
             if (CanDirectCopyLE)
             {
-                if (bytes.Length < 8) return 0;
                 fixed (byte* p = bytes)
                     return *(double*)p;
             }
@@ -619,11 +752,35 @@ namespace OpenMetaverse
             }
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static double BytesToDouble(byte[] bytes, int pos)
         {
             if (CanDirectCopyLE)
             {
                 if (bytes.Length < pos + 8) return 0;
+                fixed (byte* p = &bytes[pos])
+                    return *(double*)p;
+            }
+            else
+            {
+                long tmp =
+                    bytes[pos] |
+                    ((long)bytes[pos + 1] << 8) |
+                    ((long)bytes[pos + 2] << 16) |
+                    ((long)bytes[pos + 3] << 24) |
+                    ((long)bytes[pos + 4] << 32) |
+                    ((long)bytes[pos + 5] << 40) |
+                    ((long)bytes[pos + 6] << 48) |
+                    ((long)bytes[pos + 7] << 56);
+                return *(double*)&tmp;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static double BytesToDoubleSafepos(byte[] bytes, int pos)
+        {
+            if (CanDirectCopyLE)
+            {
                 fixed (byte* p = &bytes[pos])
                     return *(double*)p;
             }
@@ -652,6 +809,13 @@ namespace OpenMetaverse
             bytes[0] = (byte)(value);
             bytes[1] = (byte)((value >> 8));
             return bytes;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static void Int16ToBytes(MemoryStream ms, short value)
+        {
+            ms.WriteByte((byte)value);
+            ms.WriteByte((byte)(value >> 8));
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -684,11 +848,21 @@ namespace OpenMetaverse
             dest[pos + 1] = (byte)(value);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static void IntToBytes(MemoryStream ms, int value)
+        {
+            ms.WriteByte((byte)value);
+            ms.WriteByte((byte)(value >> 8));
+            ms.WriteByte((byte)(value >> 16));
+            ms.WriteByte((byte)(value >> 24));
+        }
+
         /// <summary>
         /// Convert an integer to a byte array in little endian format
         /// </summary>
         /// <param name="value">The integer to convert</param>
         /// <returns>A four byte little endian array</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static byte[] IntToBytes(int value)
         {
             byte[] bytes = new byte[4];
@@ -707,6 +881,7 @@ namespace OpenMetaverse
             return bytes;
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static void IntToBytes(int value, byte[] dest, int pos)
         {
             if (CanDirectCopyLE)
@@ -724,11 +899,29 @@ namespace OpenMetaverse
             }
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static void IntToBytesSafepos(int value, byte[] dest, int pos)
+        {
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = &dest[pos])
+                    *(int*)p = value;
+            }
+            else
+            {
+                dest[pos] = (byte)(value);
+                dest[pos + 1] = (byte)((value >> 8));
+                dest[pos + 2] = (byte)((value >> 16));
+                dest[pos + 3] = (byte)((value >> 24));
+            }
+        }
+
         /// <summary>
         /// Convert an integer to a byte array in big endian format
         /// </summary>
         /// <param name="value">The integer to convert</param>
         /// <returns>A four byte big endian array</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static byte[] IntToBytesBig(int value)
         {
             byte[] bytes = new byte[4];
@@ -741,6 +934,7 @@ namespace OpenMetaverse
             return bytes;
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void IntToBytesBig(int value, byte[] bytes, int pos)
         {
             if (bytes.Length < pos + 4) return;
@@ -750,16 +944,25 @@ namespace OpenMetaverse
             bytes[pos + 3] = (byte)value;
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static byte[] UIntToBytes(uint value)
         {
             return IntToBytes((int)value);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static void UIntToBytes(uint value, byte[] dest, int pos)
         {
             IntToBytes((int)value, dest, pos);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static void UIntToBytesSafepos(uint value, byte[] dest, int pos)
+        {
+            IntToBytesSafepos((int)value, dest, pos);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void UIntToBytesBig(uint value, byte[] dest, int pos)
         {
            IntToBytesBig((int)value, dest, pos);
@@ -770,6 +973,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="value">The value to convert</param>
         /// <returns>An 8 byte little endian array</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static byte[] Int64ToBytes(long value)
         {
             byte[] bytes = new byte[8];
@@ -792,6 +996,7 @@ namespace OpenMetaverse
             return bytes;
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static void Int64ToBytes(long value, byte[] dest, int pos)
         {
             if (CanDirectCopyLE)
@@ -813,6 +1018,28 @@ namespace OpenMetaverse
             }
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static void Int64ToBytesSafepos(long value, byte[] dest, int pos)
+        {
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = &dest[pos])
+                    *(long*)p = value;
+            }
+            else
+            {
+                dest[pos] = (byte)value;
+                dest[pos + 1] = (byte)(value >> 8);
+                dest[pos + 2] = (byte)(value >> 16);
+                dest[pos + 3] = (byte)(value >> 24);
+                dest[pos + 4] = (byte)(value >> 32);
+                dest[pos + 5] = (byte)(value >> 40);
+                dest[pos + 6] = (byte)(value >> 48);
+                dest[pos + 7] = (byte)(value >> 56);
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static byte[] Int64ToBytesBig(long value)
         {
             byte[] bytes = new byte[8];
@@ -827,6 +1054,7 @@ namespace OpenMetaverse
             return bytes;
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void Int64ToBytesBig(long value, byte[] dest, int pos)
         {
             dest[pos] = (byte)(value >> 56);
@@ -845,21 +1073,31 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="value">The value to convert</param>
         /// <returns>An 8 byte little endian array</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static byte[] UInt64ToBytes(ulong value)
         {
             return Int64ToBytes((long)value);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static byte[] UInt64ToBytesBig(ulong value)
         {
             return Int64ToBytesBig((long)value);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static void UInt64ToBytes(ulong value, byte[] dest, int pos)
         {
-            Int64ToBytes((long) value, dest, pos);
+            Int64ToBytes((long)value, dest, pos);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static void UInt64ToBytesSafepos(ulong value, byte[] dest, int pos)
+        {
+            Int64ToBytesSafepos((long)value, dest, pos);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void UInt64ToBytesBig(ulong value, byte[] dest, int pos)
         {
             Int64ToBytesBig((long) value, dest, pos);
@@ -872,29 +1110,52 @@ namespace OpenMetaverse
         /// <param name="value">A floating point value</param>
         /// <returns>A four byte array containing the value in little endian
         /// ordering</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static byte[] FloatToBytes(float value)
         {
             return IntToBytes(*(int*)&value);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static void FloatToBytes(MemoryStream ms, float value)
+        {
+            IntToBytes(ms, *(int*)&value);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static void FloatToBytes(float value, byte[] dest, int pos)
         {
             IntToBytes(*(int*)&value, dest, pos);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static void FloatToBytesSafepos(float value, byte[] dest, int pos)
+        {
+            IntToBytesSafepos(*(int*)&value, dest, pos);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static byte[] DoubleToBytes(double value)
         {
             return Int64ToBytes(*(long*)&value);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static byte[] DoubleToBytesBig(double value)
         {
             return Int64ToBytesBig(*(long*)&value);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static void DoubleToBytes(double value, byte[] dest, int pos)
         {
             Int64ToBytes(*(long*)&value, dest, pos);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static void DoubleToBytesSafepos(double value, byte[] dest, int pos)
+        {
+            Int64ToBytesSafepos(*(long*)&value, dest, pos);
         }
 
         #endregion ToBytes

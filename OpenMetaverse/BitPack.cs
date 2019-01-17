@@ -283,7 +283,7 @@ namespace OpenMetaverse
         /// <returns>32-bit signed integer</returns>
         public int UnpackInt()
         {
-            return UnpackBits(32);
+            return (int)UnpackUInt();
         }
 
         /// <summary>
@@ -292,44 +292,49 @@ namespace OpenMetaverse
         /// <returns>32-bit unsigned integer</returns>
         public uint UnpackUInt()
         {
-            return UnpackUBits(32);
+            uint tmp = UnpackByte();
+            tmp |= (byte)(UnpackByte() << 8);
+            tmp |= (byte)(UnpackByte() << 16);
+            tmp |= (byte)(UnpackByte() << 24);
+            return tmp;
         }
 
         public byte UnpackByte()
         {
-            byte[] output = UnpackBitsArray(8);
-            return output[0];
+            byte o = Data[bytePos];
+            if (bitPos == 0 || o == 0)
+            {
+                ++bytePos;
+                return o;
+            }
+
+            o <<= bitPos;
+            ++bytePos;
+            o |= (byte)(Data[bytePos] >> (8 - bitPos));
+            return o;
         }
 
         public float UnpackFixed(bool signed, int intBits, int fracBits)
         {
-            int minVal;
-            int maxVal;
-            int unsignedBits = intBits + fracBits;
-            int totalBits = unsignedBits;
-            float fixedVal;
-
+            int totalBits = intBits + fracBits;
             if (signed)
-            {
                 totalBits++;
 
-                minVal = 1 << intBits;
-                minVal *= -1;
+            int intVal = UnpackByte();
+            if (totalBits > 8)
+            {
+                intVal |= (UnpackByte() << 8);
+                if (totalBits > 16)
+                {
+                    intVal |= (UnpackByte() << 16);
+                    intVal |= (UnpackByte() << 24);
+                }
             }
-            maxVal = 1 << intBits;
 
-            if (totalBits <= 8)
-                fixedVal = (float)UnpackByte();
-            else if (totalBits <= 16)
-                fixedVal = (float)UnpackUBits(16);
-            else if (totalBits <= 31)
-                fixedVal = (float)UnpackUBits(32);
-            else
-                return 0.0f;
+            float fixedVal = intVal;
+            fixedVal /= (1 << fracBits);
 
-            fixedVal /= (float)(1 << fracBits);
-
-            if (signed) fixedVal -= (float)maxVal;
+            if (signed) fixedVal -= (1 << intBits);
 
             return fixedVal;
         }

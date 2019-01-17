@@ -94,14 +94,13 @@ namespace mapgenerator
             switch (field.Type)
             {
                 case FieldType.BOOL:
-                    writer.WriteLine("                    " +
-                        field.Name + " = (bytes[i++] != 0) ? (bool)true : (bool)false;");
+                    writer.WriteLine("                    " + field.Name + " = (bytes[i++] != 0) ? (bool)true : (bool)false;");
                     break;
                 case FieldType.F32:
-                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToFloat(bytes, i); i += 4;");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToFloatSafepos(bytes, i); i += 4;");
                     break;
                 case FieldType.F64:
-                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToDouble(bytes, i); i += 8;");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToDoubleSafepos(bytes, i); i += 8;");
                     break;
                 case FieldType.Fixed:
                     writer.WriteLine("                    " + field.Name + " = new byte[" + field.Count + "];");
@@ -110,7 +109,7 @@ namespace mapgenerator
                     break;
                 case FieldType.IPADDR:
                 case FieldType.U32:
-                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToUInt(bytes, i); i += 4;");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToUIntSafepos(bytes, i); i += 4;");
                     break;
                 case FieldType.IPPORT:
                     // IPPORT is big endian while U16/S16 are little endian. Go figure
@@ -139,13 +138,13 @@ namespace mapgenerator
                     writer.WriteLine("                    " + field.Name + " = Utils.BytesToInt16(bytes, i); i+=2;");
                     break;
                 case FieldType.S32:
-                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToInt(bytes, i); i +=4;");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToIntSafepos(bytes, i); i +=4;");
                     break;
                 case FieldType.S8:
                     writer.WriteLine("                    " + field.Name + " = (sbyte)bytes[i++];");
                     break;
                 case FieldType.U64:
-                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToUInt64(bytes, i); i += 8;");
+                    writer.WriteLine("                    " + field.Name + " = Utils.BytesToUInt64Safepos(bytes, i); i += 8;");
                     break;
                 case FieldType.U8:
                     writer.WriteLine("                    " + field.Name + " = (byte)bytes[i++];");
@@ -178,10 +177,10 @@ namespace mapgenerator
                     writer.WriteLine("bytes[i++] = (byte)((" + field.Name + ") ? 1 : 0);");
                     break;
                 case FieldType.F32:
-                    writer.WriteLine("Utils.FloatToBytes(" + field.Name + ", bytes, i); i += 4;");
+                    writer.WriteLine("Utils.FloatToBytesSafepos(" + field.Name + ", bytes, i); i += 4;");
                     break;
                 case FieldType.F64:
-                    writer.WriteLine("Utils.DoubleToBytes(" + field.Name + ", bytes, i); i += 8;");
+                    writer.WriteLine("Utils.DoubleToBytesSafepos(" + field.Name + ", bytes, i); i += 8;");
                     break;
                 case FieldType.Fixed:
                     writer.WriteLine("Buffer.BlockCopy(" + field.Name + ", 0, bytes, i, " + field.Count + ");" +
@@ -217,13 +216,13 @@ namespace mapgenerator
                     break;
                 case FieldType.IPADDR:
                 case FieldType.U32:
-                    writer.WriteLine("Utils.UIntToBytes(" + field.Name + ", bytes, i); i += 4;");
+                    writer.WriteLine("Utils.UIntToBytesSafepos(" + field.Name + ", bytes, i); i += 4;");
                     break;
                 case FieldType.S32:
-                    writer.WriteLine("Utils.IntToBytes(" + field.Name + ", bytes, i); i += 4;");
+                    writer.WriteLine("Utils.IntToBytesSafepos(" + field.Name + ", bytes, i); i += 4;");
                     break;
                 case FieldType.U64:
-                    writer.WriteLine("Utils.UInt64ToBytes(" + field.Name + ", bytes, i); i += 8;");
+                    writer.WriteLine("Utils.UInt64ToBytesSafepos(" + field.Name + ", bytes, i); i += 8;");
                     break;
                 case FieldType.Variable:
                     //writer.WriteLine("if(" + field.Name + " == null) { Console.WriteLine(\"Warning: " + field.Name + " is null, in \" + this.GetType()); }");
