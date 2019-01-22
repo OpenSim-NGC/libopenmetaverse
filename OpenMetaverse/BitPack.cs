@@ -64,21 +64,13 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="data">Byte array to pack bits in to or unpack from</param>
         /// <param name="pos">Starting position in the byte array</param>
-        public BitPack(byte[] data, int pos)
+        public BitPack(byte[] data, int pos, int bitp = 0)
         {
             Data = data;
             bytePos = pos;
-            cleanUnUsedBits();
-        }
-
-        private void cleanUnUsedBits()
-        {
-            if (bitPos == 0)
-                Data[bytePos] = 0;
-            else
-            {
-                Data[bytePos] &= (byte)~(0xff >> bitPos);
-            }
+            bitPos = bitp;
+            if(bitp != 0)
+                Data[pos] &= (byte)~(0xff >> bitPos);
         }
 
         /// <summary>
@@ -101,19 +93,14 @@ namespace OpenMetaverse
         /// <param name="totalCount">Number of bits of the integer to pack</param>
         public void PackBits(int data, int totalCount)
         {
-            if (totalCount == 1)
-                PackBitFromBit((byte)data);
-            else
+            while (totalCount > 8)
             {
-                while (totalCount > 8)
-                {
-                    PackBitsFromByte((byte)data);
-                    data >>= 8;
-                    totalCount -= 8;
-                }
-                if (totalCount > 0)
-                    PackBitsFromByte((byte)data, totalCount);
+                PackBitsFromByte((byte)data);
+                data >>= 8;
+                totalCount -= 8;
             }
+            if (totalCount > 0)
+                PackBitsFromByte((byte)data, totalCount);
         }
 
         /// <summary>
@@ -123,19 +110,14 @@ namespace OpenMetaverse
         /// <param name="totalCount">Number of bits of the integer to pack</param>
         public void PackBits(uint data, int totalCount)
         {
-            if (totalCount == 1)
-                PackBitFromBit((byte)data);
-            else
+            while (totalCount > 8)
             {
-                while (totalCount > 8)
-                {
-                    PackBitsFromByte((byte)data);
-                    data >>= 8;
-                    totalCount -= 8;
-                }
-                if (totalCount > 0)
-                    PackBitsFromByte((byte)data, totalCount);
+                PackBitsFromByte((byte)data);
+                data >>= 8;
+                totalCount -= 8;
             }
+            if (totalCount > 0)
+                PackBitsFromByte((byte)data, totalCount);
         }
 
         public void PackBitsFromUInt(uint data)
@@ -168,17 +150,17 @@ namespace OpenMetaverse
 
             if (totalBits > 32)
                 throw new Exception("Can't use fixed point packing for " + totalBits);
-            
-            if(data <= 0)
-                data = 0;
+
+            int v;
+            if(data <= 1e-6f)
+                v = 0;
             else
             {
                 if(data > max)
                     data = max;
                 data *= 1 << fracBits;
+                v = (int)data;
             }
-
-            int v = (int)data;
 
             PackBitsFromByte((byte)v);
             if(totalBits > 8)
@@ -199,9 +181,6 @@ namespace OpenMetaverse
         public void PackUUID(UUID data)
         {
             byte[] bytes = data.GetBytes();
-
-            // Not sure if our PackBitArray function can handle 128-bit byte
-            //arrays, so using this for now
             for (int i = 0; i < 16; i++)
                 PackBitsFromByte(bytes[i]);
         }
@@ -331,6 +310,9 @@ namespace OpenMetaverse
                 }
             }
 
+            if(intVal == 0)
+                return 0f;
+
             float fixedVal = intVal;
             fixedVal /= (1 << fracBits);
 
@@ -360,45 +342,14 @@ namespace OpenMetaverse
         private void PackBitArray(byte[] data, int totalCount)
         {
             int count = 0;
-            int curBytePos = 0;
-            int curBitPos = 0;
-
-            while (totalCount > 0)
+            while(totalCount > 8)
             {
-                if (totalCount > MAX_BITS)
-                {
-                    count = MAX_BITS - 1;
-                    totalCount -= MAX_BITS;
-                }
-                else
-                {
-                    count = totalCount - 1;
-                    totalCount = 0;
-                }
-
-                while (count >= 0)
-                {
-                    if ((data[curBytePos] & (0x01 << count)) != 0)
-                        Data[bytePos] |= (byte)(0x80 >> bitPos);
-
-                    --count;
-                    ++bitPos;
-                    ++curBitPos;
-
-                    if (bitPos >= MAX_BITS)
-                    {
-                        bitPos = 0;
-                        ++bytePos;
-                        if (bytePos < Data.Length)
-                            Data[bytePos] = 0;
-                    }
-                    if (curBitPos >= MAX_BITS)
-                    {
-                        curBitPos = 0;
-                        ++curBytePos;
-                    }
-                }
+                PackBitsFromByte(data[count]);
+                ++count;
+                totalCount -= 8;
             }
+            if(totalCount > 0)
+                PackBitsFromByte(data[count], totalCount);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
