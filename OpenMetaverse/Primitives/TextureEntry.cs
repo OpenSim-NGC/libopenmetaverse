@@ -1690,14 +1690,14 @@ namespace OpenMetaverse
             {
                 if (data.Length >= 16)
                 {
-                    Flags = (TextureAnimMode)((uint)data[pos++]);
-                    Face = (uint)data[pos++];
-                    SizeX = (uint)data[pos++];
-                    SizeY = (uint)data[pos++];
+                    Flags = (TextureAnimMode)(data[pos++]);
+                    Face = data[pos++];
+                    SizeX = data[pos++];
+                    SizeY = data[pos++];
 
-                    Start = Utils.BytesToFloat(data, pos);
-                    Length = Utils.BytesToFloat(data, pos + 4);
-                    Rate = Utils.BytesToFloat(data, pos + 8);
+                    Start = Utils.BytesToFloatSafepos(data, pos);
+                    Length = Utils.BytesToFloatSafepos(data, pos + 4);
+                    Rate = Utils.BytesToFloatSafepos(data, pos + 8);
                 }
                 else
                 {
@@ -1719,16 +1719,15 @@ namespace OpenMetaverse
             public byte[] GetBytes()
             {
                 byte[] data = new byte[16];
-                int pos = 0;
 
-                data[pos++] = (byte)Flags;
-                data[pos++] = (byte)Face;
-                data[pos++] = (byte)SizeX;
-                data[pos++] = (byte)SizeY;
+                data[0] = (byte)Flags;
+                data[1] = (byte)Face;
+                data[2] = (byte)SizeX;
+                data[3] = (byte)SizeY;
 
-                Utils.FloatToBytes(Start, data, pos);
-                Utils.FloatToBytes(Length, data, pos + 4);
-                Utils.FloatToBytes(Rate, data, pos + 8);
+                Utils.FloatToBytesSafepos(Start, data, 4);
+                Utils.FloatToBytesSafepos(Length, data, 8);
+                Utils.FloatToBytesSafepos(Rate, data, 12);
 
                 return data;
             }

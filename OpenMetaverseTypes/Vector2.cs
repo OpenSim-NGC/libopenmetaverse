@@ -65,6 +65,28 @@ namespace OpenMetaverse
         #endregion Constructors
 
         #region Public Methods
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void Abs()
+        {
+            if (X < 0f)
+                X = -X;
+            if (Y < 0f)
+                Y = -Y;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void Min(Vector2 v)
+        {
+            if (v.X < X) X = v.X;
+            if (v.Y < Y) Y = v.Y;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void Max(Vector2 v)
+        {
+            if (v.X > X) X = v.X;
+            if (v.Y > Y) Y = v.Y;
+        }
 
         /// <summary>
         /// Test if this vector is equal to another vector, within a given
@@ -75,10 +97,18 @@ namespace OpenMetaverse
         /// between the two vectors</param>
         /// <returns>True if the magnitude of difference between the two vectors
         /// is less than the given tolerance, otherwise false</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public bool ApproxEquals(Vector2 vec, float tolerance)
         {
             return Utils.ApproxEqual(X, vec.X, tolerance) &&
                     Utils.ApproxEqual(Y, vec.Y, tolerance);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public bool ApproxEquals(Vector2 vec)
+        {
+            return Utils.ApproxEqual(X, vec.X) &&
+                    Utils.ApproxEqual(Y, vec.Y);
         }
 
         /// <summary>
@@ -94,7 +124,7 @@ namespace OpenMetaverse
         /// </summary>
         public int CompareTo(Vector2 vector)
         {
-            return Length().CompareTo(vector.Length());
+            return LengthSquared().CompareTo(vector.LengthSquared());
         }
 
         /// <summary>
@@ -102,6 +132,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="byteArray">Byte array containing two four-byte floats</param>
         /// <param name="pos">Beginning position in the byte array</param>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void FromBytes(byte[] byteArray, int pos)
         {
             X = Utils.BytesToFloatSafepos(byteArray, pos);
@@ -112,6 +143,7 @@ namespace OpenMetaverse
         /// Returns the raw bytes for this vector
         /// </summary>
         /// <returns>An eight-byte array containing X and Y</returns>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public byte[] GetBytes()
         {
             byte[] dest = new byte[8];
@@ -126,6 +158,7 @@ namespace OpenMetaverse
         /// <param name="dest">Destination byte array</param>
         /// <param name="pos">Position in the destination array to start
         /// writing. Must be at least 8 bytes before the end of the array</param>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void ToBytes(byte[] dest, int pos)
         {
             Utils.FloatToBytesSafepos(X, dest, pos);
@@ -466,5 +499,7 @@ namespace OpenMetaverse
         public readonly static Vector2 UnitX = new Vector2(1f, 0f);
         /// <summary>A vector with a value of 0,1</summary>
         public readonly static Vector2 UnitY = new Vector2(0f, 1f);
+        public readonly static Vector2 MinValue = new Vector2(float.MinValue, float.MinValue);
+        public readonly static Vector2 MaxValue = new Vector2(float.MaxValue, float.MaxValue);
     }
 }

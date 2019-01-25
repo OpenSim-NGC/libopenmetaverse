@@ -103,7 +103,16 @@ namespace OpenMetaverse
         #endregion Constructors
 
         #region Public Methods
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public bool ApproxEquals(Quaternion quat)
+        {
+            // assume normalized
+            return  Math.Abs(quat.X - X) < 1e-6f &&
+                    Math.Abs(quat.Y - Y) < 1e-6f &&
+                    Math.Abs(quat.Z - Z) < 1e-6f;
+        }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public bool ApproxEquals(Quaternion quat, float tolerance)
         {
             // assume normalized
@@ -211,12 +220,12 @@ namespace OpenMetaverse
         {
             byte[] bytes = new byte[12];
             float norm = LengthSquared();
-            if (norm > 1e-6f)
+            if (norm > 1e-6f || W < 0.9999f)
             {
                 if (W < 0f)
-                    norm = -1f / norm;
+                    norm = -1f / (float)Math.Sqrt(norm);
                 else
-                    norm = 1f / norm;
+                    norm = 1f / (float)Math.Sqrt(norm);
                 Utils.FloatToBytesSafepos(norm * X, bytes, 0);
                 Utils.FloatToBytesSafepos(norm * Y, bytes, 4);
                 Utils.FloatToBytesSafepos(norm * Z, bytes, 8);
@@ -238,13 +247,13 @@ namespace OpenMetaverse
         /// writing. Must be at least 12 bytes before the end of the array</param>
         public void ToBytes(byte[] dest, int pos)
         {
-            float norm = Length();
+            float norm = LengthSquared();
             if (norm > 1e-6f || norm < 0.9999f)
             {
                 if (W < 0f)
-                    norm = -1f / norm;
+                    norm = -1f / (float)Math.Sqrt(norm);
                 else
-                    norm = 1f / norm;
+                    norm = 1f / (float)Math.Sqrt(norm);
                 Utils.FloatToBytesSafepos(norm * X, dest, pos);
                 Utils.FloatToBytesSafepos(norm * Y, dest, pos + 4);
                 Utils.FloatToBytesSafepos(norm * Z, dest, pos + 8);

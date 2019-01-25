@@ -99,6 +99,32 @@ namespace OpenMetaverse
         #endregion Constructors
 
         #region Public Methods
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void Abs()
+        {
+            X = Math.Abs(X);
+            Y = Math.Abs(Y);
+            Z = Math.Abs(Z);
+            W = Math.Abs(W);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void Min(Vector4 v)
+        {
+            if (v.X < X) X = v.X;
+            if (v.Y < Y) Y = v.Y;
+            if (v.Z < Z) Z = v.Z;
+            if (v.W < W) W = v.W;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void Max(Vector4 v)
+        {
+            if (v.X > X) X = v.X;
+            if (v.Y > Y) Y = v.Y;
+            if (v.Z > Z) Z = v.Z;
+            if (v.W > W) W = v.W;
+        }
 
         public float Length()
         {
@@ -130,6 +156,14 @@ namespace OpenMetaverse
                     Utils.ApproxEqual(Y, vec.Y, tolerance) &&
                     Utils.ApproxEqual(Z, vec.Z, tolerance) &&
                     Utils.ApproxEqual(W, vec.W, tolerance);
+        }
+
+        public bool ApproxEquals(Vector4 vec)
+        {
+            return Utils.ApproxEqual(X, vec.X) &&
+                    Utils.ApproxEqual(Y, vec.Y) &&
+                    Utils.ApproxEqual(Z, vec.Z) &&
+                    Utils.ApproxEqual(W, vec.W);
         }
 
         /// <summary>
@@ -525,5 +559,7 @@ namespace OpenMetaverse
         public readonly static Vector4 UnitZ = new Vector4(0f, 0f, 1f, 0f);
         /// <summary>A vector with a value of 0,0,0,1</summary>
         public readonly static Vector4 UnitW = new Vector4(0f, 0f, 0f, 1f);
+        public readonly static Vector4 MinValue = new Vector4(float.MinValue, float.MinValue, float.MinValue, float.MinValue);
+        public readonly static Vector4 MaxValue = new Vector4(float.MaxValue, float.MaxValue, float.MaxValue, float.MaxValue);
     }
 }

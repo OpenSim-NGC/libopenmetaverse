@@ -259,7 +259,7 @@ namespace OpenMetaverse
                 }
                 else if (size > LegacyDataBlockSize && size <= MaxDataBlockSize)
                 {
-                    int sysSize = pack.UnpackBits(32);
+                    int sysSize = pack.UnpackInt();
                     if (sysSize != SysDataSize) return; // unkown particle system data size
                     UnpackSystem(ref pack);
                     int dataSize = pack.UnpackInt();

@@ -310,10 +310,10 @@ namespace OpenMetaverse
         #region BytesTo
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static bool ApproxEqual(float a, float b, float tolerance, float reltolerance = 1e-6f)
+        public static bool ApproxEqual(float a, float b, float tolerance, float reltolerance = float.Epsilon)
         {
             float dif = Math.Abs(a - b);
-            if(Math.Abs(dif) <= tolerance)
+            if(dif <= tolerance)
                 return true;
 
             a = Math.Abs(a);
@@ -321,6 +321,19 @@ namespace OpenMetaverse
             if(b > a)
                 a = b;
             return dif <= a * reltolerance;
+        }
+
+        public static bool ApproxEqual(float a, float b)
+        {
+            float dif = Math.Abs(a - b);
+            if (dif <= 1e-6f)
+                return true;
+
+            a = Math.Abs(a);
+            b = Math.Abs(b);
+            if (b > a)
+                a = b;
+            return dif <= a * float.Epsilon;
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
