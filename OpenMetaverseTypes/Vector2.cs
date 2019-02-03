@@ -201,11 +201,10 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 Add(Vector2 value1, Vector2 value2)
         {
-            value1.X += value2.X;
-            value1.Y += value2.Y;
-            return value1;
+            return new Vector2(value1.X + value2.X, value1.Y + value2.Y);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 Clamp(Vector2 value1, Vector2 min, Vector2 max)
         {
             return new Vector2(
@@ -213,11 +212,13 @@ namespace OpenMetaverse
                 Utils.Clamp(value1.Y, min.Y, max.Y));
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static float Distance(Vector2 value1, Vector2 value2)
         {
             return (float)Math.Sqrt(DistanceSquared(value1, value2));
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static float DistanceSquared(Vector2 value1, Vector2 value2)
         {
             return
@@ -228,24 +229,20 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 Divide(Vector2 value1, Vector2 value2)
         {
-            value1.X /= value2.X;
-            value1.Y /= value2.Y;
-            return value1;
+            return new Vector2(value1.X / value2.X, value1.Y / value2.Y);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 Divide(Vector2 value1, float divider)
         {
             float factor = 1 / divider;
-            value1.X *= factor;
-            value1.Y *= factor;
-            return value1;
+            return new Vector2(value1.X * factor, value1.Y * factor);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static float Dot(Vector2 value1, Vector2 value2)
         {
-            return value1.X * value2.X + value1.Y * value2.Y;
+            return (value1.X * value2.X) + (value1.Y * value2.Y);
         }
 
         public static Vector2 Lerp(Vector2 value1, Vector2 value2, float amount)
@@ -274,25 +271,19 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 Multiply(Vector2 value1, Vector2 value2)
         {
-            value1.X *= value2.X;
-            value1.Y *= value2.Y;
-            return value1;
+            return new Vector2(value1.X * value2.X, value1.Y * value2.Y);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 Multiply(Vector2 value1, float scaleFactor)
         {
-            value1.X *= scaleFactor;
-            value1.Y *= scaleFactor;
-            return value1;
+            return new Vector2(value1.X * scaleFactor, value1.Y * scaleFactor);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 Negate(Vector2 value)
         {
-            value.X = -value.X;
-            value.Y = -value.Y;
-            return value;
+            return new Vector2(-value.X, -value.Y);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -302,15 +293,9 @@ namespace OpenMetaverse
             if (factor > 1e-6)
             {
                 factor = 1f / (float)Math.Sqrt(factor);
-                value.X *= factor;
-                value.Y *= factor;
+                return new Vector2(value.X * factor, value.Y * factor);
             }
-            else
-            {
-                value.X = 0f;
-                value.Y = 0f;
-            }
-            return value;
+            return Vector2.Zero;
         }
 
         /// <summary>
@@ -355,23 +340,21 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 Subtract(Vector2 value1, Vector2 value2)
         {
-            value1.X -= value2.X;
-            value1.Y -= value2.Y;
-            return value1;
+            return new Vector2(value1.X - value2.X, value1.Y - value2.Y);
         }
 
         public static Vector2 Transform(Vector2 position, Matrix4 matrix)
         {
-            position.X = (position.X * matrix.M11) + (position.Y * matrix.M21) + matrix.M41;
-            position.Y = (position.X * matrix.M12) + (position.Y * matrix.M22) + matrix.M42;
-            return position;
+            return new Vector2(
+                (position.X * matrix.M11) + (position.Y * matrix.M21) + matrix.M41,
+                (position.X * matrix.M12) + (position.Y * matrix.M22) + matrix.M42);
         }
 
         public static Vector2 TransformNormal(Vector2 position, Matrix4 matrix)
         {
-            position.X = (position.X * matrix.M11) + (position.Y * matrix.M21);
-            position.Y = (position.X * matrix.M12) + (position.Y * matrix.M22);
-            return position;
+            return new Vector2(
+                (position.X * matrix.M11) + (position.Y * matrix.M21),
+                (position.X * matrix.M12) + (position.Y * matrix.M22));
         }
 
         #endregion Static Methods
@@ -433,60 +416,45 @@ namespace OpenMetaverse
 
         public static Vector2 operator +(Vector2 value1, Vector2 value2)
         {
-            value1.X += value2.X;
-            value1.Y += value2.Y;
-            return value1;
+            return new Vector2(value1.X + value2.X, value1.Y + value2.Y);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 operator -(Vector2 value)
         {
-            value.X = -value.X;
-            value.Y = -value.Y;
-            return value;
+            return new Vector2(-value.X, -value.Y);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 operator -(Vector2 value1, Vector2 value2)
         {
-            value1.X -= value2.X;
-            value1.Y -= value2.Y;
-            return value1;
+            return new Vector2(value1.X - value2.X, value1.Y - value2.Y);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 operator *(Vector2 value1, Vector2 value2)
         {
-            value1.X *= value2.X;
-            value1.Y *= value2.Y;
-            return value1;
+            return new Vector2(value1.X * value2.X, value1.Y * value2.Y);
         }
 
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 operator *(Vector2 value, float scaleFactor)
         {
-            value.X *= scaleFactor;
-            value.Y *= scaleFactor;
-            return value;
+            return new Vector2(value.X * scaleFactor, value.Y * scaleFactor);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 operator /(Vector2 value1, Vector2 value2)
         {
-            value1.X /= value2.X;
-            value1.Y /= value2.Y;
-            return value1;
+            return new Vector2(value1.X / value2.X, value1.Y / value2.Y);
         }
 
-
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static Vector2 operator /(Vector2 value1, float divider)
+        public static Vector2 operator /(Vector2 value, float divider)
         {
             float factor = 1 / divider;
-            value1.X *= factor;
-            value1.Y *= factor;
-            return value1;
+            return new Vector2(value.X * factor, value.Y * factor);
         }
 
         #endregion Operators

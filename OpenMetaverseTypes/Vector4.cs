@@ -133,7 +133,7 @@ namespace OpenMetaverse
 
         public float LengthSquared()
         {
-            return X * X + Y * Y + Z * Z + W * W;
+            return (X * X) + (Y * Y) + (Z * Z) + (W * W);
         }
 
         public void Normalize()
@@ -229,11 +229,12 @@ namespace OpenMetaverse
 
         public static Vector4 Add(Vector4 value1, Vector4 value2)
         {
-            value1.W += value2.W;
-            value1.X += value2.X;
-            value1.Y += value2.Y;
-            value1.Z += value2.Z;
-            return value1;
+            return new Vector4(
+                value1.W + value2.W,
+                value1.X + value2.X,
+                value1.Y + value2.Y,
+                value1.Z + value2.Z
+                );
         }
 
         public static Vector4 Clamp(Vector4 value1, Vector4 min, Vector4 max)
@@ -253,34 +254,36 @@ namespace OpenMetaverse
         public static float DistanceSquared(Vector4 value1, Vector4 value2)
         {
             return
-                (value1.W - value2.W) * (value1.W - value2.W) +
                 (value1.X - value2.X) * (value1.X - value2.X) +
                 (value1.Y - value2.Y) * (value1.Y - value2.Y) +
-                (value1.Z - value2.Z) * (value1.Z - value2.Z);
+                (value1.Z - value2.Z) * (value1.Z - value2.Z) +
+                (value1.W - value2.W) * (value1.W - value2.W);
         }
 
         public static Vector4 Divide(Vector4 value1, Vector4 value2)
         {
-            value1.W /= value2.W;
-            value1.X /= value2.X;
-            value1.Y /= value2.Y;
-            value1.Z /= value2.Z;
-            return value1;
+            return new Vector4(
+                value1.X / value2.X,
+                value1.Y / value2.Y,
+                value1.Z / value2.Z,
+                value1.W / value2.W
+                );
         }
 
         public static Vector4 Divide(Vector4 value1, float divider)
         {
             float factor = 1f / divider;
-            value1.W *= factor;
-            value1.X *= factor;
-            value1.Y *= factor;
-            value1.Z *= factor;
-            return value1;
+            return new Vector4(
+                value1.X * factor,
+                value1.Y * factor,
+                value1.Z * factor,
+                value1.W * factor
+                );
         }
 
         public static float Dot(Vector4 vector1, Vector4 vector2)
         {
-            return vector1.X * vector2.X + vector1.Y * vector2.Y + vector1.Z * vector2.Z + vector1.W * vector2.W;
+            return (vector1.X * vector2.X) + (vector1.Y * vector2.Y) + (vector1.Z * vector2.Z) + (vector1.W * vector2.W);
         }
 
         public static Vector4 Lerp(Vector4 value1, Vector4 value2, float amount)
@@ -312,29 +315,29 @@ namespace OpenMetaverse
 
         public static Vector4 Multiply(Vector4 value1, Vector4 value2)
         {
-            value1.W *= value2.W;
-            value1.X *= value2.X;
-            value1.Y *= value2.Y;
-            value1.Z *= value2.Z;
-            return value1;
+            return new Vector4(
+                value1.X * value2.X,
+                value1.Y * value2.Y,
+                value1.Z * value2.Z,
+                value1.W * value2.W);
         }
 
         public static Vector4 Multiply(Vector4 value1, float scaleFactor)
         {
-            value1.W *= scaleFactor;
-            value1.X *= scaleFactor;
-            value1.Y *= scaleFactor;
-            value1.Z *= scaleFactor;
-            return value1;
+            return new Vector4(
+                value1.X * scaleFactor,
+                value1.Y * scaleFactor,
+                value1.Z * scaleFactor,
+                value1.W * scaleFactor);
         }
 
         public static Vector4 Negate(Vector4 value)
         {
-            value.X = -value.X;
-            value.Y = -value.Y;
-            value.Z = -value.Z;
-            value.W = -value.W;
-            return value;
+            return new Vector4(
+                -value.X,
+                -value.Y,
+                -value.Z,
+                -value.W);
         }
 
         public static Vector4 Normalize(Vector4 vector)
@@ -343,19 +346,13 @@ namespace OpenMetaverse
             if (factor > 1e-6)
             {
                 factor = 1f / (float)Math.Sqrt(factor);
-                vector.X *= factor;
-                vector.Y *= factor;
-                vector.Z *= factor;
-                vector.W *= factor;
+                return new Vector4(
+                    vector.X * factor,
+                    vector.Y * factor,
+                    vector.Z * factor,
+                    vector.W * factor);
             }
-            else
-            {
-                vector.X = 0f;
-                vector.Y = 0f;
-                vector.Z = 0f;
-                vector.W = 0f;
-            }
-            return vector;
+            return Vector4.Zero;
         }
 
         public static Vector4 SmoothStep(Vector4 value1, Vector4 value2, float amount)
@@ -369,11 +366,11 @@ namespace OpenMetaverse
 
         public static Vector4 Subtract(Vector4 value1, Vector4 value2)
         {
-            value1.W -= value2.W;
-            value1.X -= value2.X;
-            value1.Y -= value2.Y;
-            value1.Z -= value2.Z;
-            return value1;
+            return new Vector4(
+                value1.W - value2.W,
+                value1.X - value2.X,
+                value1.Y - value2.Y,
+                value1.Z - value2.Z);
         }
 
         public static Vector4 Transform(Vector2 position, Matrix4 matrix)
@@ -474,10 +471,11 @@ namespace OpenMetaverse
 
         public static bool operator ==(Vector4 value1, Vector4 value2)
         {
-            return value1.W == value2.W
-                && value1.X == value2.X
+            return 
+                   value1.X == value2.X
                 && value1.Y == value2.Y
-                && value1.Z == value2.Z;
+                && value1.Z == value2.Z
+                && value1.W == value2.W;
         }
 
         public static bool operator !=(Vector4 value1, Vector4 value2)
@@ -487,11 +485,11 @@ namespace OpenMetaverse
 
         public static Vector4 operator +(Vector4 value1, Vector4 value2)
         {
-            value1.W += value2.W;
-            value1.X += value2.X;
-            value1.Y += value2.Y;
-            value1.Z += value2.Z;
-            return value1;
+            return new Vector4(
+                value1.X + value2.X,
+                value1.Y + value2.Y,
+                value1.Z + value2.Z,
+                value1.W + value2.W);
         }
 
         public static Vector4 operator -(Vector4 value)
@@ -501,48 +499,48 @@ namespace OpenMetaverse
 
         public static Vector4 operator -(Vector4 value1, Vector4 value2)
         {
-            value1.W -= value2.W;
-            value1.X -= value2.X;
-            value1.Y -= value2.Y;
-            value1.Z -= value2.Z;
-            return value1;
+            return new Vector4(
+                value1.X - value2.X,
+                value1.Y - value2.Y,
+                value1.Z - value2.Z,
+                value1.W - value2.W);
         }
 
         public static Vector4 operator *(Vector4 value1, Vector4 value2)
         {
-            value1.W *= value2.W;
-            value1.X *= value2.X;
-            value1.Y *= value2.Y;
-            value1.Z *= value2.Z;
-            return value1;
+            return new Vector4(
+                value1.X * value2.X,
+                value1.Y * value2.Y,
+                value1.Z * value2.Z,
+                value1.W * value2.W);
         }
 
         public static Vector4 operator *(Vector4 value1, float scaleFactor)
         {
-            value1.W *= scaleFactor;
-            value1.X *= scaleFactor;
-            value1.Y *= scaleFactor;
-            value1.Z *= scaleFactor;
-            return value1;
+            return new Vector4(
+                value1.X * scaleFactor,
+                value1.Y * scaleFactor,
+                value1.Z * scaleFactor,
+                value1.W * scaleFactor);
         }
 
         public static Vector4 operator /(Vector4 value1, Vector4 value2)
         {
-            value1.W /= value2.W;
-            value1.X /= value2.X;
-            value1.Y /= value2.Y;
-            value1.Z /= value2.Z;
-            return value1;
+            return new Vector4(
+                value1.X / value2.X,
+                value1.Y / value2.Y,
+                value1.Z / value2.Z,
+                value1.W / value2.W);
         }
 
         public static Vector4 operator /(Vector4 value1, float divider)
         {
-            float factor = 1f / divider;
-            value1.W *= factor;
-            value1.X *= factor;
-            value1.Y *= factor;
-            value1.Z *= factor;
-            return value1;
+            float scaleFactor = 1f / divider;
+            return new Vector4(
+                value1.X * scaleFactor,
+                value1.Y * scaleFactor,
+                value1.Z * scaleFactor,
+                value1.W * scaleFactor);
         }
 
         #endregion Operators
