@@ -914,9 +914,10 @@ namespace OpenMetaverse
 
                 while (ReadFaceBitfield(data, ref i, ref faceBits, ref bitfieldSize))
                 {
+                    if (bitfieldSize > MAX_FACES)
+                        bitfieldSize = MAX_FACES;
                     UUID tmpUUID = new UUID(data, i);
                     i += 16;
-
                     for (face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
                         if ((faceBits & bit) != 0)
                         { 
@@ -932,6 +933,8 @@ namespace OpenMetaverse
 
                 while (ReadFaceBitfield(data, ref i, ref faceBits, ref bitfieldSize))
                 {
+                    if (bitfieldSize > MAX_FACES)
+                        bitfieldSize = MAX_FACES;
                     Color4 tmpColor = new Color4(data, i, true);
                     i += 4;
 
@@ -950,6 +953,8 @@ namespace OpenMetaverse
 
                 while (ReadFaceBitfield(data, ref i, ref faceBits, ref bitfieldSize))
                 {
+                    if (bitfieldSize > MAX_FACES)
+                        bitfieldSize = MAX_FACES;
                     float tmpFloat = Utils.BytesToFloat(data, i);
                     i += 4;
 
@@ -986,6 +991,9 @@ namespace OpenMetaverse
 
                 while (ReadFaceBitfield(data, ref i, ref faceBits, ref bitfieldSize))
                 {
+                    if (bitfieldSize > MAX_FACES)
+                        bitfieldSize = MAX_FACES;
+
                     short tmpshort = Utils.BytesToInt16(data, i);
                     i += 2;
 
@@ -1022,6 +1030,9 @@ namespace OpenMetaverse
 
                 while (ReadFaceBitfield(data, ref i, ref faceBits, ref bitfieldSize))
                 {
+                    if (bitfieldSize > MAX_FACES)
+                        bitfieldSize = MAX_FACES;
+
                     short tmpshort = Utils.BytesToInt16(data, i);
                     i += 2;
 
@@ -1040,6 +1051,9 @@ namespace OpenMetaverse
 
                 while (ReadFaceBitfield(data, ref i, ref faceBits, ref bitfieldSize))
                 {
+                    if (bitfieldSize > MAX_FACES)
+                        bitfieldSize = MAX_FACES;
+
                     byte tmpByte = data[i];
                     i++;
 
@@ -1058,6 +1072,9 @@ namespace OpenMetaverse
 
                 while (i - pos < length && ReadFaceBitfield(data, ref i, ref faceBits, ref bitfieldSize))
                 {
+                    if (bitfieldSize > MAX_FACES)
+                        bitfieldSize = MAX_FACES;
+
                     byte tmpByte = data[i];
                     i++;
 
@@ -1075,6 +1092,9 @@ namespace OpenMetaverse
 
                 while (ReadFaceBitfield(data, ref i, ref faceBits, ref bitfieldSize))
                 {
+                    if (bitfieldSize > MAX_FACES)
+                        bitfieldSize = MAX_FACES;
+
                     byte tmpByte = data[i++];
 
                     for (face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
@@ -1094,6 +1114,9 @@ namespace OpenMetaverse
 
                     while (i - pos + 16 <= length && ReadFaceBitfield(data, ref i, ref faceBits, ref bitfieldSize))
                     {
+                        if (bitfieldSize > MAX_FACES)
+                            bitfieldSize = MAX_FACES;
+
                         UUID tmpUUID = new UUID(data, i);
                         i += 16;
 
@@ -1112,7 +1135,7 @@ namespace OpenMetaverse
             /// 
             /// </summary>
             /// <returns></returns>
-            public byte[] GetBytes()
+            public byte[] GetBytes(int maxfaces = MAX_FACES)
             {
                 if (DefaultTexture == null)
                     return Utils.EmptyBytes;
@@ -1125,6 +1148,9 @@ namespace OpenMetaverse
                     ulong nulls = 0;
 
                     int last = FaceTextures.Length - 1;
+                    if(last > maxfaces - 1)
+                        last = maxfaces - 1;
+
                     bool onLastastNulls = true;
 
                     #region Texture

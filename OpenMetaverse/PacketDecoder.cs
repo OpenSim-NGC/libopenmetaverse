@@ -669,7 +669,8 @@ namespace OpenMetaverse.Packets
                 return String.Format("{0,30}: {1,2} {2,-38} [{3}]",
                 fieldName + " (Tree Species)",
                 fieldData,
-                "(" + (Tree)(byte)fieldData + ")",
+                //"(" + (Tree)(byte)fieldData + ")",
+                "(" + (Tree)data[0] + ")",
                 fieldData.GetType().Name);
             }
             else if (data.Length == 60)
