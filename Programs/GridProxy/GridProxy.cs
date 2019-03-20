@@ -205,6 +205,7 @@ namespace GridProxy
 
             ServicePointManager.CertificatePolicy = new TrustAllCertificatePolicy();
             ServicePointManager.Expect100Continue = false;
+            ServicePointManager.DefaultConnectionLimit = 128;
             // Even though this will compile on Mono 2.4, it throws a runtime exception
             //ServicePointManager.ServerCertificateValidationCallback = TrustAllCertificatePolicy.TrustAllCertificateHandler;
 
@@ -666,6 +667,9 @@ namespace GridProxy
             byte[] respBuf = null;
             string consoleMsg = String.Empty;
 
+            bool reqrange = false;
+            bool resprange = false;
+
             if (shortCircuit)
             {
                 byte[] wr = Encoding.UTF8.GetBytes("HTTP/1.0 200 OK\r\n");
@@ -707,15 +711,19 @@ namespace GridProxy
 
                             if (range.Length == 2)
                             {
-                                if (int.TryParse(range[0], out from)
-                                    && int.TryParse(range[1], out to))
-                                {
+                                if(!int.TryParse(range[0], out from))
+                                    from = 0;
+                                if (int.TryParse(range[1], out to))
                                     req.AddRange(parts[0], from, to);
-                                }
+                                else
+                                    req.AddRange(parts[0], from);
+
+                                reqrange = true;
                             }
                             else if (range.Length == 1 && int.TryParse(range[0], out to))
                             {
                                 req.AddRange(parts[0], to);
+                                reqrange = true;
                             }
                         }
                     }
@@ -724,6 +732,7 @@ namespace GridProxy
                         req.Headers[header] = headers[header];
                     }
                 }
+
                 if (capReq != null)
                 {
                     capReq.RequestHeaders = req.Headers;
@@ -814,7 +823,7 @@ namespace GridProxy
                     consoleMsg += "[" + reqNo + "] Response from " + uri + "\nStatus: " + (int)resp.StatusCode + " " + resp.StatusDescription + "\n";
 
                     {
-                        byte[] wr = Encoding.UTF8.GetBytes("HTTP/1.0 " + (int)resp.StatusCode + " " + resp.StatusDescription + "\r\n");
+                        byte[] wr = Encoding.UTF8.GetBytes("HTTP/1.1 " + (int)resp.StatusCode + " " + resp.StatusDescription + "\r\n");
                         netStream.Write(wr, 0, wr.Length);
                     }
 
@@ -826,11 +835,16 @@ namespace GridProxy
                         string key = resp.Headers.Keys[i];
                         string val = resp.Headers[i];
                         string lkey = key.ToLower();
-                        if (lkey != "content-length" && lkey != "transfer-encoding" && lkey != "connection")
+//                        if (lkey != "content-length" && lkey != "transfer-encoding" && lkey != "connection")
+                        if (lkey != "content-length" && lkey != "transfer-encoding")
                         {
                             consoleMsg += key + ": " + val + "\n";
                             byte[] wr = Encoding.UTF8.GetBytes(key + ": " + val + "\r\n");
                             netStream.Write(wr, 0, wr.Length);
+                        }
+                        if(lkey == "content-range")
+                        {
+                            resprange = true;
                         }
                     }
                 }
@@ -838,10 +852,16 @@ namespace GridProxy
                 {
                     // TODO: Should we handle this somehow?
                     OpenMetaverse.Logger.DebugLog("Failed writing output: " + ex.Message);
+                    return;
                 }
             }
 
-            if (cap != null && !requestFailed && !capReq.Response.ToString().Equals("undef"))
+            if(reqrange && !resprange)
+            {
+
+            }
+
+            if (cap != null && !requestFailed && (!capReq.Response.ToString().Equals("undef") || respBuf.Length > 0))
             {
                 foreach (CapsDelegate d in cap.GetDelegates())
                 {
@@ -859,14 +879,16 @@ namespace GridProxy
                         OpenMetaverse.Logger.Log("Error firing delegate", Helpers.LogLevel.Error, ex);
                     }
                 }
-
-                if (cap.RespFmt == CapsDataFormat.OSD)
+                if (!capReq.Response.ToString().Equals("undef"))
                 {
-                    respBuf = OSDParser.SerializeLLSDXmlBytes((OSD)capReq.Response);
-                }
-                else
-                {
-                    respBuf = OSDParser.SerializeLLSDXmlBytes(capReq.Response);
+                    if (cap.RespFmt == CapsDataFormat.OSD)
+                    {
+                        respBuf = OSDParser.SerializeLLSDXmlBytes((OSD)capReq.Response);
+                    }
+                    else
+                    {
+                        respBuf = OSDParser.SerializeLLSDXmlBytes(capReq.Response);
+                    }
                 }
             }
 

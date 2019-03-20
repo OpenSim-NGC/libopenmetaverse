@@ -389,7 +389,6 @@ namespace OpenMetaverse
         /// <param name="angle">Angle of rotation</param>
         public static Quaternion CreateFromAxisAngle(Vector3 axis, float angle)
         {
-            Quaternion q;
             axis = Vector3.Normalize(axis);
 
             angle *= 0.5f;

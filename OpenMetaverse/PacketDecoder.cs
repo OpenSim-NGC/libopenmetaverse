@@ -673,11 +673,89 @@ namespace OpenMetaverse.Packets
                 "(" + (Tree)data[0] + ")",
                 fieldData.GetType().Name);
             }
+            else if (data.Length == 76)
+            {
+                /* TODO: these are likely useful packed fields,
+                 * need to unpack them */
+                Vector4 col = Vector4.Zero;
+                Vector3 offset = Vector3.Zero;
+                Vector3 vel = Vector3.Zero;
+                Vector3 acc = Vector3.Zero;
+                Quaternion q = Quaternion.Identity;
+                Vector3 angvel = Vector3.Zero;
+
+                col.FromBytes(data, 0);
+                offset.FromBytes(data, 16);
+                vel.FromBytes(data, 28);
+                acc.FromBytes(data, 40);
+                q.FromBytes(data, 52, true);
+                angvel.FromBytes(data, 64);
+
+                StringBuilder result = new StringBuilder();
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                                        "ColisionPlane",
+                                        col,
+                                        "Vector4");
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                                        "Offset",
+                                        offset,
+                                        "Vector3");
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                                        "Velocity",
+                                        vel,
+                                        "Vector3");
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                                        "Acceleration",
+                                        acc,
+                                        "Vector3");
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                                        "rotation",
+                                        q,
+                                        "Quaternion");
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                                        "Omega",
+                                        angvel,
+                                        "Vector3");
+                return result.ToString();
+            }
             else if (data.Length == 60)
             {
                 /* TODO: these are likely useful packed fields,
                  * need to unpack them */
-                return Utils.BytesToHexString((byte[])fieldData, String.Format("{0,30}", fieldName));
+                Vector3 offset = Vector3.Zero;
+                Vector3 vel = Vector3.Zero;
+                Vector3 acc = Vector3.Zero;
+                Quaternion q = Quaternion.Identity;
+                Vector3 angvel = Vector3.Zero;
+
+                offset.FromBytes(data, 0);
+                vel.FromBytes(data, 12);
+                acc.FromBytes(data, 24);
+                q.FromBytes(data, 36, true);
+                angvel.FromBytes(data, 48);
+
+                StringBuilder result = new StringBuilder();
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                                        "Offset",
+                                        offset,
+                                        "Vector3");
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                                        "Velocity",
+                                        vel,
+                                        "Vector3");
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                                        "Acceleration",
+                                        acc,
+                                        "Vector3");
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                                        "rotation",
+                                        q,
+                                        "Quaternion");
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                                        "Omega",
+                                        angvel,
+                                        "Vector3");
+                return result.ToString();
             }
             else
             {

@@ -29,7 +29,6 @@ using System.Collections.Generic;
 using System.Text;
 using OpenMetaverse.Packets;
 using System.IO;
-using System.IO.Compression;
 using System.Reflection;
 using OpenMetaverse.StructuredData;
 using ComponentAce.Compression.Libs.zlib;
@@ -84,7 +83,30 @@ namespace OpenMetaverse
         {
             offset = Utils.Clamp(offset, -1.0f, 1.0f);
             offset *= 32767.0f;
-            return (short)Math.Round(offset);
+            if (offset >= 0)
+                offset += 0.5f;
+            else
+                offset -= 0.5f;
+            return (short)(offset);
+        }
+
+        public static float TEOffsetRound(float offset)
+        {
+            const float invScale = 1.0f / 32767.0f;
+            offset = Utils.Clamp(offset, -1.0f, 1.0f);
+            offset *= 32767.0f;
+            if (offset >= 0)
+                offset += 0.5f;
+            else
+                offset -= 0.5f;
+            short tmp =  (short)offset;
+            return tmp * invScale;
+        }
+
+        public static float TEOffsetFloat(short offset)
+        {
+            const float scale = 1.0f / 32767.0f;
+            return offset * scale;
         }
 
         /// <summary>
@@ -95,8 +117,9 @@ namespace OpenMetaverse
         /// <returns></returns>
         public static float TEOffsetFloat(byte[] bytes, int pos)
         {
-            float offset = (float)BitConverter.ToInt16(bytes, pos);
-            return offset / 32767.0f;
+            const float scale = 1.0f / 32767.0f;
+            float offset = Utils.BytesToInt16(bytes, pos);
+            return offset * scale;
         }
 
         /// <summary>
@@ -106,8 +129,16 @@ namespace OpenMetaverse
         /// <returns></returns>
         public static short TERotationShort(float rotation)
         {
-            const float TWO_PI = 6.283185307179586476925286766559f;
-            return (short)Math.Round(((Math.IEEERemainder(rotation, TWO_PI) / TWO_PI) * 32768.0f) + 0.5f);
+            const float TWO_PI = 6.2831853f;
+            const float scaledInvTWOPI = 32768.0f / TWO_PI;
+
+            rotation = (float)Math.IEEERemainder(rotation, TWO_PI);
+            rotation *= scaledInvTWOPI;
+            if (rotation >= 0)
+                rotation += 0.5f;
+            else
+                rotation -= 0.5f;
+            return (short)(rotation);
         }
 
         /// <summary>
@@ -118,8 +149,14 @@ namespace OpenMetaverse
         /// <returns></returns>
         public static float TERotationFloat(byte[] bytes, int pos)
         {
-            const float TWO_PI = 6.283185307179586476925286766559f;
-            return ((float)(bytes[pos] | (bytes[pos + 1] << 8)) / 32768.0f) * TWO_PI;
+            const float scale = 6.2831853f / 32768.0f;
+            return (bytes[pos] | (bytes[pos + 1] << 8)) * scale;
+        }
+
+        public static float TERotationFloat(short s)
+        {
+            const float scale = 6.2831853f / 32768.0f;
+            return s * scale;
         }
 
         public static byte TEGlowByte(float glow)
@@ -127,9 +164,23 @@ namespace OpenMetaverse
             return (byte)(glow * 255.0f);
         }
 
+        public static float TEGlowFloat(byte b)
+        {
+            const float scale = 1f / 255f;
+            return b * scale;
+        }
+
         public static float TEGlowFloat(byte[] bytes, int pos)
         {
-            return (float)bytes[pos] / 255.0f;
+            const float scale = 1f / 255f;
+            return bytes[pos] * scale;
+        }
+
+        public static float TEGlowRound(float glow)
+        {
+            const float scale = 1f / 255f;
+            byte tmp = (byte)(glow * 255.0f);
+            return tmp * scale;
         }
 
         /// <summary>
@@ -326,11 +377,11 @@ namespace OpenMetaverse
         /// <returns>The length of the output buffer</returns>
         public static int ZeroEncode(byte[] src, int srclen, byte[] dest)
         {
-            uint zerolen = 0;
+            
             byte zerocount = 0;
 
             Buffer.BlockCopy(src, 0, dest, 0, 6);
-            zerolen += 6;
+            uint zerolen = 6;
 
             int bodylen;
             if ((src[0] & MSG_APPENDED_ACKS) == 0)
@@ -612,41 +663,5 @@ namespace OpenMetaverse
 
             return ret;
         }
-
-        /// <summary>
-        /// decompresses a gzipped OSD object
-        /// </summary>
-        /// <param name="decodedOsd"></param> the OSD object
-        /// <param name="meshBytes"></param>
-        /// <returns></returns>
-        public static OSD DecompressOSD(byte[] meshBytes) {
-            OSD decodedOsd = null;
-
-            using (MemoryStream inMs = new MemoryStream(meshBytes))
-            {
-                using (MemoryStream outMs = new MemoryStream())
-                {
-                    using (DeflateStream decompressionStream = new DeflateStream(inMs, CompressionMode.Decompress))
-                    {
-                        byte[] readBuffer = new byte[2048];
-                        inMs.Read(readBuffer, 0, 2); // skip first 2 bytes in header
-                        int readLen = 0;
-
-                        while ((readLen = decompressionStream.Read(readBuffer, 0, readBuffer.Length)) > 0)
-                            outMs.Write(readBuffer, 0, readLen);
-
-                        outMs.Flush();
-
-                        outMs.Seek(0, SeekOrigin.Begin);
-
-                        byte[] decompressedBuf = outMs.GetBuffer();
-
-                        decodedOsd = OSDParser.DeserializeLLSDBinary(decompressedBuf);
-                    }
-                }
-            }
-            return decodedOsd;
-        }
-
     }
 }

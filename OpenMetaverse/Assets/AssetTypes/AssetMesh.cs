@@ -26,6 +26,7 @@
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
@@ -93,7 +94,7 @@ namespace OpenMetaverse.Assets
 
                         byte[] part = new byte[partInfo["size"]];
                         Buffer.BlockCopy(AssetData, partInfo["offset"] + (int)start, part, 0, part.Length);
-                        MeshData[partName] = Helpers.DecompressOSD(part);
+                        MeshData[partName] = DecompressMeshOSD(part);
                     }
                 }
                 return true;
@@ -103,6 +104,36 @@ namespace OpenMetaverse.Assets
                 Logger.Log("Failed to decode mesh asset", Helpers.LogLevel.Error, ex);
                 return false;
             }
+        }
+
+        public static OSD DecompressMeshOSD(byte[] data)
+        {
+            OSD decodedOsd = null;
+
+            using (MemoryStream inMs = new MemoryStream(data))
+            {
+                using (MemoryStream outMs = new MemoryStream())
+                {
+                    using (DeflateStream decompressionStream = new DeflateStream(inMs, CompressionMode.Decompress))
+                    {
+                        byte[] readBuffer = new byte[2048];
+                        inMs.Read(readBuffer, 0, 2); // skip first 2 bytes in header
+                        int readLen = 0;
+
+                        while ((readLen = decompressionStream.Read(readBuffer, 0, readBuffer.Length)) > 0)
+                            outMs.Write(readBuffer, 0, readLen);
+
+                        outMs.Flush();
+
+                        outMs.Seek(0, SeekOrigin.Begin);
+
+                        byte[] decompressedBuf = outMs.GetBuffer();
+
+                        decodedOsd = OSDParser.DeserializeLLSDBinary(decompressedBuf);
+                    }
+                }
+            }
+            return decodedOsd;
         }
     }
 }
