@@ -11,10 +11,4 @@
     <ProjectReference Include="..\GridProxy\GridProxy.csproj" />
     <ProjectReference Include="..\..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="GridProxy.cs" />
-    <Compile Remove="GridProxyLoader.cs" />
-    <Compile Remove="Plugins/Analyst.cs" />
-    <Compile Remove="Plugins/ClientAO.cs" />
-  </ItemGroup>
 </Project>

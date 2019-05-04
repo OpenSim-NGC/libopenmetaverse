@@ -14,7 +14,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GridImageUpload", "Programs
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GridProxy", "Programs\GridProxy\GridProxy.csproj", "{79B51DAA-0000-0000-0000-000000000000}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GridProxyApp", "Programs\GridProxy\GridProxyApp.csproj", "{CF6ECF45-0000-0000-0000-000000000000}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GridProxyApp", "Programs\GridProxyApp\GridProxyApp.csproj", "{CF6ECF45-0000-0000-0000-000000000000}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "groupmanager", "Programs\examples\groupmanager\groupmanager.csproj", "{97A800BC-0000-0000-0000-000000000000}"
 EndProject

@@ -20,7 +20,4 @@
     <ProjectReference Include="..\..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="GridProxyMain.cs" />
-  </ItemGroup>
 </Project>
