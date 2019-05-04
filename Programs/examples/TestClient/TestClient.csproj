@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net46</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyTitle>TestClient</AssemblyTitle>
+    <Product>TestClient</Product>
+    <Copyright>Copyright ©  2006</Copyright>
+    <OutputPath>..\..\..\bin\</OutputPath>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Web">
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\OpenMetaverse\OpenMetaverse.csproj" />
+    <ProjectReference Include="..\..\..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
+    <ProjectReference Include="..\..\..\OpenMetaverse.Utilities\OpenMetaverse.Utilities.csproj" />
+    <ProjectReference Include="..\..\..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
+  </ItemGroup>
+</Project>

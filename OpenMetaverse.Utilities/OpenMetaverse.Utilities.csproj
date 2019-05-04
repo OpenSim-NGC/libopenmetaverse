@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net46</TargetFramework>
+    <AssemblyTitle>OpenMetaverse.Utilities</AssemblyTitle>
+    <Product>OpenMetaverse.Utilities</Product>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <OutputPath>..\bin\</OutputPath>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DocumentationFile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DocumentationFile>OpenMetaverse.Utilities.XML</DocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
+    <ProjectReference Include="..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
+    <ProjectReference Include="..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
+  </ItemGroup>
+</Project>

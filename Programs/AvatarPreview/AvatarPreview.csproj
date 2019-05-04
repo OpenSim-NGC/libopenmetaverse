@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net46</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <AssemblyTitle>avatarpreview</AssemblyTitle>
+    <Company>Millions Of Us</Company>
+    <Product>avatarpreview</Product>
+    <Copyright>Copyright © Millions Of Us 2008</Copyright>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <OutputPath>..\..\bin\</OutputPath>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Tao.OpenGl">
+      <Private>False</Private>
+      <HintPath>../../bin/Tao.OpenGL.dll</HintPath>
+    </Reference>
+    <Reference Include="Tao.Platform.Windows">
+      <Private>False</Private>
+      <HintPath>../../bin/Tao.Platform.Windows.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\OpenMetaverse\OpenMetaverse.csproj" />
+    <ProjectReference Include="..\..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="frmAvatar.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DependentUpon>Settings.settings</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <SubType>Code</SubType>
+    </Compile>
+    <EmbeddedResource Update="frmAvatar.resx">
+      <DependentUpon>frmAvatar.cs</DependentUpon>
+    </EmbeddedResource>
+    <Compile Update="frmAvatar.Designer.cs">
+      <DependentUpon>frmAvatar.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+</Project>

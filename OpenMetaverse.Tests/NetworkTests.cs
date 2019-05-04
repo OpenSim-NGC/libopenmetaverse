@@ -55,7 +55,7 @@ namespace OpenMetaverse.Tests
             //Client.Self.OnTeleport += new MainAvatar.TeleportCallback(OnTeleportHandler)
         }
 
-        [TestFixtureSetUp]
+        [SetUp]
         public void Init()
         {
             Console.Write("Logging in Testing Anvil...");
@@ -177,7 +177,7 @@ namespace OpenMetaverse.Tests
             //CurrentRegionHandle = update.RegionData.RegionHandle;
         }
 
-        [TestFixtureTearDown]
+        [TearDown]
         public void Shutdown()
         {
             Console.Write("Logging out...");

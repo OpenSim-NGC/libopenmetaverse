@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net46</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <OutputPath>..\..\bin\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GridProxy\GridProxy.csproj" />
+    <ProjectReference Include="..\..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="GridProxy.cs" />
+    <Compile Remove="GridProxyLoader.cs" />
+    <Compile Remove="Plugins/Analyst.cs" />
+    <Compile Remove="Plugins/ClientAO.cs" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net46</TargetFramework>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <OutputPath>..\bin\</OutputPath>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="PrimMesher">
+      <Private>False</Private>
+      <HintPath>..\bin\PrimMesher.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
+    <ProjectReference Include="..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
+    <ProjectReference Include="..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
+  </ItemGroup>
+</Project>

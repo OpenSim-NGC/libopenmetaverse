@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net46</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <OutputPath>..\..\..\bin\</OutputPath>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms">
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\OpenMetaverse\OpenMetaverse.csproj" />
+    <ProjectReference Include="..\..\..\OpenMetaverse.GUI\OpenMetaverse.GUI.csproj" />
+    <ProjectReference Include="..\..\..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Dashboard.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <EmbeddedResource Update="Dashboard.resx">
+      <DependentUpon>Dashboard.cs</DependentUpon>
+    </EmbeddedResource>
+    <Compile Update="Dashboard.Designer.cs">
+      <DependentUpon>Dashboard.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+</Project>

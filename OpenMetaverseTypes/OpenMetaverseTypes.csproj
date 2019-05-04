@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net46</TargetFramework>
+    <RootNamespace>OpenMetaverse</RootNamespace>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <OutputPath>..\bin\</OutputPath>
+    <NoStdLib>False</NoStdLib>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DocumentationFile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DocumentationFile>OpenMetaverseTypes.XML</DocumentationFile>
+  </PropertyGroup>
+</Project>

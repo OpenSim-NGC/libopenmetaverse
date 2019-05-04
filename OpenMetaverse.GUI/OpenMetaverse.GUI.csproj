@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net46</TargetFramework>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <OutputPath>..\bin\</OutputPath>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DocumentationFile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DocumentationFile>OpenMetaverse.GUI.XML</DocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms">
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
+    <ProjectReference Include="..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="AvatarList.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FriendList.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="GroupList.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="InventoryTree.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="LocalChat.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="LoginPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="MessageBar.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="MiniMap.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="StatusOutput.cs">
+      <SubType>Component</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>
