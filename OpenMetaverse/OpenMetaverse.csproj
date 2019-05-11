@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net46</TargetFramework>
+    <TargetFrameworks>net472</TargetFrameworks>
     <AssemblyTitle>OpenMetaverse</AssemblyTitle>
     <Company>openmetaverse.co</Company>
     <Product>OpenMetaverse</Product>
@@ -11,15 +11,9 @@
     <FileVersion>0.9.4.0</FileVersion>
     <NoWarn>1591,1574,0419,0618</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <OutputPath>..\bin\</OutputPath>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DocumentationFile />
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DocumentationFile>OpenMetaverse.XML</DocumentationFile>
-  </PropertyGroup>
-    <ItemGroup>
+  <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.8" />
   </ItemGroup>
   <ItemGroup>
@@ -38,6 +32,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
-    <ProjectReference Include="..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
+    <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
   </ItemGroup>
 </Project>

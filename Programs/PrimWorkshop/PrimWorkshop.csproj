@@ -1,13 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net46</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <OutputType>WinExe</OutputType>
     <AssemblyTitle>primpreview</AssemblyTitle>
     <Company>Metaverse Industries LLC</Company>
     <Product>primpreview</Product>
     <Copyright>Copyright © Metaverse Industries LLC 2007</Copyright>
-    <OutputPath>..\..\bin\</OutputPath>
     <NoWarn>1591,1574,0419,0618</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -33,9 +32,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
     <ProjectReference Include="..\..\OpenMetaverse\OpenMetaverse.csproj" />
     <ProjectReference Include="..\..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
-    <ProjectReference Include="..\..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="frmBrowser.cs">

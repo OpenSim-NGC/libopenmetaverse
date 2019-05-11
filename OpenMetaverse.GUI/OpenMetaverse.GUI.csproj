@@ -1,16 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net46</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <NoWarn>1591,1574,0419,0618</NoWarn>
-    <OutputPath>..\bin\</OutputPath>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DocumentationFile />
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DocumentationFile>OpenMetaverse.GUI.XML</DocumentationFile>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Windows.Forms">
@@ -18,8 +12,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
     <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
-    <ProjectReference Include="..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="AvatarList.cs">

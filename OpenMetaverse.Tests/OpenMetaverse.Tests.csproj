@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net46</TargetFramework>
-    <OutputPath>..\bin\</OutputPath>
+    <TargetFramework>net472</TargetFramework>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <NoWarn>1591,1574,0419,0618</NoWarn>
   </PropertyGroup>
@@ -11,8 +10,8 @@
     <PackageReference Include="NUnit3TestAdapter" Version="3.13.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
     <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
     <ProjectReference Include="..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
-    <ProjectReference Include="..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
   </ItemGroup>
 </Project>

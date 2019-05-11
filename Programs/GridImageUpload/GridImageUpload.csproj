@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net46</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <OutputType>WinExe</OutputType>
     <AssemblyTitle>GridImageUpload</AssemblyTitle>
     <Company>Open Metaverse Foundation</Company>
@@ -9,7 +9,6 @@
     <Description>JPEG2000 compressor and texture uploader for virtual worlds</Description>
     <Copyright>Copyright © Open Metaverse Foundation</Copyright>
     <AssemblyVersion>1.0.4.0</AssemblyVersion>
-    <OutputPath>..\..\bin\</OutputPath>
     <NoWarn>1591,1574,0419,0618</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -19,8 +18,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
     <ProjectReference Include="..\..\OpenMetaverse\OpenMetaverse.csproj" />
-    <ProjectReference Include="..\..\OpenMetaverseTypes\OpenMetaverseTypes.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="frmGridImageUpload.cs">
