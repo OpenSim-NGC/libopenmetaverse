@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net472</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms">
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
+    <ProjectReference Include="..\..\OpenMetaverse\OpenMetaverse.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="frmBaker.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <EmbeddedResource Update="frmBaker.resx">
+      <DependentUpon>frmBaker.cs</DependentUpon>
+    </EmbeddedResource>
+    <Compile Update="frmBaker.Designer.cs">
+      <DependentUpon>frmBaker.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+</Project>

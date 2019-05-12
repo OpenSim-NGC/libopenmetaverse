@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net472</TargetFramework>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
+  </ItemGroup>
+</Project>

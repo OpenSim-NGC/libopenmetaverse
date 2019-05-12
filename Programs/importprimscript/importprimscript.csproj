@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net472</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
+    <ProjectReference Include="..\..\OpenMetaverse\OpenMetaverse.csproj" />
+  </ItemGroup>
+</Project>

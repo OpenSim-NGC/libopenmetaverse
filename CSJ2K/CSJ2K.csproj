@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyTitle>CSJ2K</AssemblyTitle>
+    <Product>CSJ2K</Product>
+    <Description>JPEG2000 decoding library</Description>
+    <AssemblyVersion>1.0.1</AssemblyVersion>
+    <FileVersion>1.0.1</FileVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <DocumentationFile />
+  </PropertyGroup>
+</Project>
