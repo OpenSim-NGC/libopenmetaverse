@@ -335,9 +335,13 @@ namespace OpenMetaverse.Packets
                                         "(" + point + ")",
                                         "AttachmentPoint");
 
-            // TODO: CRC
-
+            //CRC
+            result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                "CRC",
+                Utils.BytesToUInt(block, i),
+                "UInt");
             i += 4;
+
             // Material
             result.AppendFormat("{0,30}: {1,-3} {2,-36} [{3}]" + Environment.NewLine,
                 "Material",
@@ -374,6 +378,7 @@ namespace OpenMetaverse.Packets
 
             i += 12;
             // Compressed flags
+
             CompressedFlags flags = (CompressedFlags)Utils.BytesToUInt(block, i);
             result.AppendFormat("{0,30}: {1,-10} {2,-29} [{3}]" + Environment.NewLine,
                             "CompressedFlags",
@@ -483,7 +488,12 @@ namespace OpenMetaverse.Packets
 
             // Extra parameters TODO:
             Primitive prim = new Primitive();
-            i += prim.SetExtraParamsFromBytes(block, i);
+            int extrapLen = prim.SetExtraParamsFromBytes(block, i);
+            i += extrapLen;
+            result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
+                "ExtraParams[]",
+                extrapLen,
+                "byte[]");
 
             //Sound data
             if ((flags & CompressedFlags.HasSound) != 0)
@@ -538,7 +548,7 @@ namespace OpenMetaverse.Packets
                             nameValues[j] = nv;
                         }
                     }
-                    DecodeNameValue("NameValues", nameValues);
+                    result.AppendLine(DecodeNameValue("NameValues", nameValues));
                 }
             }
 
@@ -656,6 +666,17 @@ namespace OpenMetaverse.Packets
                 i += 4;
                 string a = DecodeObjectTextureAnim("TextureAnimation", new Primitive.TextureAnimation(block, i));
                 result.AppendLine(a);
+            }
+
+            if ((flags & CompressedFlags.HasParticlesNew) != 0)
+            {
+                Primitive.ParticleSystem p = new Primitive.ParticleSystem(block, i);
+                result.AppendLine(DecodeObjectParticleSystem("ParticleSystemNEW", p));
+                i += 94;
+                if ((p.PartDataFlags & Primitive.ParticleSystem.ParticleDataFlags.DataGlow) != 0)
+                    i += 2;
+                if ((p.PartDataFlags & Primitive.ParticleSystem.ParticleDataFlags.DataBlend) != 0)
+                    i += 2;
             }
 
             return result.ToString();
@@ -795,23 +816,27 @@ namespace OpenMetaverse.Packets
 
         private static string DecodeNameValue(string fieldName, object fieldData)
         {
-            string nameValue = Utils.BytesToString((byte[])fieldData);
             NameValue[] nameValues = null;
-            if (nameValue.Length > 0)
+            if (fieldData is NameValue[])
+                nameValues = fieldData as NameValue[];
+            else
             {
-                string[] lines = nameValue.Split('\n');
-                nameValues = new NameValue[lines.Length];
-
-                for (int i = 0; i < lines.Length; i++)
+                string nameValue = Utils.BytesToString((byte[])fieldData);
+                if (nameValue.Length > 0)
                 {
-                    if (!String.IsNullOrEmpty(lines[i]))
+                    string[] lines = nameValue.Split('\n');
+                    nameValues = new NameValue[lines.Length];
+
+                    for (int i = 0; i < lines.Length; i++)
                     {
-                        NameValue nv = new NameValue(lines[i]);
-                        nameValues[i] = nv;
+                        if (!String.IsNullOrEmpty(lines[i]))
+                        {
+                            NameValue nv = new NameValue(lines[i]);
+                            nameValues[i] = nv;
+                        }
                     }
                 }
             }
-
             StringBuilder result = new StringBuilder();
             result.AppendFormat("{0,30}", " <NameValues>" + Environment.NewLine);
             if (nameValues != null)
@@ -838,6 +863,9 @@ namespace OpenMetaverse.Packets
             Primitive.FlexibleData Flexible = null;
             Primitive.LightData Light = null;
             Primitive.SculptData Sculpt = null;
+            Primitive.SculptData Mesh = null;
+            uint meshFlags = 0;
+            bool hasmeshFlags = false;
 
             byte extraParamCount = data[i++];
 
@@ -855,7 +883,13 @@ namespace OpenMetaverse.Packets
                     Light = new Primitive.LightData(data, i);
                 else if (type == ExtraParamType.Sculpt)
                     Sculpt = new Primitive.SculptData(data, i);
-
+                else if (type == ExtraParamType.Mesh)
+                    Mesh = new Primitive.SculptData(data, i);
+                else if ((byte)type == 0x70)
+                {
+                    hasmeshFlags = true;
+                    meshFlags = Utils.BytesToUInt(data, i);
+                }
                 i += (int)paramLength;
                 //totalLength += (int)paramLength + 6;
             }
@@ -876,11 +910,25 @@ namespace OpenMetaverse.Packets
                 result.AppendFormat("{0,30}", "</Sculpt>" + Environment.NewLine);
             }
 
+            if (Mesh != null)
+            {
+                result.AppendFormat("{0,30}", "<Mesh>" + Environment.NewLine);
+                GenericTypeDecoder(Mesh, ref result);
+                result.AppendFormat("{0,30}", "</Mesh>" + Environment.NewLine);
+            }
+
             if (Light != null)
             {
                 result.AppendFormat("{0,30}", "<Light>" + Environment.NewLine);
                 GenericTypeDecoder(Light, ref result);
                 result.AppendFormat("{0,30}", "</Light>" + Environment.NewLine);
+            }
+
+            if (hasmeshFlags)
+            {
+                result.AppendFormat("{0,30}", "<MeshFlags>" + Environment.NewLine);
+                result.AppendFormat("{0,30}", meshFlags.ToString() + Environment.NewLine);
+                result.AppendFormat("{0,30}", "</MeshFlags>" + Environment.NewLine);
             }
 
             result.AppendFormat("{0,30}", "</ExtraParams>");

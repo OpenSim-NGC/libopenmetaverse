@@ -924,29 +924,29 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public sealed class OSDMap : OSD, IDictionary<string, OSD>
     {
-        private Dictionary<string, OSD> value;
+        private Dictionary<string, OSD> dicvalue;
 
         public override OSDType Type { get { return OSDType.Map; } }
 
         public OSDMap()
         {
-            value = new Dictionary<string, OSD>();
+            dicvalue = new Dictionary<string, OSD>();
         }
 
         public OSDMap(int capacity)
         {
-            value = new Dictionary<string, OSD>(capacity);
+            dicvalue = new Dictionary<string, OSD>(capacity);
         }
 
         public OSDMap(Dictionary<string, OSD> value)
         {
             if (value != null)
-                this.value = value;
+                this.dicvalue = value;
             else
-                this.value = new Dictionary<string, OSD>();
+                this.dicvalue = new Dictionary<string, OSD>();
         }
 
-        public override bool AsBoolean() { return value.Count > 0; }
+        public override bool AsBoolean() { return dicvalue.Count > 0; }
 
         public override string ToString()
         {
@@ -955,63 +955,65 @@ namespace OpenMetaverse.StructuredData
 
         public override OSD Copy()
         {
-            return new OSDMap(new Dictionary<string, OSD>(value));
+            return new OSDMap(new Dictionary<string, OSD>(dicvalue));
         }
 
         #region IDictionary Implementation
 
-        public int Count { get { return value.Count; } }
+        public int Count { get { return dicvalue.Count; } }
         public bool IsReadOnly { get { return false; } }
-        public ICollection<string> Keys { get { return value.Keys; } }
-        public ICollection<OSD> Values { get { return value.Values; } }
+        public ICollection<string> Keys { get { return dicvalue.Keys; } }
+        public ICollection<OSD> Values { get { return dicvalue.Values; } }
+
+        
         public OSD this[string key]
         {
             get
             {
                 OSD llsd;
-                if (this.value.TryGetValue(key, out llsd))
+                if (dicvalue.TryGetValue(key, out llsd))
                     return llsd;
                 else
                     return new OSD();
             }
-            set { this.value[key] = value; }
+            set { dicvalue[key] = value; }
         }
 
         public bool ContainsKey(string key)
         {
-            return value.ContainsKey(key);
+            return dicvalue.ContainsKey(key);
         }
-
+        
         public void Add(string key, OSD llsd)
         {
-            value.Add(key, llsd);
+            dicvalue.Add(key, llsd);
         }
 
         public void Add(KeyValuePair<string, OSD> kvp)
         {
-            value.Add(kvp.Key, kvp.Value);
+            dicvalue.Add(kvp.Key, kvp.Value);
         }
 
         public bool Remove(string key)
         {
-            return value.Remove(key);
+            return dicvalue.Remove(key);
         }
 
         public bool TryGetValue(string key, out OSD llsd)
         {
-            return value.TryGetValue(key, out llsd);
+            return dicvalue.TryGetValue(key, out llsd);
         }
 
         public void Clear()
         {
-            value.Clear();
+            dicvalue.Clear();
         }
 
         public bool Contains(KeyValuePair<string, OSD> kvp)
         {
             // This is a bizarre function... we don't really implement it
             // properly, hopefully no one wants to use it
-            return value.ContainsKey(kvp.Key);
+            return dicvalue.ContainsKey(kvp.Key);
         }
 
         public void CopyTo(KeyValuePair<string, OSD>[] array, int index)
@@ -1021,12 +1023,12 @@ namespace OpenMetaverse.StructuredData
 
         public bool Remove(KeyValuePair<string, OSD> kvp)
         {
-            return this.value.Remove(kvp.Key);
+            return dicvalue.Remove(kvp.Key);
         }
 
         public System.Collections.IDictionaryEnumerator GetEnumerator()
         {
-            return value.GetEnumerator();
+            return dicvalue.GetEnumerator();
         }
 
         IEnumerator<KeyValuePair<string, OSD>> IEnumerable<KeyValuePair<string, OSD>>.GetEnumerator()
@@ -1036,7 +1038,7 @@ namespace OpenMetaverse.StructuredData
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return value.GetEnumerator();
+            return dicvalue.GetEnumerator();
         }
 
         #endregion IDictionary Implementation
