@@ -628,7 +628,7 @@ namespace OpenMetaverse.StructuredData
             }
         }
 
-        public virtual string ToString()
+        public override string ToString()
         {
             switch (Type)
             {
@@ -658,7 +658,6 @@ namespace OpenMetaverse.StructuredData
                         return ur.AbsoluteUri;
                     else
                         return ur.ToString();
-
                 case OSDType.Binary:
                     return Utils.BytesToHexString(((OSDBinary)this).value, null);
                 case OSDType.LLSDxml:
