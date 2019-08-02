@@ -36,7 +36,7 @@ namespace OpenMetaverse.StructuredData
     /// <summary>
     /// 
     /// </summary>
-    public enum OSDType
+    public enum OSDType:byte
     {
         /// <summary></summary>
         Unknown,
@@ -83,28 +83,594 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public partial class OSD
     {
-        public virtual OSDType Type { get { return OSDType.Unknown; } }
+        protected static readonly byte[] trueBinary = { 0x31 };
+        protected static readonly byte[] falseBinary = { 0x30 };
 
-        public virtual bool AsBoolean() { return false; }
-        public virtual int AsInteger() { return 0; }
-        public virtual uint AsUInteger() { return 0; }
-        public virtual long AsLong() { return 0; }
-        public virtual ulong AsULong() { return 0; }
-        public virtual double AsReal() { return 0d; }
-        public virtual string AsString() { return String.Empty; }
-        public virtual UUID AsUUID() { return UUID.Zero; }
-        public virtual DateTime AsDate() { return Utils.Epoch; }
-        public virtual Uri AsUri() { return null; }
-        public virtual byte[] AsBinary() { return Utils.EmptyBytes; }
-        public virtual Vector2 AsVector2() { return Vector2.Zero; }
-        public virtual Vector3 AsVector3() { return Vector3.Zero; }
-        public virtual Vector3d AsVector3d() { return Vector3d.Zero; }
-        public virtual Vector4 AsVector4() { return Vector4.Zero; }
-        public virtual Quaternion AsQuaternion() { return Quaternion.Identity; }
-        public virtual Color4 AsColor4() { return Color4.Black; }
-        public virtual OSD Copy() { return new OSD(); }
+        public OSDType Type = OSDType.Unknown;
 
-        public override string ToString() { return "undef"; }
+        // .net4.8 64Bit JIT fails polimorphism
+        public virtual bool AsBoolean()
+        {
+            switch (Type)
+            {
+                case OSDType.Boolean:
+                    return ((OSDBoolean)this).value;
+                case OSDType.Integer:
+                    return ((OSDInteger)this).value != 0;
+                case OSDType.Real:
+                    double d = ((OSDReal)this).value;
+                    return (!Double.IsNaN(d) && d != 0);
+                case OSDType.String:
+                    string s = ((OSDString)this).value;
+                    if (String.IsNullOrEmpty(s))
+                    return false;
+                    if (s == "0" || s.ToLower() == "false")
+                        return false;
+                    return true;
+                case OSDType.UUID:
+                    return (((OSDUUID)this).value == UUID.Zero) ? false : true;
+                case OSDType.Map:
+                    return ((OSDMap)this).dicvalue.Count > 0;
+                case OSDType.Array:
+                    return ((OSDArray)this).value.Count > 0;
+                default:
+                    return false;
+            }
+        }
+
+        public virtual int AsInteger()
+        {
+            switch (Type)
+            {
+                case OSDType.Boolean:
+                    return ((OSDBoolean)this).value ? 1 : 0;
+                case OSDType.Integer:
+                    return ((OSDInteger)this).value;
+                case OSDType.Real:
+                    double v = ((OSDReal)this).value;
+                    if (Double.IsNaN(v))
+                        return 0;
+                    if (v > Int32.MaxValue)
+                        return Int32.MaxValue;
+                    if (v < Int32.MinValue)
+                        return Int32.MinValue;
+                    return (int)Math.Round(v);
+                case OSDType.String:
+                    string s = ((OSDString)this).value;
+                    double dbl;
+                    if (Double.TryParse(s, out dbl))
+                        return (int)Math.Floor(dbl);
+                    else
+                        return 0;
+                case OSDType.Date:
+                    return (int)Utils.DateTimeToUnixTime(((OSDDate)this).value);
+                default:
+                    return 0;
+            }
+        }
+
+        public virtual uint AsUInteger()
+        {
+            switch (Type)
+            {
+                case OSDType.Boolean:
+                    return ((OSDBoolean)this).value ? 1U : 0;
+                case OSDType.Integer:
+                    return (uint)((OSDInteger)this).value;
+                case OSDType.Real:
+                    double v = ((OSDReal)this).value;
+                    if (Double.IsNaN(v))
+                        return 0;
+                    if (v > UInt32.MaxValue)
+                        return UInt32.MaxValue;
+                    if (v < UInt32.MinValue)
+                        return UInt32.MinValue;
+                    return (uint)Math.Round(v);
+                case OSDType.String:
+                    string s = ((OSDString)this).value;
+                    double dbl;
+                    if (Double.TryParse(s, out dbl))
+                        return (uint)Math.Floor(dbl);
+                    else
+                        return 0;
+                case OSDType.Date:
+                    return Utils.DateTimeToUnixTime(((OSDDate)this).value);
+                case OSDType.Binary:
+                    byte[] b = ((OSDBinary)this).value;
+                    if(b.Length < 4)
+                        return 0;
+                    return (uint)(
+                        (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]);
+                case OSDType.Array:
+                    List<OSD> l = ((OSDArray)this).value;
+                    if (l.Count < 4)
+                        return 0;
+                    byte[] by = new byte[4];
+                    for (int i = 0; i < 4; i++)
+                        by[i] = (byte)l[i].AsInteger();
+                    return (uint)((by[0] << 24) | (by[1] << 16) | (by[2] << 8) | by[3]);
+                default:
+                    return 0;
+            }
+        }
+
+        public virtual long AsLong()
+        {
+            switch (Type)
+            {
+                case OSDType.Boolean:
+                    return ((OSDBoolean)this).value ? 1 : 0;
+                case OSDType.Integer:
+                    return ((OSDInteger)this).value;
+                case OSDType.Real:
+                    double v = ((OSDReal)this).value;
+                    if (Double.IsNaN(v))
+                        return 0;
+                    if (v > Int64.MaxValue)
+                        return Int64.MaxValue;
+                    if (v < Int64.MinValue)
+                        return Int64.MinValue;
+                    return (long)Math.Round(v);
+                case OSDType.String:
+                    string s = ((OSDString)this).value;
+                    double dbl;
+                    if (Double.TryParse(s, out dbl))
+                        return (long)Math.Floor(dbl);
+                    else
+                        return 0;
+                case OSDType.Date:
+                    return Utils.DateTimeToUnixTime(((OSDDate)this).value);
+                case OSDType.Binary:
+                {
+                    byte[] b = ((OSDBinary)this).value;
+                    if(b.Length < 8)
+                        return 0;
+                    return (
+                        ((long)b[0] << 56) |
+                        ((long)b[1] << 48) |
+                        ((long)b[2] << 40) |
+                        ((long)b[3] << 32) |
+                        ((long)b[4] << 24) |
+                        ((long)b[5] << 16) |
+                        ((long)b[6] << 8) |
+                        b[7]);
+                }
+                case OSDType.Array:
+                {
+                    List<OSD> l = ((OSDArray)this).value;
+                    if (l.Count < 8)
+                        return 0;
+                    byte[] b = new byte[8];
+                    for (int i = 0; i < 8; i++)
+                        b[i] = (byte)l[i].AsInteger();
+                    return (
+                        ((long)b[0] << 56) |
+                        ((long)b[1] << 48) |
+                        ((long)b[2] << 40) |
+                        ((long)b[3] << 32) |
+                        ((long)b[4] << 24) |
+                        ((long)b[5] << 16) |
+                        ((long)b[6] << 8) |
+                        b[7]);
+                }
+                default:
+                    return 0;
+            }
+        }
+
+        public virtual ulong AsULong()
+        {
+            switch (Type)
+            {
+                case OSDType.Boolean:
+                    return ((OSDBoolean)this).value ? 1UL : 0;
+                case OSDType.Integer:
+                    return (ulong)((OSDInteger)this).value;
+                case OSDType.Real:
+                    double v = ((OSDReal)this).value;
+                    if (Double.IsNaN(v))
+                        return 0;
+                    if (v > UInt64.MaxValue)
+                        return UInt64.MaxValue;
+                    if (v < UInt64.MinValue)
+                        return UInt64.MinValue;
+                    return (ulong)Math.Round(v);
+                case OSDType.String:
+                    string s = ((OSDString)this).value;
+                    double dbl;
+                    if (Double.TryParse(s, out dbl))
+                        return (ulong)Math.Floor(dbl);
+                    else
+                        return 0;
+                case OSDType.Date:
+                    return Utils.DateTimeToUnixTime(((OSDDate)this).value);
+                case OSDType.Binary:
+                {
+                    byte[] b = ((OSDBinary)this).value;
+                    if (b.Length < 8)
+                        return 0;
+                    return (
+                        ((ulong)b[0] << 56) |
+                        ((ulong)b[1] << 48) |
+                        ((ulong)b[2] << 40) |
+                        ((ulong)b[3] << 32) |
+                        ((ulong)b[4] << 24) |
+                        ((ulong)b[5] << 16) |
+                        ((ulong)b[6] << 8) |
+                        b[7]);
+                }
+                case OSDType.Array:
+                {
+                    List<OSD> l = ((OSDArray)this).value;
+                    if (l.Count < 8)
+                        return 0;
+                    byte[] b = new byte[8];
+                    for (int i = 0; i < 8; i++)
+                        b[i] = (byte)l[i].AsInteger();
+                    return (
+                        ((ulong)b[0] << 56) |
+                        ((ulong)b[1] << 48) |
+                        ((ulong)b[2] << 40) |
+                        ((ulong)b[3] << 32) |
+                        ((ulong)b[4] << 24) |
+                        ((ulong)b[5] << 16) |
+                        ((ulong)b[6] << 8) |
+                        b[7]);
+                }
+                default:
+                    return 0;
+            }
+        }
+
+        public virtual double AsReal()
+        {
+            switch (Type)
+            {
+                case OSDType.Boolean:
+                    return ((OSDBoolean)this).value ? 1.0 : 0;
+                case OSDType.Integer:
+                    return ((OSDInteger)this).value;
+                case OSDType.Real:
+                    return ((OSDReal)this).value;
+                case OSDType.String:
+                    string s = ((OSDString)this).value;
+                    double dbl;
+                    if (Double.TryParse(s, out dbl))
+                        return dbl;
+                    else
+                        return 0;
+                default:
+                    return 0;
+            }
+        }
+
+        public virtual string AsString()
+        {
+            switch (Type)
+            {
+                case OSDType.Boolean:
+                    return ((OSDBoolean)this).value ? "1" : "0";
+                case OSDType.Integer:
+                    return ((OSDInteger)this).value.ToString();
+                case OSDType.Real:
+                    return ((OSDReal)this).value.ToString("r", Utils.EnUsCulture);
+                case OSDType.String:
+                    return ((OSDString)this).value;
+                case OSDType.UUID:
+                    return ((OSDUUID)this).value.ToString();
+                case OSDType.Date:
+                    string format;
+                    DateTime dt = ((OSDDate)this).value;
+                    if (dt.Millisecond > 0)
+                        format = "yyyy-MM-ddTHH:mm:ss.ffZ";
+                    else
+                        format = "yyyy-MM-ddTHH:mm:ssZ";
+                    return dt.ToUniversalTime().ToString(format);
+                case OSDType.URI:
+                    Uri ur = ((OSDUri)this).value;
+                    if (ur == null)
+                        return string.Empty;
+                    if (ur.IsAbsoluteUri)
+                        return ur.AbsoluteUri;
+                    else
+                        return ur.ToString();
+
+                case OSDType.Binary:
+                    byte[] b = ((OSDBinary)this).value;
+                    return Convert.ToBase64String(b);
+                case OSDType.LLSDxml:
+                    return ((OSDllsdxml)this).value;
+                default:
+                    return String.Empty;
+            }
+        }
+
+        public virtual UUID AsUUID()
+        {
+            switch (Type)
+            {
+                case OSDType.String:
+                    UUID uuid;
+                    if (UUID.TryParse(((OSDString)this).value, out uuid))
+                        return uuid;
+                    else
+                    return UUID.Zero;
+                case OSDType.UUID:
+                    return ((OSDUUID)this).value;
+                default:
+                    return UUID.Zero;
+            }
+        }
+
+        public virtual DateTime AsDate()
+        {
+            switch (Type)
+            {
+                case OSDType.String:
+                    DateTime dt;
+                    if (DateTime.TryParse(((OSDString)this).value, out dt))
+                        return dt;
+                    else
+                        return Utils.Epoch;
+                case OSDType.UUID:
+                case OSDType.Date:
+                    return ((OSDDate)this).value;
+                default:
+                    return Utils.Epoch;
+            }
+        }
+        public virtual Uri AsUri()
+        {
+            switch (Type)
+            {
+                case OSDType.String:
+                    Uri uri;
+                    if (Uri.TryCreate(((OSDString)this).value, UriKind.RelativeOrAbsolute, out uri))
+                        return uri;
+                    else
+                        return null;
+                case OSDType.URI:
+                    return ((OSDUri)this).value;
+                default:
+                    return null;
+            }
+        }
+
+        public virtual byte[] AsBinary()
+        {
+            switch (Type)
+            {
+                case OSDType.Boolean:
+                    return ((OSDBoolean)this).value ? trueBinary : falseBinary;
+                case OSDType.Integer:
+                    return Utils.IntToBytesBig(((OSDInteger)this).value);
+                case OSDType.Real:
+                    return Utils.DoubleToBytesBig(((OSDReal)this).value);
+                case OSDType.String:
+                    return Encoding.UTF8.GetBytes(((OSDString)this).value);
+                case OSDType.UUID:
+                    return (((OSDUUID)this).value).GetBytes();
+                case OSDType.Date:
+                    TimeSpan ts = (((OSDDate)this).value).ToUniversalTime() - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                    return Utils.DoubleToBytes(ts.TotalSeconds);
+                case OSDType.URI:
+                    return Encoding.UTF8.GetBytes(((OSDUri)this).AsString());
+                case OSDType.Binary:
+                    return ((OSDBinary)this).value;
+                case OSDType.Map:
+                case OSDType.Array:
+                    List<OSD> l = ((OSDArray)this).value;
+                    byte[] binary = new byte[l.Count];
+                    for (int i = 0; i < l.Count; i++)
+                        binary[i] = (byte)l[i].AsInteger();
+                    return binary;
+                case OSDType.LLSDxml:
+                    return Encoding.UTF8.GetBytes(((OSDllsdxml)this).value);
+                default:
+                    return Utils.EmptyBytes;
+            }
+        }
+
+        public Vector2 AsVector2()
+        {
+            switch (Type)
+            {
+                case OSDType.String:
+                    return Vector2.Parse(((OSDString)this).value);
+                case OSDType.Array:
+                    List<OSD> l = ((OSDArray)this).value;
+                    Vector2 vector = Vector2.Zero;
+                    if (l.Count == 2)
+                    {
+                        vector.X = (float)l[0].AsReal();
+                        vector.Y = (float)l[1].AsReal();
+                    }
+                    return vector;
+                default:
+                    return Vector2.Zero;
+            }
+        }
+
+        public Vector3 AsVector3()
+        {
+            switch (Type)
+            {
+                case OSDType.String:
+                    return Vector3.Parse(((OSDString)this).value);
+                case OSDType.Array:
+                    List<OSD> l = ((OSDArray)this).value;
+                    Vector3 vector = Vector3.Zero;
+                    if (l.Count == 3)
+                    {
+                        vector.X = (float)l[0].AsReal();
+                        vector.Y = (float)l[1].AsReal();
+                        vector.Z = (float)l[2].AsReal();
+                    }
+                    return vector;
+                default:
+                    return Vector3.Zero;
+            }
+        }
+
+        public Vector3d AsVector3d()
+        {
+            switch (Type)
+            {
+                case OSDType.String:
+                    return Vector3d.Parse(((OSDString)this).value);
+                case OSDType.Array:
+                    List<OSD> l = ((OSDArray)this).value;
+                    Vector3d vector = Vector3d.Zero;
+                    if (l.Count == 3)
+                    {
+                        vector.X = (float)l[0].AsReal();
+                        vector.Y = (float)l[1].AsReal();
+                        vector.Z = (float)l[2].AsReal();
+                    }
+                    return vector;
+                default:
+                    return Vector3d.Zero;
+            }
+        }
+
+        public Vector4 AsVector4()
+        {
+            switch (Type)
+            {
+                case OSDType.String:
+                    return Vector4.Parse(((OSDString)this).value);
+                case OSDType.Array:
+                    List<OSD> l = ((OSDArray)this).value;
+                    Vector4 vector = Vector4.Zero;
+                    if (l.Count == 4)
+                    {
+                        vector.X = (float)l[0].AsReal();
+                        vector.Y = (float)l[1].AsReal();
+                        vector.Z = (float)l[2].AsReal();
+                        vector.W = (float)l[3].AsReal();
+                    }
+                    return vector;
+                default:
+                    return Vector4.Zero;
+            }
+        }
+
+        public Quaternion AsQuaternion()
+        {
+            switch (Type)
+            {
+                case OSDType.String:
+                    return Quaternion.Parse(((OSDString)this).value);
+                case OSDType.Array:
+                    List<OSD> l = ((OSDArray)this).value;
+                    Quaternion q = Quaternion.Identity;
+                    if (l.Count == 4)
+                    {
+                        q.X = (float)l[0].AsReal();
+                        q.Y = (float)l[1].AsReal();
+                        q.Z = (float)l[2].AsReal();
+                        q.W = (float)l[3].AsReal();
+                    }
+                    return q;
+                default:
+                    return Quaternion.Identity;
+            }
+        }
+
+        public virtual Color4 AsColor4()
+        {
+            switch (Type)
+            {
+                case OSDType.Array:
+                    List<OSD> l = ((OSDArray)this).value;
+                    Color4 color = Color4.Black;
+                    if (l.Count == 4)
+                    {
+                        color.R = (float)l[0].AsReal();
+                        color.G = (float)l[1].AsReal();
+                        color.B = (float)l[2].AsReal();
+                        color.A = (float)l[3].AsReal();
+                    }
+                    return color;
+                default:
+                    return Color4.Black;
+            }
+        }
+
+        public virtual OSD Copy()
+        {
+            switch (Type)
+            {
+                case OSDType.Boolean:
+                    return new OSDBoolean(((OSDBoolean)this).value);
+                case OSDType.Integer:
+                    return new OSDInteger(((OSDInteger)this).value);
+                case OSDType.Real:
+                    return new OSDReal(((OSDReal)this).value);
+                case OSDType.String:
+                    return new OSDString(((OSDString)this).value);
+                case OSDType.UUID:
+                    return new OSDUUID(((OSDUUID)this).value);
+                case OSDType.Date:
+                    return new OSDDate(((OSDDate)this).value);
+                case OSDType.URI:
+                    return new OSDUri(((OSDUri)this).value);
+                case OSDType.Binary:
+                    return new OSDBinary(((OSDBinary)this).value);
+                case OSDType.Map:
+                    return new OSDMap(((OSDMap)this).dicvalue);
+                case OSDType.Array:
+                    return new OSDArray(((OSDArray)this).value);
+                case OSDType.LLSDxml:
+                    return new OSDBoolean(((OSDBoolean)this).value);
+                default:
+                    return new OSD();
+            }
+        }
+
+        public virtual string ToString()
+        {
+            switch (Type)
+            {
+                case OSDType.Boolean:
+                    return ((OSDBoolean)this).value ? "1" : "0";
+                case OSDType.Integer:
+                    return ((OSDInteger)this).value.ToString();
+                case OSDType.Real:
+                    return ((OSDReal)this).value.ToString("r", Utils.EnUsCulture);
+                case OSDType.String:
+                    return ((OSDString)this).value;
+                case OSDType.UUID:
+                    return ((OSDUUID)this).value.ToString();
+                case OSDType.Date:
+                    string format;
+                    DateTime dt = ((OSDDate)this).value;
+                    if (dt.Millisecond > 0)
+                        format = "yyyy-MM-ddTHH:mm:ss.ffZ";
+                    else
+                        format = "yyyy-MM-ddTHH:mm:ssZ";
+                    return dt.ToUniversalTime().ToString(format);
+                case OSDType.URI:
+                    Uri ur = ((OSDUri)this).value;
+                    if (ur == null)
+                        return string.Empty;
+                    if (ur.IsAbsoluteUri)
+                        return ur.AbsoluteUri;
+                    else
+                        return ur.ToString();
+
+                case OSDType.Binary:
+                    return Utils.BytesToHexString(((OSDBinary)this).value, null);
+                case OSDType.LLSDxml:
+                    return ((OSDllsdxml)this).value;
+                case OSDType.Map:
+                    return OSDParser.SerializeJsonString((OSDMap)this, true);
+                case OSDType.Array:
+                    return OSDParser.SerializeJsonString((OSDArray)this, true);
+                default:
+                    return "undef";
+            }
+        }
 
         public static OSD FromBoolean(bool value) { return new OSDBoolean(value); }
         public static OSD FromInteger(int value) { return new OSDInteger(value); }
@@ -417,15 +983,11 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public sealed class OSDBoolean : OSD
     {
-        private bool value;
-
-        private static byte[] trueBinary = { 0x31 };
-        private static byte[] falseBinary = { 0x30 };
-
-        public override OSDType Type { get { return OSDType.Boolean; } }
+        public readonly bool value;
 
         public OSDBoolean(bool value)
         {
+            Type = OSDType.Boolean;
             this.value = value;
         }
 
@@ -435,7 +997,6 @@ namespace OpenMetaverse.StructuredData
         public override string AsString() { return value ? "1" : "0"; }
         public override byte[] AsBinary() { return value ? trueBinary : falseBinary; }
         public override OSD Copy() { return new OSDBoolean(value); }
-
         public override string ToString() { return AsString(); }
     }
 
@@ -444,12 +1005,11 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public sealed class OSDInteger : OSD
     {
-        private int value;
-
-        public override OSDType Type { get { return OSDType.Integer; } }
+        public readonly int value;
 
         public OSDInteger(int value)
         {
+            Type = OSDType.Integer;
             this.value = value;
         }
 
@@ -462,7 +1022,6 @@ namespace OpenMetaverse.StructuredData
         public override string AsString() { return value.ToString(); }
         public override byte[] AsBinary() { return Utils.IntToBytesBig(value); }
         public override OSD Copy() { return new OSDInteger(value); }
-
         public override string ToString() { return AsString(); }
     }
 
@@ -471,18 +1030,16 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public sealed class OSDReal : OSD
     {
-        private double value;
-
-        public override OSDType Type { get { return OSDType.Real; } }
+        public readonly double value;
 
         public OSDReal(double value)
         {
+            Type = OSDType.Real;
             this.value = value;
         }
 
         public override bool AsBoolean() { return (!Double.IsNaN(value) && value != 0d); }
         public override OSD Copy() { return new OSDReal(value); }
-       
         public override int AsInteger()
         {
             if (Double.IsNaN(value))
@@ -539,14 +1096,13 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public sealed class OSDllsdxml : OSD
     {
-        private string value;
-
-        public override OSDType Type { get { return OSDType.LLSDxml; } }
+        public readonly string value;
 
         public override OSD Copy() { return new OSDllsdxml(value); }
 
         public OSDllsdxml(string value)
         {
+            Type = OSDType.LLSDxml;
             // Refuse to hold null pointers
             if (value != null)
                 this.value = value;
@@ -554,66 +1110,20 @@ namespace OpenMetaverse.StructuredData
                 this.value = String.Empty;
         }
 
-        public override bool AsBoolean()
-        {
-            return false;
-        }
-
-        public override int AsInteger()
-        {
-            return 0;
-        }
-
-        public override uint AsUInteger()
-        {
-            return 0;
-        }
-
-        public override long AsLong()
-        {
-            return 0;
-        }
-
-        public override ulong AsULong()
-        {
-            return 0;
-        }
-
-        public override double AsReal()
-        {
-           return 0d;
-        }
-
         public override string AsString() { return value; }
         public override byte[] AsBinary() { return Encoding.UTF8.GetBytes(value); }
-        public override UUID AsUUID()
-        {
-            return UUID.Zero;
-        }
-
-        public override DateTime AsDate()
-        {
-            return Utils.Epoch;
-        }
-
-        public override Uri AsUri()
-        {
-            return null;
-        }
-
         public override string ToString() { return AsString(); }
     }
 
     public sealed class OSDString : OSD
     {
-        private string value;
-
-        public override OSDType Type { get { return OSDType.String; } }
+        public readonly string value;
 
         public override OSD Copy() { return new OSDString(value); }
 
         public OSDString(string value)
         {
+            Type = OSDType.String;
             // Refuse to hold null pointers
             if (value != null)
                 this.value = value;
@@ -679,6 +1189,7 @@ namespace OpenMetaverse.StructuredData
 
         public override string AsString() { return value; }
         public override byte[] AsBinary() { return Encoding.UTF8.GetBytes(value); }
+
         public override UUID AsUUID()
         {
             UUID uuid;
@@ -687,6 +1198,7 @@ namespace OpenMetaverse.StructuredData
             else
                 return UUID.Zero;
         }
+
         public override DateTime AsDate()
         {
             DateTime dt;
@@ -695,6 +1207,7 @@ namespace OpenMetaverse.StructuredData
             else
                 return Utils.Epoch;
         }
+
         public override Uri AsUri()
         {
             Uri uri;
@@ -712,12 +1225,11 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public sealed class OSDUUID : OSD
     {
-        private UUID value;
-
-        public override OSDType Type { get { return OSDType.UUID; } }
+        public readonly UUID value;
 
         public OSDUUID(UUID value)
         {
+            Type = OSDType.UUID;
             this.value = value;
         }
 
@@ -734,12 +1246,11 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public sealed class OSDDate : OSD
     {
-        private DateTime value;
-
-        public override OSDType Type { get { return OSDType.Date; } }
+        public readonly DateTime value;
 
         public OSDDate(DateTime value)
         {
+            Type = OSDType.Date;
             this.value = value;
         }
 
@@ -789,12 +1300,11 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public sealed class OSDUri : OSD
     {
-        private Uri value;
-
-        public override OSDType Type { get { return OSDType.URI; } }
+        public readonly Uri value;
 
         public OSDUri(Uri value)
         {
+            Type = OSDType.URI;
             this.value = value;
         }
 
@@ -821,12 +1331,11 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public sealed class OSDBinary : OSD
     {
-        private byte[] value;
-
-        public override OSDType Type { get { return OSDType.Binary; } }
+        public readonly byte[] value;
 
         public OSDBinary(byte[] value)
         {
+            Type = OSDType.Binary;
             if (value != null)
                 this.value = value;
             else
@@ -835,6 +1344,7 @@ namespace OpenMetaverse.StructuredData
 
         public OSDBinary(uint value)
         {
+            Type = OSDType.Binary;
             this.value = new byte[]
             {
                 (byte)((value >> 24) % 256),
@@ -846,6 +1356,7 @@ namespace OpenMetaverse.StructuredData
 
         public OSDBinary(long value)
         {
+            Type = OSDType.Binary;
             this.value = new byte[]
             {
                 (byte)((value >> 56) % 256),
@@ -861,6 +1372,7 @@ namespace OpenMetaverse.StructuredData
 
         public OSDBinary(ulong value)
         {
+            Type = OSDType.Binary;
             this.value = new byte[]
             {
                 (byte)((value >> 56) % 256),
@@ -924,29 +1436,28 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public sealed class OSDMap : OSD, IDictionary<string, OSD>
     {
-        private Dictionary<string, OSD> dicvalue;
-
-        public override OSDType Type { get { return OSDType.Map; } }
+        public readonly Dictionary<string, OSD> dicvalue;
 
         public OSDMap()
         {
+            Type = OSDType.Map;
             dicvalue = new Dictionary<string, OSD>();
         }
 
         public OSDMap(int capacity)
         {
+            Type = OSDType.Map;
             dicvalue = new Dictionary<string, OSD>(capacity);
         }
 
         public OSDMap(Dictionary<string, OSD> value)
         {
+            Type = OSDType.Map;
             if (value != null)
                 this.dicvalue = value;
             else
                 this.dicvalue = new Dictionary<string, OSD>();
         }
-
-        public override bool AsBoolean() { return dicvalue.Count > 0; }
 
         public override string ToString()
         {
@@ -965,7 +1476,6 @@ namespace OpenMetaverse.StructuredData
         public ICollection<string> Keys { get { return dicvalue.Keys; } }
         public ICollection<OSD> Values { get { return dicvalue.Values; } }
 
-        
         public OSD this[string key]
         {
             get
@@ -1049,68 +1559,97 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public sealed class OSDArray : OSD, IList<OSD>
     {
-        private List<OSD> value;
-
-        public override OSDType Type { get { return OSDType.Array; } }
+        public readonly List<OSD> value;
 
         public OSDArray()
         {
+            Type = OSDType.Array;
             value = new List<OSD>();
         }
 
         public OSDArray(int capacity)
         {
+            Type = OSDType.Array;
             value = new List<OSD>(capacity);
         }
 
         public OSDArray(List<OSD> value)
         {
+            Type = OSDType.Array;
             if (value != null)
                 this.value = value;
             else
                 this.value = new List<OSD>();
         }
 
-        public override byte[] AsBinary()
-        {
-            byte[] binary = new byte[value.Count];
+                public override byte[] AsBinary()
+                {
+                    byte[] binary = new byte[value.Count];
 
-            for (int i = 0; i < value.Count; i++)
-                binary[i] = (byte)value[i].AsInteger();
+                    for (int i = 0; i < value.Count; i++)
+                        binary[i] = (byte)value[i].AsInteger();
 
-            return binary;
-        }
+                    return binary;
+                }
 
-        public override long AsLong()
-        {
-            OSDBinary binary = new OSDBinary(AsBinary());
-            return binary.AsLong();
-        }
-
-        public override ulong AsULong()
-        {
-            OSDBinary binary = new OSDBinary(AsBinary());
-            return binary.AsULong();
-        }
-
-        public override uint AsUInteger()
-        {
-            OSDBinary binary = new OSDBinary(AsBinary());
-            return binary.AsUInteger();
-        }
-
-        public override Vector2 AsVector2()
-        {
-            Vector2 vector = Vector2.Zero;
-
-            if (this.Count == 2)
+            public override long AsLong()
             {
-                vector.X = (float)this[0].AsReal();
-                vector.Y = (float)this[1].AsReal();
+                if (value.Count < 8)
+                    return 0;
+                byte[] b = new byte[8];
+                for (int i = 0; i < 8; i++)
+                    b[i] = (byte)value[i].AsInteger();
+                return (
+                    ((long)b[0] << 56) |
+                    ((long)b[1] << 48) |
+                    ((long)b[2] << 40) |
+                    ((long)b[3] << 32) |
+                    ((long)b[4] << 24) |
+                    ((long)b[5] << 16) |
+                    ((long)b[6] << 8) |
+                    b[7]);
             }
 
-            return vector;
-        }
+            public override ulong AsULong()
+            {
+                if (value.Count < 8)
+                    return 0;
+                byte[] b = new byte[8];
+                for (int i = 0; i < 8; i++)
+                    b[i] = (byte)value[i].AsInteger();
+                return (
+                    ((ulong)b[0] << 56) |
+                    ((ulong)b[1] << 48) |
+                    ((ulong)b[2] << 40) |
+                    ((ulong)b[3] << 32) |
+                    ((ulong)b[4] << 24) |
+                    ((ulong)b[5] << 16) |
+                    ((ulong)b[6] << 8) |
+                    b[7]);
+            }
+
+            public override uint AsUInteger()
+            {
+                if (value.Count < 4)
+                    return 0;
+                byte[] by = new byte[4];
+                for (int i = 0; i < 4; i++)
+                    by[i] = (byte)value[i].AsInteger();
+                return (uint)((by[0] << 24) | (by[1] << 16) | (by[2] << 8) | by[3]);
+            }
+/*
+            public override Vector2 AsVector2()
+            {
+                Vector2 vector = Vector2.Zero;
+
+                if (this.Count == 2)
+                {
+                    vector.X = (float)this[0].AsReal();
+                    vector.Y = (float)this[1].AsReal();
+                }
+
+                return vector;
+            }
 
         public override Vector3 AsVector3()
         {
@@ -1118,9 +1657,9 @@ namespace OpenMetaverse.StructuredData
 
             if (this.Count == 3)
             {
-                vector.X = (float)this[0].AsReal();
-                vector.Y = (float)this[1].AsReal();
-                vector.Z = (float)this[2].AsReal();
+                vector.X = this[0].AsReal();
+                vector.Y = this[1].AsReal();
+                vector.Z = this[2].AsReal();
             }
 
             return vector;
@@ -1169,7 +1708,7 @@ namespace OpenMetaverse.StructuredData
 
             return quaternion;
         }
-
+*/
         public override Color4 AsColor4()
         {
             Color4 color = Color4.Black;
@@ -1189,8 +1728,6 @@ namespace OpenMetaverse.StructuredData
         {
             return new OSDArray(new List<OSD>(value));
         }
-
-        public override bool AsBoolean() { return value.Count > 0; }
 
         public override string ToString()
         {
