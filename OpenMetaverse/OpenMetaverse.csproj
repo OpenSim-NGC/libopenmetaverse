@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFrameworks>net472</TargetFrameworks>
+    <TargetFrameworks>net461</TargetFrameworks>
     <AssemblyTitle>OpenMetaverse</AssemblyTitle>
     <Company>openmetaverse.co</Company>
     <Product>OpenMetaverse</Product>
@@ -11,7 +11,6 @@
     <FileVersion>0.9.4.0</FileVersion>
     <NoWarn>1591,1574,0419,0618</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.8" />
