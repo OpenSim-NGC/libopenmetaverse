@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFrameworks>net461</TargetFrameworks>
     <RootNamespace>OpenMetaverse</RootNamespace>
     <NoWarn>1591,1574,0419,0618</NoWarn>
     <NoStdLib>False</NoStdLib>
