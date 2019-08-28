@@ -732,12 +732,21 @@ namespace OpenMetaverse
 
         public static Quaternion operator *(Quaternion a, Quaternion b)
         {
-            return Multiply(a, b);
+            return new Quaternion(
+                a.W * b.X + a.X * b.W + a.Y * b.Z - a.Z * b.Y,
+                a.W * b.Y + a.Y * b.W + a.Z * b.X - a.X * b.Z,
+                a.W * b.Z + a.Z * b.W + a.X * b.Y - a.Y * b.X,
+                a.W * b.W - a.X * b.X - a.Y * b.Y - a.Z * b.Z
+            );
         }
 
         public static Quaternion operator *(Quaternion quaternion, float scaleFactor)
         {
-            return Multiply(quaternion, scaleFactor);
+            return new Quaternion(
+                quaternion.X * scaleFactor,
+                quaternion.Y * scaleFactor,
+                quaternion.Z * scaleFactor,
+                quaternion.W * scaleFactor);
         }
 
         public static Quaternion operator /(Quaternion quaternion1, Quaternion quaternion2)

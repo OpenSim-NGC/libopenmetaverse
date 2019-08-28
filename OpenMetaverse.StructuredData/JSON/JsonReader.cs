@@ -468,6 +468,5 @@ namespace LitJson
                     automaton_stack.Push (entry_symbols[i]);
             }
         }
-
     }
 }
