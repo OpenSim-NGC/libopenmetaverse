@@ -711,7 +711,7 @@ namespace OpenMetaverse
         /// of nine faces</remarks>
         public class TextureEntry
         {
-            public const int MAX_FACES = 32;
+            public const int MAX_FACES = 45;
             public static readonly UUID WHITE_TEXTURE = new UUID("5748decc-f629-461c-9a36-a35a221fe21f");
 
             /// <summary></summary>
@@ -1157,7 +1157,7 @@ namespace OpenMetaverse
                     ms.Write(DefaultTexture.m_textureID.GetBytes(), 0, 16);
                     for (int i = last; i >= 0; --i)
                     {
-                        cur = (ulong)(1 << i);
+                        cur = (1UL << i);
                         if (FaceTextures[i] == null)
                         {
                             nulls |= cur;
@@ -1182,7 +1182,7 @@ namespace OpenMetaverse
 
                         for (int j = i - 1; j >= 0; --j)
                         {
-                            next = (ulong)(1 << j);
+                            next = (1UL << j);
                             if ((done & next) != 0)
                                 continue;
 
@@ -1217,7 +1217,7 @@ namespace OpenMetaverse
                     done = nulls;
                     for (int i = last; i >= 0; --i)
                     {
-                        cur = (ulong)(1 << i);
+                        cur = (1UL << i);
                         if ((done & cur) != 0)
                             continue;
 
@@ -1230,7 +1230,7 @@ namespace OpenMetaverse
 
                         for (int j = i - 1; j >= 0; --j)
                         {
-                            next = (ulong)(1 << j);
+                            next = (1UL << j);
                             if ((done & next) != 0)
                                 continue;
 
@@ -1255,7 +1255,7 @@ namespace OpenMetaverse
                     done = nulls;
                     for (int i = last; i >= 0; --i)
                     {
-                        cur = (ulong)(1 << i);
+                        cur = (1UL << i);
                         if ((done & cur) != 0)
                             continue;
 
@@ -1268,7 +1268,7 @@ namespace OpenMetaverse
 
                         for (int j = i - 1; j >= 0; --j)
                         {
-                            next = (ulong)(1 << j);
+                            next = (1UL << j);
                             if ((done & next) != 0)
                                 continue;
 
@@ -1293,7 +1293,7 @@ namespace OpenMetaverse
                     done = nulls;
                     for (int i = last; i >= 0; --i)
                     {
-                        cur = (ulong)(1 << i);
+                        cur = (1UL << i);
                         if ((done & cur) != 0)
                             continue;
 
@@ -1306,7 +1306,7 @@ namespace OpenMetaverse
 
                         for (int j = i - 1; j >= 0; --j)
                         {
-                            next = (ulong)(1 << j);
+                            next = (1UL << j);
                             if ((done & next) != 0)
                                 continue;
 
@@ -1332,7 +1332,7 @@ namespace OpenMetaverse
                     done = nulls;
                     for (int i = last; i >= 0; --i)
                     {
-                        cur = (ulong)(1 << i);
+                        cur = (1UL << i);
                         if ((done & cur) != 0)
                             continue;
 
@@ -1345,7 +1345,7 @@ namespace OpenMetaverse
 
                         for (int j = i - 1; j >= 0; --j)
                         {
-                            next = (ulong)(1 << j);
+                            next = (1UL << j);
                             if ((done & next) != 0)
                                 continue;
 
@@ -1370,7 +1370,7 @@ namespace OpenMetaverse
                     done = nulls;
                     for (int i = last; i >= 0; --i)
                     {
-                        cur = (ulong)(1 << i);
+                        cur = (1UL << i);
                         if ((done & cur) != 0)
                             continue;
 
@@ -1383,7 +1383,7 @@ namespace OpenMetaverse
 
                         for (int j = i - 1; j >= 0; --j)
                         {
-                            next = (ulong)(1 << j);
+                            next = (1UL << j);
                             if ((done & next) != 0)
                                 continue;
 
@@ -1408,7 +1408,7 @@ namespace OpenMetaverse
                     done = nulls;
                     for (int i = last; i >= 0; --i)
                     {
-                        cur = (ulong)(1 << i);
+                        cur = (1UL << i);
                         if ((done & cur) != 0)
                             continue;
 
@@ -1421,7 +1421,7 @@ namespace OpenMetaverse
 
                         for (int j = i - 1; j >= 0; --j)
                         {
-                            next = (ulong)(1 << j);
+                            next = (1UL << j);
                             if ((done & next) != 0)
                                 continue;
 
@@ -1445,7 +1445,7 @@ namespace OpenMetaverse
                     done = nulls;
                     for (int i = last; i >= 0; --i)
                     {
-                        cur = (ulong)(1 << i);
+                        cur = (1UL << i);
                         if ((done & cur) != 0)
                             continue;
 
@@ -1458,7 +1458,7 @@ namespace OpenMetaverse
 
                         for (int j = i - 1; j >= 0; --j)
                         {
-                            next = (ulong)(1 << j);
+                            next = (1UL << j);
                             if ((done & next) != 0)
                                 continue;
 
@@ -1482,7 +1482,7 @@ namespace OpenMetaverse
                     done = nulls;
                     for (int i = last; i >= 0; --i)
                     {
-                        cur = (ulong)(1 << i);
+                        cur = (1UL << i);
                         if ((done & cur) != 0)
                             continue;
 
@@ -1495,7 +1495,7 @@ namespace OpenMetaverse
 
                         for (int j = i - 1; j >= 0; --j)
                         {
-                            next = (ulong)(1 << j);
+                            next = (1UL << j);
                             if ((done & next) != 0)
                                 continue;
 
@@ -1520,7 +1520,7 @@ namespace OpenMetaverse
                     done = nulls;
                     for (int i = last; i >= 0; --i)
                     {
-                        cur = (ulong)(1 << i);
+                        cur = (1UL << i);
                         if ((done & cur) != 0)
                             continue;
 
@@ -1533,7 +1533,7 @@ namespace OpenMetaverse
 
                         for (int j = i - 1; j >= 0; --j)
                         {
-                            next = (ulong)(1 << j);
+                            next = (1UL << j);
                             if ((done & next) != 0)
                                 continue;
 
@@ -1557,7 +1557,7 @@ namespace OpenMetaverse
                     done = nulls;
                     for (int i = last; i >= 0; --i)
                     {
-                        cur = (ulong)(1 << i);
+                        cur = (1UL << i);
                         if ((done & cur) != 0)
                             continue;
 
@@ -1570,7 +1570,7 @@ namespace OpenMetaverse
 
                         for (int j = i - 1; j >= 0; --j)
                         {
-                            next = (ulong)(1 << j);
+                            next = (1UL << j);
                             if ((done & next) != 0)
                                 continue;
 
@@ -1593,57 +1593,31 @@ namespace OpenMetaverse
                 }
             }
 
-            public bool IsBakedTextureIndex(int indx)
-            {
-                switch(indx)
-                {
-                    case 8:
-                    case 9:
-                    case 10:
-                    case 11:
-                    case 19:
-                    case 20:
-                        return true;
-                }
-                return false;
-            }
 
-            public byte[] GetAvatarPublicBytes(int maxfaces = MAX_FACES)
+            private static List<int> AllBakedIndexes = new List<int>() { 44, 43, 42, 41, 40, 20, 19, 11, 10, 9, 8 };
+            private static List<int> LegacyBakedIndexes = new List<int>() {20, 19, 11, 10, 9, 8 };
+
+            public byte[] GetBakesBytes(int maxfaces = MAX_FACES)
             {
                 if (DefaultTexture == null)
                     return Utils.EmptyBytes;
 
+                if(maxfaces > FaceTextures.Length)
+                    maxfaces = FaceTextures.Length;
+
+                List<int> bakedIndexes;
+                if(maxfaces > 21)
+                    bakedIndexes = AllBakedIndexes;
+                else
+                    bakedIndexes = LegacyBakedIndexes;
+
                 using (MemoryStream ms = new MemoryStream(256))
                 {
-                    ulong done = 0;
-                    ulong cur = 0;
-                    ulong next = 0;
-                    ulong nulls = 0;
-
-                    int last = FaceTextures.Length - 1;
-                    if (last > maxfaces - 1)
-                        last = maxfaces - 1;
-
-                    bool onLastastNulls = true;
-
                     #region Texture
                     ms.Write(DefaultTexture.m_textureID.GetBytes(), 0, 16);
-                    for (int i = last; i >= 0; --i)
+                    foreach (int i in bakedIndexes)
                     {
-                        cur = (ulong)(1 << i);
-                        if ( FaceTextures[i] == null || !IsBakedTextureIndex(i))
-                        {
-                            nulls |= cur;
-                            continue;
-                        }
-
-                        if (onLastastNulls)
-                        {
-                            last = i;
-                            onLastastNulls = false;
-                        }
-
-                        if ((done & cur) != 0)
+                        if (FaceTextures[i] == null)
                             continue;
 
                         if ((FaceTextures[i].m_attributes & TextureAttributes.TextureID) == 0)
@@ -1653,70 +1627,28 @@ namespace OpenMetaverse
                         if (id == null || id == DefaultTexture.m_textureID)
                             continue;
 
-                        for (int j = i - 1; j >= 0; --j)
-                        {
-                            next = (ulong)(1 << j);
-                            if ((done & next) != 0)
-                                continue;
-
-                            if (FaceTextures[j] == null || !IsBakedTextureIndex(i))
-                            {
-                                nulls |= next;
-                                done |= next;
-                                continue;
-                            }
-
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.TextureID) == 0)
-                                continue;
-
-                            if (FaceTextures[j].m_textureID != id)
-                                continue;
-
-                            done |= next;
-                            cur |= next;
-                        }
-                        WriteFaceBitfieldBytes(ms, cur);
+                        WriteFaceBitfieldBytes(ms, (1UL << i));
                         ms.Write(id.GetBytes(), 0, 16);
                     }
                     ms.WriteByte(0);
                     #endregion Texture
 
-                    if (onLastastNulls)
-                        last = -1;
-
                     #region Color
                     // Serialize the color bytes inverted to optimize for zerocoding
                     ms.Write(DefaultTexture.m_rgba.GetBytes(true), 0, 4);
-                    done = nulls;
-                    for (int i = last; i >= 0; --i)
+                    foreach (int i in bakedIndexes)
                     {
-                        cur = (ulong)(1 << i);
-                        if ((done & cur) != 0)
+                        if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.RGBA) == 0 || !IsBakedTextureIndex(i))
+                        if ((FaceTextures[i].m_attributes & TextureAttributes.RGBA) == 0)
                             continue;
 
                         Color4 c = FaceTextures[i].m_rgba;
                         if (c == DefaultTexture.m_rgba)
                             continue;
 
-                        for (int j = i - 1; j >= 0; --j)
-                        {
-                            next = (ulong)(1 << j);
-                            if ((done & next) != 0)
-                                continue;
-
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.RGBA) == 0 || !IsBakedTextureIndex(i))
-                                continue;
-
-                            if (FaceTextures[j].m_rgba != c)
-                                continue;
-
-                            done |= next;
-                            cur |= next;
-                        }
-                        WriteFaceBitfieldBytes(ms, cur);
+                        WriteFaceBitfieldBytes(ms, (1UL << i));
                         ms.Write(c.GetBytes(true), 0, 4);
                     }
                     ms.WriteByte(0);
@@ -1725,36 +1657,19 @@ namespace OpenMetaverse
                     #region RepeatU
                     float deff = DefaultTexture.m_repeatU;
                     Utils.FloatToBytes(ms, deff);
-                    done = nulls;
-                    for (int i = last; i >= 0; --i)
+                    foreach (int i in bakedIndexes)
                     {
-                        cur = (ulong)(1 << i);
-                        if ((done & cur) != 0)
+                        if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.RepeatU) == 0 || !IsBakedTextureIndex(i))
+                        if ((FaceTextures[i].m_attributes & TextureAttributes.RepeatU) == 0)
                             continue;
 
                         float repeat = FaceTextures[i].m_repeatU;
                         if (repeat == deff)
                             continue;
 
-                        for (int j = i - 1; j >= 0; --j)
-                        {
-                            next = (ulong)(1 << j);
-                            if ((done & next) != 0)
-                                continue;
-
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.RepeatU) == 0 || !IsBakedTextureIndex(i))
-                                continue;
-
-                            if (FaceTextures[j].m_repeatU != repeat)
-                                continue;
-
-                            done |= next;
-                            cur |= next;
-                        }
-                        WriteFaceBitfieldBytes(ms, cur);
+                        WriteFaceBitfieldBytes(ms, (1UL << i));
                         Utils.FloatToBytes(ms, repeat);
                     }
                     ms.WriteByte(0);
@@ -1763,36 +1678,19 @@ namespace OpenMetaverse
                     #region RepeatV
                     deff = DefaultTexture.m_repeatV;
                     Utils.FloatToBytes(ms, deff);
-                    done = nulls;
-                    for (int i = last; i >= 0; --i)
+                    foreach (int i in bakedIndexes)
                     {
-                        cur = (ulong)(1 << i);
-                        if ((done & cur) != 0)
+                        if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.RepeatV) == 0 || !IsBakedTextureIndex(i))
+                        if ((FaceTextures[i].m_attributes & TextureAttributes.RepeatV) == 0)
                             continue;
 
                         float repeat = FaceTextures[i].m_repeatV;
                         if (repeat == deff)
                             continue;
 
-                        for (int j = i - 1; j >= 0; --j)
-                        {
-                            next = (ulong)(1 << j);
-                            if ((done & next) != 0)
-                                continue;
-
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.RepeatV) == 0 || !IsBakedTextureIndex(i))
-                                continue;
-
-                            if (FaceTextures[j].m_repeatV != repeat)
-                                continue;
-
-                            done |= next;
-                            cur |= next;
-                        }
-                        WriteFaceBitfieldBytes(ms, cur);
+                        WriteFaceBitfieldBytes(ms, (1UL << i));
                         Utils.FloatToBytes(ms, repeat);
                     }
                     ms.WriteByte(0);
@@ -1802,36 +1700,19 @@ namespace OpenMetaverse
                     #region OffsetU
                     short def = DefaultTexture.m_offsetU;
                     Utils.Int16ToBytes(ms, def);
-                    done = nulls;
-                    for (int i = last; i >= 0; --i)
+                    foreach (int i in bakedIndexes)
                     {
-                        cur = (ulong)(1 << i);
-                        if ((done & cur) != 0)
+                        if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.OffsetU) == 0 || !IsBakedTextureIndex(i))
+                        if ((FaceTextures[i].m_attributes & TextureAttributes.OffsetU) == 0)
                             continue;
 
                         short offset = FaceTextures[i].m_offsetU;
                         if (offset == def)
                             continue;
 
-                        for (int j = i - 1; j >= 0; --j)
-                        {
-                            next = (ulong)(1 << j);
-                            if ((done & next) != 0)
-                                continue;
-
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.OffsetU) == 0 || !IsBakedTextureIndex(i))
-                                continue;
-
-                            if (FaceTextures[j].m_offsetU != offset)
-                                continue;
-
-                            done |= next;
-                            cur |= next;
-                        }
-                        WriteFaceBitfieldBytes(ms, cur);
+                        WriteFaceBitfieldBytes(ms, (1UL << i));
                         Utils.Int16ToBytes(ms, offset);
                     }
                     ms.WriteByte(0);
@@ -1840,36 +1721,19 @@ namespace OpenMetaverse
                     #region OffsetV
                     def = DefaultTexture.m_offsetV;
                     Utils.Int16ToBytes(ms, def);
-                    done = nulls;
-                    for (int i = last; i >= 0; --i)
+                    foreach (int i in bakedIndexes)
                     {
-                        cur = (ulong)(1 << i);
-                        if ((done & cur) != 0)
+                        if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.OffsetV) == 0 || !IsBakedTextureIndex(i))
+                        if ((FaceTextures[i].m_attributes & TextureAttributes.OffsetV) == 0)
                             continue;
 
                         short offset = FaceTextures[i].m_offsetV;
                         if (offset == def)
                             continue;
 
-                        for (int j = i - 1; j >= 0; --j)
-                        {
-                            next = (ulong)(1 << j);
-                            if ((done & next) != 0)
-                                continue;
-
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.OffsetV) == 0 || !IsBakedTextureIndex(i))
-                                continue;
-
-                            if (FaceTextures[j].m_offsetV != offset)
-                                continue;
-
-                            done |= next;
-                            cur |= next;
-                        }
-                        WriteFaceBitfieldBytes(ms, cur);
+                        WriteFaceBitfieldBytes(ms, (1UL << i));
                         Utils.Int16ToBytes(ms, offset);
                     }
                     ms.WriteByte(0);
@@ -1878,36 +1742,19 @@ namespace OpenMetaverse
                     #region Rotation
                     def = DefaultTexture.m_rotation;
                     Utils.Int16ToBytes(ms, def);
-                    done = nulls;
-                    for (int i = last; i >= 0; --i)
+                    foreach (int i in bakedIndexes)
                     {
-                        cur = (ulong)(1 << i);
-                        if ((done & cur) != 0)
+                        if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.Rotation) == 0 || !IsBakedTextureIndex(i))
+                        if ((FaceTextures[i].m_attributes & TextureAttributes.Rotation) == 0)
                             continue;
 
                         short rotation = FaceTextures[i].m_rotation;
                         if (rotation == def)
                             continue;
 
-                        for (int j = i - 1; j >= 0; --j)
-                        {
-                            next = (ulong)(1 << j);
-                            if ((done & next) != 0)
-                                continue;
-
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.Rotation) == 0 || !IsBakedTextureIndex(i))
-                                continue;
-
-                            if (FaceTextures[j].m_rotation != rotation)
-                                continue;
-
-                            done |= next;
-                            cur |= next;
-                        }
-                        WriteFaceBitfieldBytes(ms, cur);
+                        WriteFaceBitfieldBytes(ms, (1UL << i));
                         Utils.Int16ToBytes(ms, rotation);
                     }
                     ms.WriteByte(0);
@@ -1915,36 +1762,19 @@ namespace OpenMetaverse
 
                     #region Material
                     ms.WriteByte(DefaultTexture.m_material);
-                    done = nulls;
-                    for (int i = last; i >= 0; --i)
+                    foreach (int i in bakedIndexes)
                     {
-                        cur = (ulong)(1 << i);
-                        if ((done & cur) != 0)
+                        if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.Material) == 0 || !IsBakedTextureIndex(i))
+                        if ((FaceTextures[i].m_attributes & TextureAttributes.Material) == 0)
                             continue;
 
                         byte material = FaceTextures[i].m_material;
                         if (material == DefaultTexture.m_material)
                             continue;
 
-                        for (int j = i - 1; j >= 0; --j)
-                        {
-                            next = (ulong)(1 << j);
-                            if ((done & next) != 0)
-                                continue;
-
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.Material) == 0 || !IsBakedTextureIndex(i))
-                                continue;
-
-                            if (FaceTextures[j].m_material != material)
-                                continue;
-
-                            done |= next;
-                            cur |= next;
-                        }
-                        WriteFaceBitfieldBytes(ms, cur);
+                        WriteFaceBitfieldBytes(ms, (1UL << i));
                         ms.WriteByte(material);
                     }
                     ms.WriteByte(0);
@@ -1952,36 +1782,19 @@ namespace OpenMetaverse
 
                     #region Media
                     ms.WriteByte(DefaultTexture.m_media);
-                    done = nulls;
-                    for (int i = last; i >= 0; --i)
+                    foreach (int i in bakedIndexes)
                     {
-                        cur = (ulong)(1 << i);
-                        if ((done & cur) != 0)
+                        if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.Media) == 0 || !IsBakedTextureIndex(i))
+                        if ((FaceTextures[i].m_attributes & TextureAttributes.Media) == 0)
                             continue;
 
                         byte media = FaceTextures[i].m_media;
                         if (media == DefaultTexture.m_media)
                             continue;
 
-                        for (int j = i - 1; j >= 0; --j)
-                        {
-                            next = (ulong)(1 << j);
-                            if ((done & next) != 0)
-                                continue;
-
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.Media) == 0 || !IsBakedTextureIndex(i))
-                                continue;
-
-                            if (FaceTextures[j].m_media != media)
-                                continue;
-
-                            done |= next;
-                            cur |= next;
-                        }
-                        WriteFaceBitfieldBytes(ms, cur);
+                        WriteFaceBitfieldBytes(ms, (1UL << i));
                         ms.WriteByte(media);
                     }
                     ms.WriteByte(0);
@@ -1990,36 +1803,19 @@ namespace OpenMetaverse
                     #region Glow
                     byte defg = DefaultTexture.m_glow;
                     ms.WriteByte(defg);
-                    done = nulls;
-                    for (int i = last; i >= 0; --i)
+                    foreach (int i in bakedIndexes)
                     {
-                        cur = (ulong)(1 << i);
-                        if ((done & cur) != 0)
+                        if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.Glow) == 0 || !IsBakedTextureIndex(i))
+                        if ((FaceTextures[i].m_attributes & TextureAttributes.Glow) == 0)
                             continue;
 
                         byte glow = FaceTextures[i].m_glow;
                         if (glow == defg)
                             continue;
 
-                        for (int j = i - 1; j >= 0; --j)
-                        {
-                            next = (ulong)(1 << j);
-                            if ((done & next) != 0)
-                                continue;
-
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.Glow) == 0 || !IsBakedTextureIndex(i))
-                                continue;
-
-                            if (FaceTextures[j].m_glow != glow)
-                                continue;
-
-                            done |= next;
-                            cur |= next;
-                        }
-                        WriteFaceBitfieldBytes(ms, cur);
+                        WriteFaceBitfieldBytes(ms, (1UL << i));
                         ms.WriteByte(glow);
                     }
                     ms.WriteByte(0);
@@ -2027,36 +1823,19 @@ namespace OpenMetaverse
 
                     #region MaterialID
                     ms.Write(DefaultTexture.m_materialID.GetBytes(), 0, 16);
-                    done = nulls;
-                    for (int i = last; i >= 0; --i)
+                    foreach (int i in bakedIndexes)
                     {
-                        cur = (ulong)(1 << i);
-                        if ((done & cur) != 0)
+                        if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.MaterialID) == 0 || !IsBakedTextureIndex(i))
+                        if ((FaceTextures[i].m_attributes & TextureAttributes.MaterialID) == 0)
                             continue;
 
                         UUID materialID = FaceTextures[i].m_materialID;
-                        if (materialID == null || materialID == DefaultTexture.m_materialID || !IsBakedTextureIndex(i))
+                        if (materialID == null || materialID == DefaultTexture.m_materialID)
                             continue;
 
-                        for (int j = i - 1; j >= 0; --j)
-                        {
-                            next = (ulong)(1 << j);
-                            if ((done & next) != 0)
-                                continue;
-
-                            if ((FaceTextures[j].m_attributes & TextureAttributes.MaterialID) == 0 || !IsBakedTextureIndex(i))
-                                continue;
-
-                            if (FaceTextures[j].m_materialID != materialID)
-                                continue;
-
-                            done |= next;
-                            cur |= next;
-                        }
-                        WriteFaceBitfieldBytes(ms, cur);
+                        WriteFaceBitfieldBytes(ms, (1UL << i));
                         ms.Write(materialID.GetBytes(), 0, 16);
                     }
                     ms.WriteByte(0);
@@ -2138,6 +1917,25 @@ namespace OpenMetaverse
                         {
                             if (bitfield >= 0x10000000)
                             {
+                                if (bitfield >= 0x800000000)
+                                {
+                                    if (bitfield >= (1UL << 42))
+                                    {
+                                        if (bitfield >= (1UL << 49))
+                                        {
+                                            b = (byte)(bitfield >> 49);
+                                            b |= 0x80;
+                                            ms.WriteByte(b);
+                                        }
+                                        b = (byte)(bitfield >> 42);
+                                        b |= 0x80;
+                                        ms.WriteByte(b);
+                                    }
+
+                                    b = (byte)(bitfield >> 35);
+                                    b |= 0x80;
+                                    ms.WriteByte(b);
+                                }
                                 b = (byte)(bitfield >> 28);
                                 b |= 0x80;
                                 ms.WriteByte(b);
