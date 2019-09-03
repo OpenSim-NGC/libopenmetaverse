@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net461</TargetFramework>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms">
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
+    <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="AvatarList.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="FriendList.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="GroupList.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="InventoryTree.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="LocalChat.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="LoginPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="MessageBar.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="MiniMap.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="StatusOutput.cs">
+      <SubType>Component</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>

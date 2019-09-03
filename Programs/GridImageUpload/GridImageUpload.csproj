@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFramework>net461</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <AssemblyTitle>GridImageUpload</AssemblyTitle>
+    <Company>Open Metaverse Foundation</Company>
+    <Product>GridImageUpload</Product>
+    <Description>JPEG2000 compressor and texture uploader for virtual worlds</Description>
+    <Copyright>Copyright © Open Metaverse Foundation</Copyright>
+    <AssemblyVersion>1.0.4.0</AssemblyVersion>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms">
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
+    <ProjectReference Include="..\..\OpenMetaverse\OpenMetaverse.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="frmGridImageUpload.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DependentUpon>Settings.settings</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <SubType>Code</SubType>
+    </Compile>
+    <EmbeddedResource Update="frmGridImageUpload.resx">
+      <DependentUpon>frmGridImageUpload.cs</DependentUpon>
+    </EmbeddedResource>
+    <Compile Update="frmGridImageUpload.Designer.cs">
+      <DependentUpon>frmGridImageUpload.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+</Project>

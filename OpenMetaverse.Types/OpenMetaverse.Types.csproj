@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <TargetFrameworks>net461</TargetFrameworks>
+    <RootNamespace>OpenMetaverse</RootNamespace>
+    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <NoStdLib>False</NoStdLib>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+</Project>
