@@ -24,17 +24,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.IO;
-using System.Net;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 using OpenMetaverse.Assets;
 using OpenMetaverse.Http;
-using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Threading;
 
 namespace OpenMetaverse
 {
@@ -874,7 +872,7 @@ namespace OpenMetaverse
                 // Fetch the uploader capability
                 CapsClient request = new CapsClient(url);
                 request.OnComplete +=
-                    delegate(CapsClient client, OSD result, Exception error)
+                    delegate (CapsClient client, OSD result, Exception error)
                     {
                         if (error == null && result is OSDMap)
                         {
@@ -890,7 +888,7 @@ namespace OpenMetaverse
                                     // POST the asset data
                                     CapsClient upload = new CapsClient(uploadUrl);
                                     upload.OnComplete +=
-                                        delegate(CapsClient client2, OSD result2, Exception error2)
+                                        delegate (CapsClient client2, OSD result2, Exception error2)
                                         {
                                             if (error2 == null && result2 is OSDMap)
                                             {
@@ -923,13 +921,13 @@ namespace OpenMetaverse
                 Logger.Log("UploadBakedTexture not available, falling back to UDP method", Helpers.LogLevel.Info, Client);
 
                 WorkPool.QueueUserWorkItem(
-                    delegate(object o)
+                    delegate (object o)
                     {
                         UUID transactionID = UUID.Random();
                         BakedTextureUploadedCallback uploadCallback = (BakedTextureUploadedCallback)o;
                         AutoResetEvent uploadEvent = new AutoResetEvent(false);
                         EventHandler<AssetUploadEventArgs> udpCallback =
-                            delegate(object sender, AssetUploadEventArgs e)
+                            delegate (object sender, AssetUploadEventArgs e)
                             {
                                 if (e.Upload.ID == transactionID)
                                 {

@@ -24,13 +24,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Reflection;
-using System.Collections.Generic;
-using System.IO;
-using System.Drawing;
-using OpenMetaverse.Assets;
 using log4net;
+using OpenMetaverse.Assets;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Reflection;
 
 namespace OpenMetaverse.Imaging
 {

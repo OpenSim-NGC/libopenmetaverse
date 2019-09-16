@@ -183,7 +183,7 @@ namespace OpenMetaverse.Rendering
             /// <param name="filename">Filename and path of the file containing the reference mesh</param>
             public virtual void LoadMesh(string filename)
             {
-                using(FileStream meshStream = new FileStream(filename, FileMode.Open, FileAccess.Read))
+                using (FileStream meshStream = new FileStream(filename, FileMode.Open, FileAccess.Read))
                 using (EndianAwareBinaryReader reader = new EndianAwareBinaryReader(meshStream))
                 {
                     Header = TrimAt0(reader.ReadString(24));
@@ -304,7 +304,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="filename">The filename and path of the file containing the mesh data</param>
         public virtual void LoadMesh(string filename)
         {
-            using(FileStream meshData = new FileStream(filename, FileMode.Open, FileAccess.Read))
+            using (FileStream meshData = new FileStream(filename, FileMode.Open, FileAccess.Read))
             using (EndianAwareBinaryReader reader = new EndianAwareBinaryReader(meshData))
             {
                 Header = TrimAt0(reader.ReadString(24));
@@ -316,7 +316,8 @@ namespace OpenMetaverse.Rendering
                 HasDetailTexCoords = (reader.ReadByte() != 0);
                 Position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
                 RotationAngles = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-                /* RotationOrder = */ reader.ReadByte();
+                /* RotationOrder = */
+                reader.ReadByte();
                 Scale = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
 
                 // Populate the vertex array

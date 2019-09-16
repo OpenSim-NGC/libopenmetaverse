@@ -24,14 +24,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Text;
-using System.Collections;
-using System.Collections.Generic;
-using System.Threading;
-using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
+using System;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace OpenMetaverse
 {
@@ -83,7 +81,7 @@ namespace OpenMetaverse
 	/// Information about a region on the grid map
 	/// </summary>
 	public struct GridRegion
-	{
+    {
         /// <summary>Sim X position on World Map</summary>
 		public int X;
         /// <summary>Sim Y position on World Map</summary>
@@ -141,7 +139,7 @@ namespace OpenMetaverse
         {
             return (this.X == region.X && this.Y == region.Y);
         }
-	}
+    }
 
     /// <summary>
     /// Visual chunk of the grid map
@@ -190,7 +188,7 @@ namespace OpenMetaverse
     /// Represents an agent or group of agents location
     /// </summary>
     public class MapAgentLocation : MapItem
-    {       
+    {
         public int AvatarCount;
         public string Identifier;
     }
@@ -199,25 +197,25 @@ namespace OpenMetaverse
     /// Represents a Telehub location
     /// </summary>
     public class MapTelehub : MapItem
-    {        
+    {
     }
 
     /// <summary>
     /// Represents a non-adult parcel of land for sale
     /// </summary>
     public class MapLandForSale : MapItem
-    {        
+    {
         public int Size;
         public int Price;
         public string Name;
-        public UUID ID;        
+        public UUID ID;
     }
 
     /// <summary>
     /// Represents an Adult parcel of land for sale
     /// </summary>
     public class MapAdultLandForSale : MapItem
-    {     
+    {
         public int Size;
         public int Price;
         public string Name;
@@ -385,7 +383,7 @@ namespace OpenMetaverse
 
         /// <summary>Unknown</summary>
         public float SunPhase { get { return sunPhase; } }
-		/// <summary>Current direction of the sun</summary>
+        /// <summary>Current direction of the sun</summary>
         public Vector3 SunDirection { get { return sunDirection; } }
         /// <summary>Current angular velocity of the sun</summary>
         public Vector3 SunAngVelocity { get { return sunAngVelocity; } }
@@ -397,7 +395,7 @@ namespace OpenMetaverse
         /// <summary>A dictionary of all the regions, indexed by region handle</summary>
         internal Dictionary<ulong, GridRegion> RegionsByHandle = new Dictionary<ulong, GridRegion>();
 
-		private GridClient Client;
+        private GridClient Client;
         private float sunPhase;
         private Vector3 sunDirection;
         private Vector3 sunAngVelocity;
@@ -408,8 +406,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="client">Instance of GridClient object to associate with this GridManager instance</param>
 		public GridManager(GridClient client)
-		{
-			Client = client;
+        {
+            Client = client;
 
             //Client.Network.RegisterCallback(PacketType.MapLayerReply, MapLayerReplyHandler);
             Client.Network.RegisterCallback(PacketType.MapBlockReply, MapBlockReplyHandler);
@@ -417,7 +415,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.SimulatorViewerTimeMessage, SimulatorViewerTimeMessageHandler);
             Client.Network.RegisterCallback(PacketType.CoarseLocationUpdate, CoarseLocationHandler, false);
             Client.Network.RegisterCallback(PacketType.RegionIDAndHandleReply, RegionHandleReplyHandler);
-		}
+        }
 
         /// <summary>
         /// 
@@ -466,7 +464,7 @@ namespace OpenMetaverse
         /// <param name="maxX"></param>
         /// <param name="maxY"></param>
         /// <param name="returnNonExistent"></param>
-        public void RequestMapBlocks(GridLayerType layer, ushort minX, ushort minY, ushort maxX, ushort maxY, 
+        public void RequestMapBlocks(GridLayerType layer, ushort minX, ushort minY, ushort maxX, ushort maxY,
             bool returnNonExistent)
         {
             MapBlockRequestPacket request = new MapBlockRequestPacket();
@@ -500,7 +498,7 @@ namespace OpenMetaverse
             AutoResetEvent itemsEvent = new AutoResetEvent(false);
 
             EventHandler<GridItemsEventArgs> callback =
-                delegate(object sender, GridItemsEventArgs e)
+                delegate (object sender, GridItemsEventArgs e)
                 {
                     if (e.Type == GridItemType.AgentLocations)
                     {
@@ -589,7 +587,7 @@ namespace OpenMetaverse
             {
                 AutoResetEvent regionEvent = new AutoResetEvent(false);
                 EventHandler<GridRegionEventArgs> callback =
-                    delegate(object sender, GridRegionEventArgs e)
+                    delegate (object sender, GridRegionEventArgs e)
                     {
                         if (e.Region.Name == name)
                             regionEvent.Set();
@@ -615,7 +613,7 @@ namespace OpenMetaverse
                 }
             }
         }
-        
+
         protected void MapLayerResponseHandler(CapsClient client, OSD result, Exception error)
         {
             if (result == null)
@@ -639,7 +637,7 @@ namespace OpenMetaverse
                     layer.Right = thisLayerData["Right"].AsInteger();
                     layer.ImageID = thisLayerData["ImageID"].AsUUID();
 
-                    OnGridLayer(new GridLayerEventArgs(layer));                    
+                    OnGridLayer(new GridLayerEventArgs(layer));
                 }
             }
 
@@ -787,7 +785,7 @@ namespace OpenMetaverse
         protected void SimulatorViewerTimeMessageHandler(object sender, PacketReceivedEventArgs e)
         {
             SimulatorViewerTimeMessagePacket time = (SimulatorViewerTimeMessagePacket)e.Packet;
-            
+
             sunPhase = time.TimeInfo.SunPhase;
             sunDirection = time.TimeInfo.SunDirection;
             sunAngVelocity = time.TimeInfo.SunAngVelocity;
@@ -806,7 +804,7 @@ namespace OpenMetaverse
             Dictionary<UUID, Vector3> coarseEntries = new Dictionary<UUID, Vector3>();
             for (int i = 0; i < coarse.AgentData.Length; i++)
             {
-                if(coarse.Location.Length > 0)
+                if (coarse.Location.Length > 0)
                     coarseEntries[coarse.AgentData[i].AgentID] = new Vector3((int)coarse.Location[i].X, (int)coarse.Location[i].Y, (int)coarse.Location[i].Z * 4);
 
                 // the friend we are tracking on radar
@@ -815,7 +813,7 @@ namespace OpenMetaverse
             }
 
             // find stale entries (people who left the sim)
-            List<UUID> removedEntries = e.Simulator.avatarPositions.FindAll(delegate(UUID findID) { return !coarseEntries.ContainsKey(findID); });
+            List<UUID> removedEntries = e.Simulator.avatarPositions.FindAll(delegate (UUID findID) { return !coarseEntries.ContainsKey(findID); });
 
             // anyone who was not listed in the previous update
             List<UUID> newEntries = new List<UUID>();
@@ -823,7 +821,7 @@ namespace OpenMetaverse
             lock (e.Simulator.avatarPositions.Dictionary)
             {
                 // remove stale entries
-                foreach(UUID trackedID in removedEntries)
+                foreach (UUID trackedID in removedEntries)
                     e.Simulator.avatarPositions.Dictionary.Remove(trackedID);
 
                 // add or update tracked info, and record who is new
@@ -838,7 +836,7 @@ namespace OpenMetaverse
 
             if (m_CoarseLocationUpdate != null)
             {
-                WorkPool.QueueUserWorkItem(delegate(object o)
+                WorkPool.QueueUserWorkItem(delegate (object o)
                 { OnCoarseLocationUpdate(new CoarseLocationUpdateEventArgs(e.Simulator, newEntries, removedEntries)); });
             }
         }
@@ -847,7 +845,7 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void RegionHandleReplyHandler(object sender, PacketReceivedEventArgs e)
-        {            
+        {
             if (m_RegionHandleReply != null)
             {
                 RegionIDAndHandleReplyPacket reply = (RegionIDAndHandleReplyPacket)e.Packet;

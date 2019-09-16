@@ -1,9 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using System.Text;
 
 namespace OpenMetaverse.TestClient
 {
@@ -27,19 +22,19 @@ namespace OpenMetaverse.TestClient
             List<UUID> roles = new List<UUID>();
 
             if (!UUID.TryParse(args[0], out avatar))
-                    return "parse error avatar UUID";
+                return "parse error avatar UUID";
             if (!UUID.TryParse(args[1], out group))
-                    return "parse error group UUID";
+                return "parse error group UUID";
             if (2 == args.Length)
-                    roles.Add(UUID.Zero);
-	    else
-            for (int i = 2; i < args.Length; i++)
-                if (UUID.TryParse(args[i], out role))
-                    roles.Add(role);
-                
+                roles.Add(UUID.Zero);
+            else
+                for (int i = 2; i < args.Length; i++)
+                    if (UUID.TryParse(args[i], out role))
+                        roles.Add(role);
+
             Client.Groups.Invite(group, roles, avatar);
 
-            return "invited "+avatar+" to "+group;
+            return "invited " + avatar + " to " + group;
         }
     }
 }

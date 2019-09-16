@@ -1,9 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using System.Text;
 
 namespace OpenMetaverse.TestClient
 {
@@ -47,7 +43,7 @@ namespace OpenMetaverse.TestClient
                 groupName = groupName.Trim();
 
                 Client.Directory.DirGroupsReply += Directory_DirGroups;
-                                
+
                 queryID = Client.Directory.StartGroupSearch(groupName, 0);
 
                 GetGroupsSearchEvent.WaitOne(60000, false);
@@ -64,7 +60,7 @@ namespace OpenMetaverse.TestClient
                 else
                     return resolvedGroupName;
             }
-            
+
             Client.Groups.GroupJoinedReply += Groups_OnGroupJoined;
             Client.Groups.RequestJoinGroup(resolvedGroupID);
 
@@ -150,6 +146,6 @@ namespace OpenMetaverse.TestClient
 
             joinedGroup = e.Success;
             GetGroupsSearchEvent.Set();
-        }                        
+        }
     }
 }

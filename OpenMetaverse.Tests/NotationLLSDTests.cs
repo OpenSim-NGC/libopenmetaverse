@@ -36,12 +36,12 @@
  * 
  */
 
+using NUnit.Framework;
+using OpenMetaverse.StructuredData;
 using System;
 using System.IO;
 using System.Text;
 using System.Xml;
-using NUnit.Framework;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Tests
 {
@@ -238,12 +238,12 @@ namespace OpenMetaverse.Tests
             Assert.AreEqual(OSDType.Real, llsdTwoDS.Type);
             Assert.AreEqual(-32347892.234234d, llsdTwoDS.AsReal());
 
-            OSD llsdThree = OSD.FromReal( Double.MaxValue );
-            string sThree = OSDParser.SerializeLLSDNotation( llsdThree );
-            OSD llsdThreeDS = OSDParser.DeserializeLLSDNotation( sThree );
-            Assert.AreEqual( OSDType.Real, llsdThreeDS.Type );
-            Assert.AreEqual( Double.MaxValue, llsdThreeDS.AsReal());
-        
+            OSD llsdThree = OSD.FromReal(Double.MaxValue);
+            string sThree = OSDParser.SerializeLLSDNotation(llsdThree);
+            OSD llsdThreeDS = OSDParser.DeserializeLLSDNotation(sThree);
+            Assert.AreEqual(OSDType.Real, llsdThreeDS.Type);
+            Assert.AreEqual(Double.MaxValue, llsdThreeDS.AsReal());
+
             OSD llsdFour = OSD.FromReal(Double.MinValue);
             string sFour = OSDParser.SerializeLLSDNotation(llsdFour);
             OSD llsdFourDS = OSDParser.DeserializeLLSDNotation(sFour);
@@ -711,7 +711,7 @@ namespace OpenMetaverse.Tests
             OSD llsdTwo = OSD.FromInteger(1);
             llsdArray.Add(llsdOne);
             llsdArray.Add(llsdTwo);
-                        
+
             OSDMap llsdMap = new OSDMap();
             OSD llsdThree = OSD.FromInteger(2);
             llsdMap["test1"] = llsdThree;
@@ -719,7 +719,7 @@ namespace OpenMetaverse.Tests
             llsdMap["test2"] = llsdFour;
 
             llsdArray.Add(llsdMap);
-            
+
             OSDArray llsdArrayTwo = new OSDArray();
             OSD llsdFive = OSD.FromString("asdflkhjasdhj");
             OSD llsdSix = OSD.FromString("asdkfhasjkldfghsd");

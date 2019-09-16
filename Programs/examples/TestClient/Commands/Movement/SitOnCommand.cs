@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-
 namespace OpenMetaverse.TestClient
 {
     public class SitOnCommand : Command
@@ -25,7 +19,7 @@ namespace OpenMetaverse.TestClient
             if (UUID.TryParse(args[0], out target))
             {
                 Primitive targetPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                    delegate(Primitive prim)
+                    delegate (Primitive prim)
                     {
                         return prim.ID == target;
                     }

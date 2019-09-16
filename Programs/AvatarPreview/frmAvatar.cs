@@ -1,20 +1,13 @@
+using OpenMetaverse;
+using OpenMetaverse.Assets;
+using OpenMetaverse.Imaging;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Text;
-using System.Windows.Forms;
 using System.IO;
+using System.Windows.Forms;
 using System.Xml;
-
 using Tao.OpenGl;
-using Tao.Platform.Windows;
-
-using OpenMetaverse;
-using OpenMetaverse.Imaging;
-using OpenMetaverse.Rendering;
-using OpenMetaverse.Assets;
 
 namespace AvatarPreview
 {

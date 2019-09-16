@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -25,7 +24,7 @@ namespace OpenMetaverse.TestClient
             if (!UUID.TryParse(args[0], out objectID))
                 return "Usage: taskrunning objectID [[scriptName] true|false]";
 
-            Primitive found = Client.Network.CurrentSim.ObjectsPrimitives.Find(delegate(Primitive prim) { return prim.ID == objectID; });
+            Primitive found = Client.Network.CurrentSim.ObjectsPrimitives.Find(delegate (Primitive prim) { return prim.ID == objectID; });
             if (found != null)
                 objectLocalID = found.LocalID;
             else

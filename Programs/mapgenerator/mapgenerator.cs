@@ -113,7 +113,7 @@ namespace mapgenerator
                     break;
                 case FieldType.IPPORT:
                     // IPPORT is big endian while U16/S16 are little endian. Go figure
-                    writer.WriteLine("                    " + field.Name + 
+                    writer.WriteLine("                    " + field.Name +
                         " = (ushort)((bytes[i++] << 8) + bytes[i++]);");
                     break;
                 case FieldType.U16:
@@ -878,7 +878,7 @@ namespace mapgenerator
                 writer.WriteLine();
 
                 writer.WriteLine("                packets.Add(packet);");
-                
+
                 writer.WriteLine("            } while (");
                 bool first = true;
                 foreach (MapBlock block in packet.Blocks)

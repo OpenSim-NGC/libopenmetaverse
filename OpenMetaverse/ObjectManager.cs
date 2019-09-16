@@ -24,14 +24,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.Http;
+using OpenMetaverse.Interfaces;
+using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Http;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Messages.Linden;
 
 namespace OpenMetaverse
 {
@@ -283,7 +283,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="e">A ParticleUpdateEventArgs object containing 
         /// the data sent from the simulator</param>
-        protected virtual void OnParticleUpdate(ParticleUpdateEventArgs e) {
+        protected virtual void OnParticleUpdate(ParticleUpdateEventArgs e)
+        {
             EventHandler<ParticleUpdateEventArgs> handler = m_ParticleUpdate;
             if (handler != null)
                 handler(this, e);
@@ -304,7 +305,8 @@ namespace OpenMetaverse
         #endregion AvatarUpdate event
 
         #region TerseObjectUpdate event
-        public event EventHandler<ParticleUpdateEventArgs> ParticleUpdate {
+        public event EventHandler<ParticleUpdateEventArgs> ParticleUpdate
+        {
             add { lock (m_ParticleUpdateLock) { m_ParticleUpdate += value; } }
             remove { lock (m_ParticleUpdateLock) { m_ParticleUpdate -= value; } }
         }
@@ -2116,15 +2118,16 @@ namespace OpenMetaverse
                         prim.Rotation = objectupdate.Rotation;
                         prim.AngularVelocity = objectupdate.AngularVelocity;
                         #endregion
-                        
+
                         EventHandler<PrimEventArgs> handler = m_ObjectUpdate;
                         if (handler != null)
                         {
-                            WorkPool.QueueUserWorkItem(delegate(object o)
+                            WorkPool.QueueUserWorkItem(delegate (object o)
                             { handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNewObject, attachment)); });
                         }
                         //OnParticleUpdate handler replacing decode particles, PCode.Particle system appears to be deprecated this is a fix
-                        if (prim.ParticleSys.PartMaxAge != 0) {
+                        if (prim.ParticleSys.PartMaxAge != 0)
+                        {
                             OnParticleUpdate(new ParticleUpdateEventArgs(simulator, prim.ParticleSys, prim));
                         }
 
@@ -2341,7 +2344,7 @@ namespace OpenMetaverse
                     EventHandler<TerseObjectUpdateEventArgs> handler = m_TerseObjectUpdate;
                     if (handler != null)
                     {
-                        WorkPool.QueueUserWorkItem(delegate(object o)
+                        WorkPool.QueueUserWorkItem(delegate (object o)
                         { handler(this, new TerseObjectUpdateEventArgs(simulator, obj, update, terse.RegionData.TimeDilation)); });
                     }
 
@@ -2507,7 +2510,7 @@ namespace OpenMetaverse
                         i++;
 
                         // Text color
-                        prim.TextColor = new Color4(block.Data, i,false,true);
+                        prim.TextColor = new Color4(block.Data, i, false, true);
                         i += 4;
                     }
                     else
@@ -2663,9 +2666,9 @@ namespace OpenMetaverse
                         {
                             continue;
                         }
-                    }                        
+                    }
                     ids.Add(localID);
-                }               
+                }
                 RequestObjects(simulator, ids);
             }
         }
@@ -2815,7 +2818,7 @@ namespace OpenMetaverse
                 if (Client.Settings.OBJECT_TRACKING)
                 {
                     Primitive findPrim = simulator.ObjectsPrimitives.Find(
-                        delegate(Primitive prim) { return prim.ID == props.ObjectID; });
+                        delegate (Primitive prim) { return prim.ID == props.ObjectID; });
 
                     if (findPrim != null)
                     {
@@ -2865,7 +2868,7 @@ namespace OpenMetaverse
             if (Client.Settings.OBJECT_TRACKING)
             {
                 Primitive findPrim = simulator.ObjectsPrimitives.Find(
-                        delegate(Primitive prim) { return prim.ID == op.ObjectData.ObjectID; });
+                        delegate (Primitive prim) { return prim.ID == op.ObjectData.ObjectID; });
 
                 if (findPrim != null)
                 {
@@ -3139,7 +3142,7 @@ namespace OpenMetaverse
 
         #region Object Tracking Link
 
-                /// <summary>
+        /// <summary>
         /// 
         /// </summary>
         /// <param name="simulator"></param>
@@ -3261,7 +3264,7 @@ namespace OpenMetaverse
 
                     // Iterate through all of this sims avatars
                     sim.ObjectsAvatars.ForEach(
-                        delegate(Avatar avatar)
+                        delegate (Avatar avatar)
                         {
                             #region Linear Motion
                             // Only do movement interpolation (extrapolation) when there is a non-zero velocity but 
@@ -3278,7 +3281,7 @@ namespace OpenMetaverse
 
                     // Iterate through all of this sims primitives
                     sim.ObjectsPrimitives.ForEach(
-                        delegate(Primitive prim)
+                        delegate (Primitive prim)
                         {
                             if (prim.Joint == JointType.Invalid)
                             {
@@ -3479,7 +3482,8 @@ namespace OpenMetaverse
         }
     }
 
-    public class ParticleUpdateEventArgs : EventArgs {
+    public class ParticleUpdateEventArgs : EventArgs
+    {
         private readonly Simulator m_Simulator;
         private readonly Primitive.ParticleSystem m_ParticleSystem;
         private readonly Primitive m_Source;
@@ -3497,7 +3501,8 @@ namespace OpenMetaverse
         /// <param name="simulator">The simulator the packet originated from</param>
         /// <param name="particlesystem">The ParticleSystem data</param>
         /// <param name="source">The Primitive source</param>
-        public ParticleUpdateEventArgs(Simulator simulator, Primitive.ParticleSystem particlesystem, Primitive source) {
+        public ParticleUpdateEventArgs(Simulator simulator, Primitive.ParticleSystem particlesystem, Primitive source)
+        {
             this.m_Simulator = simulator;
             this.m_ParticleSystem = particlesystem;
             this.m_Source = source;

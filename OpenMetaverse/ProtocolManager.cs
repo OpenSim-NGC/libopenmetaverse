@@ -27,15 +27,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using OpenMetaverse;
 
 namespace OpenMetaverse
-{    
+{
     /// <summary>
     /// 
     /// </summary>
-	public enum FieldType
-	{
+    public enum FieldType
+    {
         /// <summary></summary>
 		U8,
         /// <summary></summary>
@@ -78,13 +77,13 @@ namespace OpenMetaverse
 		Single,
         /// <summary></summary>
 		Multiple
-	}
+    }
 
     /// <summary>
     /// 
     /// </summary>
 	public class MapField : IComparable
-	{
+    {
         /// <summary></summary>
 		public int KeywordPosition;
         /// <summary></summary>
@@ -100,32 +99,32 @@ namespace OpenMetaverse
         /// <param name="obj"></param>
         /// <returns></returns>
 		public int CompareTo(object obj)
-		{
-			MapField temp = (MapField)obj;
+        {
+            MapField temp = (MapField)obj;
 
-			if (this.KeywordPosition > temp.KeywordPosition)
-			{
-				return 1;
-			}
-			else
-			{
-				if(temp.KeywordPosition == this.KeywordPosition)
-				{
-					return 0;
-				}
-				else
-				{
-					return -1;
-				}
-			}
-		}
-	}
+            if (this.KeywordPosition > temp.KeywordPosition)
+            {
+                return 1;
+            }
+            else
+            {
+                if (temp.KeywordPosition == this.KeywordPosition)
+                {
+                    return 0;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// 
     /// </summary>
 	public class MapBlock : IComparable
-	{
+    {
         /// <summary></summary>
 		public int KeywordPosition;
         /// <summary></summary>
@@ -141,32 +140,32 @@ namespace OpenMetaverse
         /// <param name="obj"></param>
         /// <returns></returns>
 		public int CompareTo(object obj)
-		{
-			MapBlock temp = (MapBlock)obj;
+        {
+            MapBlock temp = (MapBlock)obj;
 
-			if (this.KeywordPosition > temp.KeywordPosition)
-			{
-				return 1;
-			}
-			else
-			{
-				if(temp.KeywordPosition == this.KeywordPosition)
-				{
-					return 0;
-				}
-				else
-				{
-					return -1;
-				}
-			}
-		}
-	}
+            if (this.KeywordPosition > temp.KeywordPosition)
+            {
+                return 1;
+            }
+            else
+            {
+                if (temp.KeywordPosition == this.KeywordPosition)
+                {
+                    return 0;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// 
     /// </summary>
 	public class MapPacket
-	{
+    {
         /// <summary></summary>
 		public ushort ID;
         /// <summary></summary>
@@ -179,13 +178,13 @@ namespace OpenMetaverse
 		public bool Encoded;
         /// <summary></summary>
 		public List<MapBlock> Blocks;
-	}
+    }
 
     /// <summary>
     /// 
     /// </summary>
 	public class ProtocolManager
-	{
+    {
         /// <summary></summary>
 		public Dictionary<FieldType, int> TypeSizes;
         /// <summary></summary>
@@ -205,39 +204,39 @@ namespace OpenMetaverse
         /// <param name="mapFile"></param>
         /// <param name="client"></param>
 		public ProtocolManager(string mapFile, GridClient client)
-		{
+        {
             Client = client;
 
-			// Initialize the map arrays
-			LowMaps = new MapPacket[65536];
-			MediumMaps = new MapPacket[256];
-			HighMaps = new MapPacket[256];
+            // Initialize the map arrays
+            LowMaps = new MapPacket[65536];
+            MediumMaps = new MapPacket[256];
+            HighMaps = new MapPacket[256];
 
-			// Build the type size hash table
-			TypeSizes = new Dictionary<FieldType,int>();
-			TypeSizes.Add(FieldType.U8, 1);
-			TypeSizes.Add(FieldType.U16, 2);
-			TypeSizes.Add(FieldType.U32, 4);
-			TypeSizes.Add(FieldType.U64, 8);
-			TypeSizes.Add(FieldType.S8, 1);
-			TypeSizes.Add(FieldType.S16, 2);
-			TypeSizes.Add(FieldType.S32, 4);
-			TypeSizes.Add(FieldType.F32, 4);
-			TypeSizes.Add(FieldType.F64, 8);
-			TypeSizes.Add(FieldType.UUID, 16);
-			TypeSizes.Add(FieldType.BOOL, 1);
-			TypeSizes.Add(FieldType.Vector3, 12);
-			TypeSizes.Add(FieldType.Vector3d, 24);
-			TypeSizes.Add(FieldType.Vector4, 16);
-			TypeSizes.Add(FieldType.Quaternion, 16);
-			TypeSizes.Add(FieldType.IPADDR, 4);
-			TypeSizes.Add(FieldType.IPPORT, 2);
-			TypeSizes.Add(FieldType.Variable, -1);
-			TypeSizes.Add(FieldType.Fixed, -2);
+            // Build the type size hash table
+            TypeSizes = new Dictionary<FieldType, int>();
+            TypeSizes.Add(FieldType.U8, 1);
+            TypeSizes.Add(FieldType.U16, 2);
+            TypeSizes.Add(FieldType.U32, 4);
+            TypeSizes.Add(FieldType.U64, 8);
+            TypeSizes.Add(FieldType.S8, 1);
+            TypeSizes.Add(FieldType.S16, 2);
+            TypeSizes.Add(FieldType.S32, 4);
+            TypeSizes.Add(FieldType.F32, 4);
+            TypeSizes.Add(FieldType.F64, 8);
+            TypeSizes.Add(FieldType.UUID, 16);
+            TypeSizes.Add(FieldType.BOOL, 1);
+            TypeSizes.Add(FieldType.Vector3, 12);
+            TypeSizes.Add(FieldType.Vector3d, 24);
+            TypeSizes.Add(FieldType.Vector4, 16);
+            TypeSizes.Add(FieldType.Quaternion, 16);
+            TypeSizes.Add(FieldType.IPADDR, 4);
+            TypeSizes.Add(FieldType.IPPORT, 2);
+            TypeSizes.Add(FieldType.Variable, -1);
+            TypeSizes.Add(FieldType.Fixed, -2);
 
             KeywordPositions = new Dictionary<string, int>();
-			LoadMapFile(mapFile);
-		}
+            LoadMapFile(mapFile);
+        }
 
         /// <summary>
         /// 
@@ -245,42 +244,42 @@ namespace OpenMetaverse
         /// <param name="command"></param>
         /// <returns></returns>
 		public MapPacket Command(string command)
-		{
-			foreach (MapPacket map in HighMaps)
-			{
-				if (map != null)
-				{
-					if (command == map.Name)
-					{
-						return map;
-					}
-				}
-			}
+        {
+            foreach (MapPacket map in HighMaps)
+            {
+                if (map != null)
+                {
+                    if (command == map.Name)
+                    {
+                        return map;
+                    }
+                }
+            }
 
-			foreach (MapPacket map in MediumMaps)
-			{
-				if (map != null)
-				{
-					if (command == map.Name)
-					{
-						return map;
-					}
-				}
-			}
+            foreach (MapPacket map in MediumMaps)
+            {
+                if (map != null)
+                {
+                    if (command == map.Name)
+                    {
+                        return map;
+                    }
+                }
+            }
 
-			foreach (MapPacket map in LowMaps)
-			{
-				if (map != null)
-				{
-					if (command == map.Name)
-					{
-						return map;
-					}
-				}
-			}
+            foreach (MapPacket map in LowMaps)
+            {
+                if (map != null)
+                {
+                    if (command == map.Name)
+                    {
+                        return map;
+                    }
+                }
+            }
 
-			throw new Exception("Cannot find map for command \"" + command + "\"");
-		}
+            throw new Exception("Cannot find map for command \"" + command + "\"");
+        }
 
         /// <summary>
         /// 
@@ -288,36 +287,36 @@ namespace OpenMetaverse
         /// <param name="data"></param>
         /// <returns></returns>
 		public MapPacket Command(byte[] data)
-		{
-			ushort command;
+        {
+            ushort command;
 
-			if (data.Length < 5)
-			{
-				return null;
-			}
+            if (data.Length < 5)
+            {
+                return null;
+            }
 
-			if (data[4] == 0xFF)
-			{
-				if ((byte)data[5] == 0xFF)
-				{
-					// Low frequency
-					command = (ushort)(data[6] * 256 + data[7]);
-					return Command(command, PacketFrequency.Low);
-				}
-				else
-				{
-					// Medium frequency
-					command = (ushort)data[5];
-					return Command(command, PacketFrequency.Medium);
-				}
-			}
-			else
-			{
-				// High frequency
-				command = (ushort)data[4];
-				return Command(command, PacketFrequency.High);
-			}
-		}
+            if (data[4] == 0xFF)
+            {
+                if ((byte)data[5] == 0xFF)
+                {
+                    // Low frequency
+                    command = (ushort)(data[6] * 256 + data[7]);
+                    return Command(command, PacketFrequency.Low);
+                }
+                else
+                {
+                    // Medium frequency
+                    command = (ushort)data[5];
+                    return Command(command, PacketFrequency.Medium);
+                }
+            }
+            else
+            {
+                // High frequency
+                command = (ushort)data[4];
+                return Command(command, PacketFrequency.High);
+            }
+        }
 
         /// <summary>
         /// 
@@ -326,66 +325,67 @@ namespace OpenMetaverse
         /// <param name="frequency"></param>
         /// <returns></returns>
 		public MapPacket Command(ushort command, PacketFrequency frequency)
-		{
-			switch (frequency)
-			{
-				case PacketFrequency.High:
-					return HighMaps[command];
-				case PacketFrequency.Medium:
-					return MediumMaps[command];
-				case PacketFrequency.Low:
-					return LowMaps[command];
-			}
+        {
+            switch (frequency)
+            {
+                case PacketFrequency.High:
+                    return HighMaps[command];
+                case PacketFrequency.Medium:
+                    return MediumMaps[command];
+                case PacketFrequency.Low:
+                    return LowMaps[command];
+            }
 
-			throw new Exception("Cannot find map for command \"" + command + "\" with frequency \"" + frequency + "\"");
-		}
+            throw new Exception("Cannot find map for command \"" + command + "\" with frequency \"" + frequency + "\"");
+        }
 
         /// <summary>
         /// 
         /// </summary>
 		public void PrintMap()
-		{
-			PrintOneMap(LowMaps,    "Low   ");
-			PrintOneMap(MediumMaps, "Medium");
-			PrintOneMap(HighMaps,   "High  ");
-		}
+        {
+            PrintOneMap(LowMaps, "Low   ");
+            PrintOneMap(MediumMaps, "Medium");
+            PrintOneMap(HighMaps, "High  ");
+        }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="map"></param>
         /// <param name="frequency"></param>
-		private void PrintOneMap(MapPacket[] map, string frequency) {
-			int i;
+		private void PrintOneMap(MapPacket[] map, string frequency)
+        {
+            int i;
 
-			for (i = 0; i < map.Length; ++i)
-			{
-				if (map[i] != null)
-				{
-					Console.WriteLine("{0} {1,5} - {2} - {3} - {4}", frequency, i, map[i].Name,
-						map[i].Trusted ? "Trusted" : "Untrusted",
-						map[i].Encoded ? "Unencoded" : "Zerocoded");
+            for (i = 0; i < map.Length; ++i)
+            {
+                if (map[i] != null)
+                {
+                    Console.WriteLine("{0} {1,5} - {2} - {3} - {4}", frequency, i, map[i].Name,
+                        map[i].Trusted ? "Trusted" : "Untrusted",
+                        map[i].Encoded ? "Unencoded" : "Zerocoded");
 
-					foreach (MapBlock block in map[i].Blocks)
-					{
-						if (block.Count == -1) 
-						{
-							Console.WriteLine("\t{0,4} {1} (Variable)", block.KeywordPosition, block.Name);
-						} 
-						else 
-						{
-							Console.WriteLine("\t{0,4} {1} ({2})", block.KeywordPosition, block.Name, block.Count);
-						}
+                    foreach (MapBlock block in map[i].Blocks)
+                    {
+                        if (block.Count == -1)
+                        {
+                            Console.WriteLine("\t{0,4} {1} (Variable)", block.KeywordPosition, block.Name);
+                        }
+                        else
+                        {
+                            Console.WriteLine("\t{0,4} {1} ({2})", block.KeywordPosition, block.Name, block.Count);
+                        }
 
-						foreach (MapField field in block.Fields)
-						{
-							Console.WriteLine("\t\t{0,4} {1} ({2} / {3})", field.KeywordPosition, field.Name,
-								field.Type, field.Count);
-						}
-					}
-				}
-			}
-		}
+                        foreach (MapField field in block.Fields)
+                        {
+                            Console.WriteLine("\t\t{0,4} {1} ({2} / {3})", field.KeywordPosition, field.Name,
+                                field.Type, field.Count);
+                        }
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// 
@@ -393,10 +393,10 @@ namespace OpenMetaverse
         /// <param name="mapFile"></param>
         /// <param name="outputFile"></param>
 		public static void DecodeMapFile(string mapFile, string outputFile)
-		{
-			byte magicKey = 0;
-			byte[] buffer = new byte[2048];
-			int nread;
+        {
+            byte magicKey = 0;
+            byte[] buffer = new byte[2048];
+            int nread;
 
             try
             {
@@ -421,17 +421,17 @@ namespace OpenMetaverse
             {
                 throw new Exception("Map file error", e);
             }
-		}
+        }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="mapFile"></param>
 		private void LoadMapFile(string mapFile)
-		{
-			ushort low = 1;
-			ushort medium = 1;
-			ushort high = 1;
+        {
+            ushort low = 1;
+            ushort medium = 1;
+            ushort high = 1;
 
             // Load the protocol map file
             try
@@ -652,10 +652,10 @@ namespace OpenMetaverse
             {
                 throw new Exception("Map file parsing error", e); ;
             }
-		}
+        }
 
-		private int KeywordPosition(string keyword)
-		{
+        private int KeywordPosition(string keyword)
+        {
             if (KeywordPositions.ContainsKey(keyword))
             {
                 return KeywordPositions[keyword];
@@ -684,6 +684,6 @@ namespace OpenMetaverse
 
             KeywordPositions[keyword] = hash;
             return hash;
-		}
-	}
+        }
+    }
 }

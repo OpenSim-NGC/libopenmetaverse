@@ -41,31 +41,28 @@
 * 
 * Copyright (c) 1999/2000 JJ2000 Partners.
 */
-using System;
-using CSJ2K.j2k.entropy.decoder;
-using CSJ2K.j2k.util;
 namespace CSJ2K.j2k.quantization.dequantizer
 {
-	
-	/// <summary> This is the generic ineterface for dequantization parameters. Generally,
-	/// for each type of dequantizer, there should be a corresponding class to
-	/// store its parameters. The parameters are those that come from the bit
-	/// stream header, that concern dequantization.
-	/// 
-	/// </summary>
-	public abstract class DequantizerParams
-	{
-		/// <summary> Returns the type of the dequantizer for which the parameters are. The
-		/// types are defined in the Dequantizer class.
-		/// 
-		/// </summary>
-		/// <returns> The type of the dequantizer for which the parameters
-		/// are.
-		/// 
-		/// </returns>
-		/// <seealso cref="Dequantizer">
-		/// 
-		/// </seealso>
-		public abstract int DequantizerType{get;}
-	}
+
+    /// <summary> This is the generic ineterface for dequantization parameters. Generally,
+    /// for each type of dequantizer, there should be a corresponding class to
+    /// store its parameters. The parameters are those that come from the bit
+    /// stream header, that concern dequantization.
+    /// 
+    /// </summary>
+    public abstract class DequantizerParams
+    {
+        /// <summary> Returns the type of the dequantizer for which the parameters are. The
+        /// types are defined in the Dequantizer class.
+        /// 
+        /// </summary>
+        /// <returns> The type of the dequantizer for which the parameters
+        /// are.
+        /// 
+        /// </returns>
+        /// <seealso cref="Dequantizer">
+        /// 
+        /// </seealso>
+        public abstract int DequantizerType { get; }
+    }
 }

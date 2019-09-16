@@ -1,7 +1,6 @@
-using System;
-
 using OpenMetaverse;
 using OpenMetaverse.Rendering;
+using System;
 
 namespace AvatarPreview
 {

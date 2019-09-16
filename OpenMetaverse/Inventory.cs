@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Runtime.Serialization;
 
 namespace OpenMetaverse
 {
@@ -51,7 +50,7 @@ namespace OpenMetaverse
     /// </summary>
     public class Inventory
     {
-      
+
         /// <summary>The event subscribers, null of no subscribers</summary>
         private EventHandler<InventoryObjectUpdatedEventArgs> m_InventoryObjectUpdated;
 
@@ -75,7 +74,7 @@ namespace OpenMetaverse
             add { lock (m_InventoryObjectUpdatedLock) { m_InventoryObjectUpdated += value; } }
             remove { lock (m_InventoryObjectUpdatedLock) { m_InventoryObjectUpdated -= value; } }
         }
-       
+
         /// <summary>The event subscribers, null of no subscribers</summary>
         private EventHandler<InventoryObjectRemovedEventArgs> m_InventoryObjectRemoved;
 
@@ -99,7 +98,7 @@ namespace OpenMetaverse
             add { lock (m_InventoryObjectRemovedLock) { m_InventoryObjectRemoved += value; } }
             remove { lock (m_InventoryObjectRemovedLock) { m_InventoryObjectRemoved -= value; } }
         }
-        
+
         /// <summary>The event subscribers, null of no subscribers</summary>
         private EventHandler<InventoryObjectAddedEventArgs> m_InventoryObjectAdded;
 
@@ -123,14 +122,14 @@ namespace OpenMetaverse
             add { lock (m_InventoryObjectAddedLock) { m_InventoryObjectAdded += value; } }
             remove { lock (m_InventoryObjectAddedLock) { m_InventoryObjectAdded -= value; } }
         }
-       
+
         /// <summary>
         /// The root folder of this avatars inventory
         /// </summary>
         public InventoryFolder RootFolder
         {
             get { return RootNode.Data as InventoryFolder; }
-            set 
+            set
             {
                 UpdateNodeFor(value);
                 _RootNode = Items[value.UUID];
@@ -152,7 +151,7 @@ namespace OpenMetaverse
 
         private InventoryNode _LibraryRootNode;
         private InventoryNode _RootNode;
-        
+
         /// <summary>
         /// The root node of the avatars inventory
         /// </summary>
@@ -169,7 +168,8 @@ namespace OpenMetaverse
             get { return _LibraryRootNode; }
         }
 
-        public UUID Owner {
+        public UUID Owner
+        {
             get { return _Owner; }
         }
 
@@ -251,7 +251,7 @@ namespace OpenMetaverse
                     {
                         // Fetch the parent
                         List<UUID> fetchreq = new List<UUID>(1);
-                        fetchreq.Add(item.ParentUUID);                        
+                        fetchreq.Add(item.ParentUUID);
                     }
                 }
 
@@ -318,7 +318,7 @@ namespace OpenMetaverse
                     if (m_InventoryObjectRemoved != null)
                     {
                         OnInventoryObjectRemoved(new InventoryObjectRemovedEventArgs(item));
-                    }                    
+                    }
                 }
 
                 // In case there's a new parent:
@@ -353,8 +353,8 @@ namespace OpenMetaverse
         /// <param name="filename">Name of the cache file to save to</param>
         public void SaveToDisk(string filename)
         {
-	        try
-	        {
+            try
+            {
                 using (Stream stream = File.Open(filename, FileMode.Create))
                 {
                     BinaryFormatter bformatter = new BinaryFormatter();
@@ -367,10 +367,10 @@ namespace OpenMetaverse
                         }
                     }
                 }
-	        }
+            }
             catch (Exception e)
             {
-                Logger.Log("Error saving inventory cache to disk :"+e.Message,Helpers.LogLevel.Error);
+                Logger.Log("Error saving inventory cache to disk :" + e.Message, Helpers.LogLevel.Error);
             }
         }
 
@@ -417,8 +417,8 @@ namespace OpenMetaverse
             // a parent already in the list because we must update both child and parent to link together
             // But sometimes we have seen orphin nodes due to bad/incomplete data when caching so we have an emergency abort route
             int stuck = 0;
-            
-            while (nodes.Count != 0 && stuck<5)
+
+            while (nodes.Count != 0 && stuck < 5)
             {
                 foreach (InventoryNode node in nodes)
                 {
@@ -430,7 +430,7 @@ namespace OpenMetaverse
                         del_nodes.Add(node);
                         item_count--;
                     }
-                    else if(Items.TryGetValue(node.Data.UUID,out pnode))
+                    else if (Items.TryGetValue(node.Data.UUID, out pnode))
                     {
                         //We already have this it must be a folder
                         if (node.Data is InventoryFolder)
@@ -535,17 +535,17 @@ namespace OpenMetaverse
         }
 
         #endregion Operators
-        
+
     }
     #region EventArgs classes
-    
+
     public class InventoryObjectUpdatedEventArgs : EventArgs
     {
         private readonly InventoryBase m_OldObject;
         private readonly InventoryBase m_NewObject;
 
-        public InventoryBase OldObject { get { return m_OldObject; } }        
-        public InventoryBase NewObject { get { return m_NewObject; } } 
+        public InventoryBase OldObject { get { return m_OldObject; } }
+        public InventoryBase NewObject { get { return m_NewObject; } }
 
         public InventoryObjectUpdatedEventArgs(InventoryBase oldObject, InventoryBase newObject)
         {

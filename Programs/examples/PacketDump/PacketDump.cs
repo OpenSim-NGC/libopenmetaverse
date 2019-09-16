@@ -24,32 +24,31 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Threading;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
+using System;
+using System.Threading;
 
 namespace PacketDump
 {
-	class PacketDump
-	{
+    class PacketDump
+    {
         static bool LoginSuccess = false;
         static AutoResetEvent LoginEvent = new AutoResetEvent(false);
 
-		/// <summary>
-		/// The main entry point for the application.
-		/// </summary>
-		[STAThread]
-		static void Main(string[] args)
-		{
-			GridClient client;
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main(string[] args)
+        {
+            GridClient client;
 
-			if (args.Length != 4)
-			{
-				Console.WriteLine("Usage: PacketDump [firstname] [lastname] [password] [seconds (0 for infinite)]");
-				return;
-			}
+            if (args.Length != 4)
+            {
+                Console.WriteLine("Usage: PacketDump [firstname] [lastname] [password] [seconds (0 for infinite)]");
+                return;
+            }
 
             client = new GridClient();
             // Turn off some unnecessary things
@@ -59,9 +58,9 @@ namespace PacketDump
             client.Throttle.Wind = 0;
             client.Throttle.Cloud = 0;
 
-			// Setup a packet callback that is called for every packet (PacketType.Default)
+            // Setup a packet callback that is called for every packet (PacketType.Default)
             client.Network.RegisterCallback(PacketType.Default, DefaultHandler);
-            
+
             // Register handlers for when we login, and when we are disconnected
             client.Network.LoginProgress += LoginHandler;
             client.Network.Disconnected += DisconnectHandler;
@@ -104,7 +103,7 @@ namespace PacketDump
             {
                 Logger.Log("Login timed out", Helpers.LogLevel.Error);
             }
-		}
+        }
 
         static void LoginHandler(object sender, LoginProgressEventArgs e)
         {
@@ -138,5 +137,5 @@ namespace PacketDump
         {
             Logger.Log(e.Packet.ToString(), Helpers.LogLevel.Info);
         }
-	}
+    }
 }

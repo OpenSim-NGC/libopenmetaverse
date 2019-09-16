@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Text;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient.Commands.Appearance
 {
@@ -22,7 +20,7 @@ namespace OpenMetaverse.TestClient.Commands.Appearance
             string targetName = String.Format("{0} {1}", args[0], args[1]);
 
             Avatar foundAv = Client.Network.CurrentSim.ObjectsAvatars.Find(
-                delegate(Avatar avatar) { return (avatar.Name == targetName); }
+                delegate (Avatar avatar) { return (avatar.Name == targetName); }
             );
 
             if (foundAv != null)

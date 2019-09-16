@@ -24,8 +24,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -340,7 +338,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Textures taking longer than this value will be flagged as timed out and removed from the pipeline
         /// </summary>
-        public int PIPELINE_REQUEST_TIMEOUT = 45*1000;
+        public int PIPELINE_REQUEST_TIMEOUT = 45 * 1000;
         #endregion
 
         #region Logging Configuration
@@ -362,7 +360,7 @@ namespace OpenMetaverse
 
         /// <summary>Log disk cache misses and other info</summary>
         public bool LOG_DISKCACHE = true;
-        
+
         #endregion
         #region Private Fields
 

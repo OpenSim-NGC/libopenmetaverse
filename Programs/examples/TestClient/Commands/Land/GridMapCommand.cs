@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-
 namespace OpenMetaverse.TestClient
 {
     public class GridMapCommand : Command
@@ -21,7 +15,7 @@ namespace OpenMetaverse.TestClient
             //    return "";
 
             Client.Grid.RequestMainlandSims(GridLayerType.Objects);
-            
+
             return "Sent.";
         }
     }

@@ -25,7 +25,6 @@
  */
 
 using System;
-using System.Threading;
 using System.Collections.Generic;
 
 #if VISUAL_STUDIO
@@ -44,8 +43,8 @@ namespace OpenMetaverse
 
         public DoubleDictionary()
         {
-            Dictionary1 = new Dictionary<TKey1,TValue>();
-            Dictionary2 = new Dictionary<TKey2,TValue>();
+            Dictionary1 = new Dictionary<TKey1, TValue>();
+            Dictionary2 = new Dictionary<TKey2, TValue>();
         }
 
         public DoubleDictionary(int capacity)

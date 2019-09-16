@@ -1,17 +1,15 @@
+using ICSharpCode.SharpZipLib.Zip;
+using OpenMetaverse;
+using OpenMetaverse.Imaging;
+using OpenMetaverse.Rendering;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Forms;
 using Tao.OpenGl;
-using Tao.Platform.Windows;
-using ICSharpCode.SharpZipLib.Zip;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Imaging;
-using OpenMetaverse.Rendering;
 
 // NOTE: Batches are divided by texture, fullbright, shiny, transparent, and glow
 

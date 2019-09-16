@@ -25,15 +25,11 @@
  */
 //#define DEBUG_VOICE
 
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
 using System.Threading;
-
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Voice
 {
@@ -295,13 +291,13 @@ namespace OpenMetaverse.Voice
         {
             string myDir =
                 Path.GetDirectoryName(
-                    (System.Reflection.Assembly.GetEntryAssembly() ?? typeof (VoiceGateway).Assembly).Location);
-            
+                    (System.Reflection.Assembly.GetEntryAssembly() ?? typeof(VoiceGateway).Assembly).Location);
+
             if (Environment.OSVersion.Platform != PlatformID.MacOSX &&
                 Environment.OSVersion.Platform != PlatformID.Unix)
             {
                 string localDaemon = Path.Combine(myDir, Path.Combine("voice", "SLVoice.exe"));
-                
+
                 if (File.Exists(localDaemon))
                     return localDaemon;
 
@@ -330,7 +326,7 @@ namespace OpenMetaverse.Voice
                 if (File.Exists(localDaemon))
                     return localDaemon;
 
-                return Path.Combine(myDir,"SLVoice");
+                return Path.Combine(myDir, "SLVoice");
             }
         }
 
@@ -676,7 +672,7 @@ namespace OpenMetaverse.Voice
             // The connector is what does the logging.
             VoiceGateway.VoiceLoggingSettings vLog =
                 new VoiceGateway.VoiceLoggingSettings();
-            
+
 #if DEBUG_VOICE
             vLog.Enabled = true;
             vLog.FileNamePrefix = "OpenmetaverseVoice";

@@ -24,10 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {
@@ -211,13 +211,13 @@ namespace OpenMetaverse
             internal byte m_media;
 
             #region Properties
- 
+
             /// <summary></summary>
             public Color4 RGBA
             {
                 get
                 {
-                    if((m_attributes & TextureAttributes.RGBA) == 0)
+                    if ((m_attributes & TextureAttributes.RGBA) == 0)
                         return DefaultTexture.m_rgba;
                     return m_rgba;
                 }
@@ -252,7 +252,7 @@ namespace OpenMetaverse
                         t = DefaultTexture.m_repeatU;
 
                     if (t != value)
-                    { 
+                    {
                         m_repeatU = value;
                         m_dirtyFlags |= TextureAttributes.RepeatU;
                         m_attributes |= TextureAttributes.RepeatU;
@@ -300,7 +300,7 @@ namespace OpenMetaverse
                         o = DefaultTexture.m_offsetU;
 
                     short ts = Helpers.TEOffsetShort(value);
-                    if(o != ts)
+                    if (o != ts)
                     {
                         m_offsetU = ts;
                         m_dirtyFlags |= TextureAttributes.OffsetU;
@@ -350,7 +350,7 @@ namespace OpenMetaverse
                         o = DefaultTexture.m_rotation;
 
                     short ts = Helpers.TERotationShort(value);
-                    if(o != ts)
+                    if (o != ts)
                     {
                         m_rotation = ts;
                         m_dirtyFlags |= TextureAttributes.Rotation;
@@ -375,7 +375,7 @@ namespace OpenMetaverse
                         o = DefaultTexture.m_glow;
 
                     byte tb = Helpers.TEGlowByte(value);
-                    if(o != tb)
+                    if (o != tb)
                     {
                         m_glow = tb;
                         m_dirtyFlags |= TextureAttributes.Glow;
@@ -402,7 +402,7 @@ namespace OpenMetaverse
                     byte tb = (m_material &= 0xE0);
                     tb |= (byte)value;
 
-                    if(o != tb)
+                    if (o != tb)
                     {
                         m_material = tb;
                         m_dirtyFlags |= TextureAttributes.Material;
@@ -457,7 +457,7 @@ namespace OpenMetaverse
                     if (value)
                         tb |= 0x20;
 
-                    if(o != tb)
+                    if (o != tb)
                     {
                         m_material = tb;
                         m_dirtyFlags |= TextureAttributes.Material;
@@ -486,7 +486,7 @@ namespace OpenMetaverse
                     byte tb = (byte)(m_media & 0xFE);
                     if (value)
                         tb |= 0x01;
-                    if(o != tb)
+                    if (o != tb)
                     {
                         m_media = tb;
                         m_dirtyFlags |= TextureAttributes.Media;
@@ -512,7 +512,7 @@ namespace OpenMetaverse
                     byte tb = (byte)(m_media & 0xF9);
                     tb |= (byte)value;
 
-                    if(tb != o)
+                    if (tb != o)
                     {
                         m_media = tb;
                         m_dirtyFlags |= TextureAttributes.Media;
@@ -817,7 +817,7 @@ namespace OpenMetaverse
                         flags |= FaceTextures[i].DirtyFlags;
                         if (clear)
                             FaceTextures[i].DirtyFlags = TextureAttributes.None;
-                     }
+                    }
                 }
                 return flags;
             }
@@ -828,11 +828,11 @@ namespace OpenMetaverse
                     lenght = MAX_FACES;
 
                 if (DefaultTexture != null)
-                     DefaultTexture.DirtyFlags = flags;
+                    DefaultTexture.DirtyFlags = flags;
                 for (int i = lenght - 1; i >= 0; --i)
                 {
                     if (FaceTextures[i] != null)
-                         FaceTextures[i].DirtyFlags = flags;
+                        FaceTextures[i].DirtyFlags = flags;
 
                 }
             }
@@ -920,7 +920,7 @@ namespace OpenMetaverse
                     i += 16;
                     for (face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
                         if ((faceBits & bit) != 0)
-                        { 
+                        {
                             CreateFace(face).m_textureID = tmpUUID;
                             FaceTextures[face].m_attributes |= TextureAttributes.TextureID;
                         }
@@ -1043,10 +1043,10 @@ namespace OpenMetaverse
                             FaceTextures[face].m_attributes |= TextureAttributes.Rotation;
                         }
                 }
-            #endregion Rotation
+                #endregion Rotation
 
-            #region Material
-            DefaultTexture.m_material = data[i];
+                #region Material
+                DefaultTexture.m_material = data[i];
                 i++;
 
                 while (ReadFaceBitfield(data, ref i, ref faceBits, ref bitfieldSize))
@@ -1085,7 +1085,7 @@ namespace OpenMetaverse
                             FaceTextures[face].m_attributes |= TextureAttributes.Media;
                         }
                 }
-                    #endregion Media
+                #endregion Media
 
                 #region Glow
                 DefaultTexture.m_glow = data[i++];
@@ -1148,7 +1148,7 @@ namespace OpenMetaverse
                     ulong nulls = 0;
 
                     int last = FaceTextures.Length - 1;
-                    if(last > maxfaces - 1)
+                    if (last > maxfaces - 1)
                         last = maxfaces - 1;
 
                     bool onLastastNulls = true;
@@ -1595,18 +1595,18 @@ namespace OpenMetaverse
 
 
             private static List<int> AllBakedIndexes = new List<int>() { 44, 43, 42, 41, 40, 20, 19, 11, 10, 9, 8 };
-            private static List<int> LegacyBakedIndexes = new List<int>() {20, 19, 11, 10, 9, 8 };
+            private static List<int> LegacyBakedIndexes = new List<int>() { 20, 19, 11, 10, 9, 8 };
 
             public byte[] GetBakesBytes(int maxfaces = MAX_FACES)
             {
                 if (DefaultTexture == null)
                     return Utils.EmptyBytes;
 
-                if(maxfaces > FaceTextures.Length)
+                if (maxfaces > FaceTextures.Length)
                     maxfaces = FaceTextures.Length;
 
                 List<int> bakedIndexes;
-                if(maxfaces > 21)
+                if (maxfaces > 21)
                     bakedIndexes = AllBakedIndexes;
                 else
                     bakedIndexes = LegacyBakedIndexes;
@@ -1883,12 +1883,12 @@ namespace OpenMetaverse
                     return false;
 
                 byte b = data[pos++];
-                if(b == 0)
+                if (b == 0)
                     return false;
 
                 faceBits = (uint)(b & 0x7F);
                 bitfieldSize = 7;
-                if((b & 0x80) == 0)
+                if ((b & 0x80) == 0)
                     return true;
 
                 do

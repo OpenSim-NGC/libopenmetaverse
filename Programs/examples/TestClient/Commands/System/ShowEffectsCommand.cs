@@ -1,5 +1,4 @@
 using System;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -15,7 +14,7 @@ namespace OpenMetaverse.TestClient
 
             testClient.Avatars.ViewerEffect += new EventHandler<ViewerEffectEventArgs>(Avatars_ViewerEffect);
             testClient.Avatars.ViewerEffectPointAt += new EventHandler<ViewerEffectPointAtEventArgs>(Avatars_ViewerEffectPointAt);
-            testClient.Avatars.ViewerEffectLookAt += new EventHandler<ViewerEffectLookAtEventArgs>(Avatars_ViewerEffectLookAt);            
+            testClient.Avatars.ViewerEffectLookAt += new EventHandler<ViewerEffectLookAtEventArgs>(Avatars_ViewerEffectLookAt);
         }
 
         void Avatars_ViewerEffectLookAt(object sender, ViewerEffectLookAtEventArgs e)
@@ -69,7 +68,7 @@ namespace OpenMetaverse.TestClient
             {
                 return "Usage: showeffects [on/off]";
             }
-        }        
+        }
 
     }
 }

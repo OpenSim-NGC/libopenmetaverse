@@ -23,10 +23,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Text;
-using System.Collections.Generic;
 using OpenMetaverse.Packets;
+using System;
+using System.Collections.Generic;
 
 namespace OpenMetaverse
 {
@@ -674,7 +673,7 @@ namespace OpenMetaverse
             if (FriendList.Count > 0)
             {
                 FriendList.ForEach(
-                    delegate(KeyValuePair<UUID, FriendInfo> kvp)
+                    delegate (KeyValuePair<UUID, FriendInfo> kvp)
                     {
                         if (String.IsNullOrEmpty(kvp.Value.Name))
                             names.Add(kvp.Key);
@@ -912,7 +911,7 @@ namespace OpenMetaverse
                         {
                             if (!FriendList.ContainsKey(bubid))
                             {
-                                FriendList[bubid] = new FriendInfo(bubid, 
+                                FriendList[bubid] = new FriendInfo(bubid,
                                     (FriendRights)buddy.buddy_rights_given,
                                     (FriendRights)buddy.buddy_rights_has);
                             }

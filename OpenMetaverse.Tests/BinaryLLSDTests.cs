@@ -36,12 +36,12 @@
  * 
  */
 
+using NUnit.Framework;
+using OpenMetaverse.StructuredData;
 using System;
 using System.IO;
 using System.Text;
 using System.Xml;
-using NUnit.Framework;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Tests
 {
@@ -205,7 +205,7 @@ namespace OpenMetaverse.Tests
             Assert.AreEqual(binaryReal, binaryRealSerialized);
         }
 
-        private static byte[] binaryAUUIDValue = { 0x75, 0x97, 0xf4, 0xae, 0xca, 0x88, 0xa1, 0x42, 0xa1, 
+        private static byte[] binaryAUUIDValue = { 0x75, 0x97, 0xf4, 0xae, 0xca, 0x88, 0xa1, 0x42, 0xa1,
                                         0xb3, 0x85, 0xb9, 0x7b, 0x18, 0xab, 0xb2, 0x55 };
         private static byte[] binaryAUUID = (byte[])ConcatenateArrays(binaryHead, binaryAUUIDValue);
 
@@ -245,7 +245,7 @@ namespace OpenMetaverse.Tests
         }
 
         private static byte[] binaryBinStringValue = { 0x62, 0x0, 0x0, 0x0, 0x34, // this line is the encoding header
-                                        0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67, 0x20, 0x61, 0x20, 0x73, 
+                                        0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67, 0x20, 0x61, 0x20, 0x73,
                                         0x69, 0x6d, 0x70, 0x6c, 0x65, 0x20, 0x62, 0x69, 0x6e, 0x61, 0x72, 0x79, 0x20, 0x63, 0x6f,
                                         0x6e, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x20, 0x66, 0x6f, 0x72, 0x20, 0x74, 0x68,
                                         0x69, 0x73, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0xa, 0xd };
@@ -256,7 +256,7 @@ namespace OpenMetaverse.Tests
         {
             OSD llsdBytes = OSDParser.DeserializeLLSDBinary(binaryBinString);
             Assert.AreEqual(OSDType.Binary, llsdBytes.Type);
-            byte[] contentBinString = { 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67, 0x20, 0x61, 0x20, 0x73, 
+            byte[] contentBinString = { 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67, 0x20, 0x61, 0x20, 0x73,
                                         0x69, 0x6d, 0x70, 0x6c, 0x65, 0x20, 0x62, 0x69, 0x6e, 0x61, 0x72, 0x79, 0x20, 0x63, 0x6f,
                                         0x6e, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x20, 0x66, 0x6f, 0x72, 0x20, 0x74, 0x68,
                                         0x69, 0x73, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0xa, 0xd };
@@ -266,7 +266,7 @@ namespace OpenMetaverse.Tests
         [Test()]
         public void SerializeLLSDBinary()
         {
-            byte[] contentBinString = { 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67, 0x20, 0x61, 0x20, 0x73, 
+            byte[] contentBinString = { 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67, 0x20, 0x61, 0x20, 0x73,
                                         0x69, 0x6d, 0x70, 0x6c, 0x65, 0x20, 0x62, 0x69, 0x6e, 0x61, 0x72, 0x79, 0x20, 0x63, 0x6f,
                                         0x6e, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x20, 0x66, 0x6f, 0x72, 0x20, 0x74, 0x68,
                                         0x69, 0x73, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0xa, 0xd };
@@ -277,7 +277,7 @@ namespace OpenMetaverse.Tests
 
         private static byte[] binaryEmptyStringValue = { 0x73, 0x0, 0x0, 0x0, 0x0 };
         private static byte[] binaryEmptyString = (byte[])ConcatenateArrays(binaryHead, binaryEmptyStringValue);
-        private static byte[] binaryLongStringValue = { 0x73, 0x0, 0x0, 0x0, 0x25, 
+        private static byte[] binaryLongStringValue = { 0x73, 0x0, 0x0, 0x0, 0x25,
                                                             0x61, 0x62, 0x63, 0x64, 0x65, 0x66,
                                                             0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c,
                                                             0x6d, 0x6e, 0x6f, 0x70, 0x71, 0x72,
@@ -416,7 +416,7 @@ namespace OpenMetaverse.Tests
 
         // Data for simple array { 0, 0 }
         private static byte[] binarySimpleArrayTwoValue = { 0x5b, 0x0, 0x0, 0x0, 0x2, // Encoding header + num of elements
-                                                             0x69, 0x0, 0x0, 0x0, 0x0, 
+                                                             0x69, 0x0, 0x0, 0x0, 0x0,
                                                              0x69, 0x0, 0x0, 0x0, 0x0, 0x5d };
         private static byte[] binarySimpleArrayTwo = (byte[])ConcatenateArrays(binaryHead, binarySimpleArrayTwoValue);
 
@@ -578,19 +578,19 @@ namespace OpenMetaverse.Tests
 
         }
 
-        private static byte[] binaryNestedValue = { 0x5b, 0x0, 0x0, 0x0, 0x3, 
-                                            0x7b, 0x0, 0x0, 0x0, 0x2, 
-                                            0x6b, 0x0, 0x0, 0x0, 0x4, 
-                                            0x74, 0x65, 0x73, 0x74, 
-                                            0x73, 0x0, 0x0, 0x0, 0x4, 
-                                            0x77, 0x68, 0x61, 0x74, 
-                                            0x6b, 0x0, 0x0, 0x0, 0x4, 
-                                            0x74, 0x30, 0x73, 
+        private static byte[] binaryNestedValue = { 0x5b, 0x0, 0x0, 0x0, 0x3,
+                                            0x7b, 0x0, 0x0, 0x0, 0x2,
+                                            0x6b, 0x0, 0x0, 0x0, 0x4,
+                                            0x74, 0x65, 0x73, 0x74,
+                                            0x73, 0x0, 0x0, 0x0, 0x4,
+                                            0x77, 0x68, 0x61, 0x74,
+                                            0x6b, 0x0, 0x0, 0x0, 0x4,
+                                            0x74, 0x30, 0x73,
                                             0x74, 0x5b, 0x0, 0x0, 0x0, 0x2,
                                             0x69, 0x0, 0x0, 0x0, 0x1,
                                             0x69, 0x0, 0x0, 0x0, 0x2,
-                                            0x5d, 0x7d, 0x69, 0x0, 0x0, 0x0, 
-                                            0x7c, 0x69, 0x0, 0x0, 0x3, 0xdb, 
+                                            0x5d, 0x7d, 0x69, 0x0, 0x0, 0x0,
+                                            0x7c, 0x69, 0x0, 0x0, 0x3, 0xdb,
                                            0x5d };
         private static byte[] binaryNested = (byte[])ConcatenateArrays(binaryHead, binaryNestedValue);
 
@@ -678,8 +678,8 @@ namespace OpenMetaverse.Tests
             // each 80 chars
             string sOne = "asdklfjasadlfkjaerotiudfgjkhsdklgjhsdklfghasdfklhjasdfkjhasdfkljahsdfjklaasdfkj8";
             string sTwo = "asdfkjlaaweoiugsdfjkhsdfg,.mnasdgfkljhrtuiohfglökajsdfoiwghjkdlaaaaseldkfjgheus9";
-            
-            OSD stringOne = OSD.FromString( sOne );
+
+            OSD stringOne = OSD.FromString(sOne);
             OSD stringTwo = OSD.FromString(sTwo);
 
             OSDMap llsdMap = new OSDMap();
@@ -693,23 +693,23 @@ namespace OpenMetaverse.Tests
             llsdMap["testEight"] = stringTwo;
             llsdMap["testNine"] = stringOne;
             llsdMap["testTen"] = stringTwo;
-            
-            
-            byte[] binaryData = OSDParser.SerializeLLSDBinary( llsdMap );
 
-            OSDMap llsdMapDS = (OSDMap)OSDParser.DeserializeLLSDBinary( binaryData );
-            Assert.AreEqual( OSDType.Map, llsdMapDS.Type );
-            Assert.AreEqual( 10, llsdMapDS.Count );
-            Assert.AreEqual( sOne, llsdMapDS["testOne"].AsString());
-            Assert.AreEqual( sTwo, llsdMapDS["testTwo"].AsString());
-            Assert.AreEqual( sOne, llsdMapDS["testThree"].AsString());
-            Assert.AreEqual( sTwo, llsdMapDS["testFour"].AsString());
-            Assert.AreEqual( sOne, llsdMapDS["testFive"].AsString());
-            Assert.AreEqual( sTwo, llsdMapDS["testSix"].AsString());
-            Assert.AreEqual( sOne, llsdMapDS["testSeven"].AsString());
-            Assert.AreEqual( sTwo, llsdMapDS["testEight"].AsString());
-            Assert.AreEqual( sOne, llsdMapDS["testNine"].AsString());
-            Assert.AreEqual( sTwo, llsdMapDS["testTen"].AsString());
+
+            byte[] binaryData = OSDParser.SerializeLLSDBinary(llsdMap);
+
+            OSDMap llsdMapDS = (OSDMap)OSDParser.DeserializeLLSDBinary(binaryData);
+            Assert.AreEqual(OSDType.Map, llsdMapDS.Type);
+            Assert.AreEqual(10, llsdMapDS.Count);
+            Assert.AreEqual(sOne, llsdMapDS["testOne"].AsString());
+            Assert.AreEqual(sTwo, llsdMapDS["testTwo"].AsString());
+            Assert.AreEqual(sOne, llsdMapDS["testThree"].AsString());
+            Assert.AreEqual(sTwo, llsdMapDS["testFour"].AsString());
+            Assert.AreEqual(sOne, llsdMapDS["testFive"].AsString());
+            Assert.AreEqual(sTwo, llsdMapDS["testSix"].AsString());
+            Assert.AreEqual(sOne, llsdMapDS["testSeven"].AsString());
+            Assert.AreEqual(sTwo, llsdMapDS["testEight"].AsString());
+            Assert.AreEqual(sOne, llsdMapDS["testNine"].AsString());
+            Assert.AreEqual(sTwo, llsdMapDS["testTen"].AsString());
         }
 
 

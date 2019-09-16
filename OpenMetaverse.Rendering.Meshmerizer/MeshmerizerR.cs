@@ -33,8 +33,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Text;
 using OMV = OpenMetaverse;
 using OMVR = OpenMetaverse.Rendering;
 
@@ -309,7 +307,7 @@ namespace OpenMetaverse.Rendering
                     vert.TexCoord.X = 1f + (Vector3.Dot(binormal, scaledPos) * 2f - 0.5f);
                     vert.TexCoord.Y = -(Vector3.Dot(tangent, scaledPos) * 2f - 0.5f);
                 }
-                
+
                 float repeatU = teFace.RepeatU;
                 float repeatV = teFace.RepeatV;
                 float tX = vert.TexCoord.X - 0.5f;

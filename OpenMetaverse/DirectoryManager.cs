@@ -24,12 +24,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Threading;
-using System.Collections.Generic;
-using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.Packets;
+using System;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace OpenMetaverse
 {
@@ -235,7 +235,7 @@ namespace OpenMetaverse
             /// <summary>Include Mature ads in results</summary>
             Mature = 1 << 3,
             /// <summary>Include Adult ads in results</summary>
-            Adult = 1 << 6,            
+            Adult = 1 << 6,
         }
 
         /// <summary>
@@ -502,9 +502,9 @@ namespace OpenMetaverse
         }
 
         #endregion Structs
-        
+
         #region Event delegates, Raise Events
-        
+
         /// <summary>The event subscribers. null if no subcribers</summary>
         private EventHandler<EventInfoReplyEventArgs> m_EventInfoReply;
 
@@ -523,11 +523,11 @@ namespace OpenMetaverse
 
         /// <summary>Raised when the data server responds to a <see cref="EventInfoRequest"/> request.</summary>
         public event EventHandler<EventInfoReplyEventArgs> EventInfoReply
-        {            
+        {
             add { lock (m_EventDetailLock) { m_EventInfoReply += value; } }
             remove { lock (m_EventDetailLock) { m_EventInfoReply -= value; } }
         }
-        
+
         /// <summary>The event subscribers. null if no subcribers</summary>
         private EventHandler<DirEventsReplyEventArgs> m_DirEvents;
 
@@ -550,7 +550,7 @@ namespace OpenMetaverse
             add { lock (m_DirEventsLock) { m_DirEvents += value; } }
             remove { lock (m_DirEventsLock) { m_DirEvents -= value; } }
         }
-        
+
         /// <summary>The event subscribers. null if no subcribers</summary>
         private EventHandler<PlacesReplyEventArgs> m_Places;
 
@@ -573,7 +573,7 @@ namespace OpenMetaverse
             add { lock (m_PlacesLock) { m_Places += value; } }
             remove { lock (m_PlacesLock) { m_Places -= value; } }
         }
-        
+
         /// <summary>The event subscribers. null if no subcribers</summary>
         private EventHandler<DirPlacesReplyEventArgs> m_DirPlaces;
 
@@ -596,7 +596,7 @@ namespace OpenMetaverse
             add { lock (m_DirPlacesLock) { m_DirPlaces += value; } }
             remove { lock (m_DirPlacesLock) { m_DirPlaces -= value; } }
         }
-        
+
         /// <summary>The event subscribers. null if no subcribers</summary>
         private EventHandler<DirClassifiedsReplyEventArgs> m_DirClassifieds;
 
@@ -619,7 +619,7 @@ namespace OpenMetaverse
             add { lock (m_DirClassifiedsLock) { m_DirClassifieds += value; } }
             remove { lock (m_DirClassifiedsLock) { m_DirClassifieds -= value; } }
         }
-        
+
         /// <summary>The event subscribers. null if no subcribers</summary>
         private EventHandler<DirGroupsReplyEventArgs> m_DirGroups;
 
@@ -642,7 +642,7 @@ namespace OpenMetaverse
             add { lock (m_DirGroupsLock) { m_DirGroups += value; } }
             remove { lock (m_DirGroupsLock) { m_DirGroups -= value; } }
         }
-        
+
         /// <summary>The event subscribers. null if no subcribers</summary>
         private EventHandler<DirPeopleReplyEventArgs> m_DirPeople;
 
@@ -687,7 +687,7 @@ namespace OpenMetaverse
         {
             add { lock (m_DirLandLock) { m_DirLandReply += value; } }
             remove { lock (m_DirLandLock) { m_DirLandReply -= value; } }
-        }        
+        }
 
         #endregion
 
@@ -942,9 +942,9 @@ namespace OpenMetaverse
             query.QueryData.QueryFlags = (uint)findFlags;
             query.QueryData.QueryID = UUID.Random();
 
-            Client.Network.SendPacket(query);            
+            Client.Network.SendPacket(query);
         }
-       
+
         /// <summary>
         /// Search for Groups
         /// </summary>
@@ -953,7 +953,7 @@ namespace OpenMetaverse
         /// <returns></returns>
         public UUID StartGroupSearch(string searchText, int queryStart)
         {
-            return StartGroupSearch(searchText, queryStart, DirFindFlags.Groups | DirFindFlags.IncludePG 
+            return StartGroupSearch(searchText, queryStart, DirFindFlags.Groups | DirFindFlags.IncludePG
                 | DirFindFlags.IncludeMature | DirFindFlags.IncludeAdult);
         }
 
@@ -978,7 +978,7 @@ namespace OpenMetaverse
 
             return find.QueryData.QueryID;
         }
-        
+
         /// <summary>
         /// Search the People directory for other avatars
         /// </summary>
@@ -999,7 +999,7 @@ namespace OpenMetaverse
 
             return find.QueryData.QueryID;
         }
-       
+
         /// <summary>
         /// Search Places for parcels of land you personally own
         /// </summary>
@@ -1016,7 +1016,7 @@ namespace OpenMetaverse
         /// <returns>Transaction (Query) ID which can be associated with results from your request.</returns>
         public UUID StartPlacesSearch(UUID groupID)
         {
-            return StartPlacesSearch(DirFindFlags.GroupOwned, ParcelCategory.Any, String.Empty, String.Empty, 
+            return StartPlacesSearch(DirFindFlags.GroupOwned, ParcelCategory.Any, String.Empty, String.Empty,
                 groupID, UUID.Random());
         }
 
@@ -1027,7 +1027,7 @@ namespace OpenMetaverse
         /// <returns>Transaction (Query) ID which can be associated with results from your request.</returns>
         public UUID StartPlacesSearch(string searchText)
         {
-            return StartPlacesSearch(DirFindFlags.DwellSort | DirFindFlags.IncludePG | DirFindFlags.IncludeMature | DirFindFlags.IncludeAdult, 
+            return StartPlacesSearch(DirFindFlags.DwellSort | DirFindFlags.IncludePG | DirFindFlags.IncludeMature | DirFindFlags.IncludeAdult,
                 ParcelCategory.Any, searchText, String.Empty, UUID.Zero, UUID.Random());
         }
 
@@ -1041,7 +1041,7 @@ namespace OpenMetaverse
         /// <param name="groupID">LLUID of group you want to recieve results for</param>
         /// <param name="transactionID">Transaction (Query) ID which can be associated with results from your request.</param>
         /// <returns>Transaction (Query) ID which can be associated with results from your request.</returns>
-        public UUID StartPlacesSearch(DirFindFlags findFlags, ParcelCategory searchCategory, string searchText, string simulatorName, 
+        public UUID StartPlacesSearch(DirFindFlags findFlags, ParcelCategory searchCategory, string searchText, string simulatorName,
             UUID groupID, UUID transactionID)
         {
             PlacesQueryPacket find = new PlacesQueryPacket();
@@ -1070,7 +1070,7 @@ namespace OpenMetaverse
         /// <returns>UUID of query to correlate results in callback.</returns>
         public UUID StartEventsSearch(string searchText, uint queryStart)
         {
-            return StartEventsSearch(searchText, DirFindFlags.DateEvents | DirFindFlags.IncludePG | DirFindFlags.IncludeMature | DirFindFlags.IncludeAdult, 
+            return StartEventsSearch(searchText, DirFindFlags.DateEvents | DirFindFlags.IncludePG | DirFindFlags.IncludeMature | DirFindFlags.IncludeAdult,
                 "u", queryStart, EventCategories.All);
         }
 
@@ -1131,7 +1131,7 @@ namespace OpenMetaverse
             List<AgentSearchData> people = null;
 
             EventHandler<DirPeopleReplyEventArgs> callback =
-                delegate(object sender, DirPeopleReplyEventArgs e)
+                delegate (object sender, DirPeopleReplyEventArgs e)
                 {
                     if (id == e.QueryID)
                     {
@@ -1141,7 +1141,7 @@ namespace OpenMetaverse
                 };
 
             DirPeopleReply += callback;
-            
+
             id = StartPeopleSearch(searchText, queryStart);
             searchEvent.WaitOne(timeoutMS, false);
             DirPeopleReply -= callback;
@@ -1178,7 +1178,7 @@ namespace OpenMetaverse
                     classifieds.Add(classified);
                 }
 
-                OnDirClassifieds(new DirClassifiedsReplyEventArgs(classifieds));                
+                OnDirClassifieds(new DirClassifiedsReplyEventArgs(classifieds));
             }
         }
 
@@ -1205,7 +1205,7 @@ namespace OpenMetaverse
 
                     parcelsForSale.Add(dirParcel);
                 }
-                OnDirLand(new DirLandReplyEventArgs(parcelsForSale));                
+                OnDirLand(new DirLandReplyEventArgs(parcelsForSale));
             }
         }
 
@@ -1351,7 +1351,7 @@ namespace OpenMetaverse
                     places.Add(place);
                 }
 
-                OnPlaces(new PlacesReplyEventArgs(placesReply.TransactionData.TransactionID, places));                
+                OnPlaces(new PlacesReplyEventArgs(placesReply.TransactionData.TransactionID, places));
             }
         }
 
@@ -1434,7 +1434,7 @@ namespace OpenMetaverse
                     result.Add(p);
                 }
 
-                OnDirPlaces(new DirPlacesReplyEventArgs(reply.QueryData[0].QueryID, result));                
+                OnDirPlaces(new DirPlacesReplyEventArgs(reply.QueryData[0].QueryID, result));
             }
         }
 
@@ -1458,7 +1458,7 @@ namespace OpenMetaverse
         public EventInfoReplyEventArgs(DirectoryManager.EventInfo matchedEvent)
         {
             this.m_MatchedEvent = matchedEvent;
-        }        
+        }
     }
 
     /// <summary>Contains the "Event" detail data returned from the data server</summary>
@@ -1518,7 +1518,7 @@ namespace OpenMetaverse
 
         /// <summary>A list containing Places data returned by the data server</summary>
         public List<DirectoryManager.DirectoryParcel> MatchedParcels { get { return m_MatchedParcels; } }
-        
+
         /// <summary>Construct a new instance of the DirPlacesReplyEventArgs class</summary>
         /// <param name="queryID">The ID of the query returned by the data server. 
         /// This will correlate to the ID returned by the <see cref="StartDirPlacesSearch"/> method</param>

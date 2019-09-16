@@ -1,8 +1,8 @@
-﻿using System;
-using System.Windows.Forms;
-using GridProxy;
-using System.Reflection;
+﻿using GridProxy;
+using System;
 using System.IO;
+using System.Reflection;
+using System.Windows.Forms;
 
 namespace WinGridProxy
 {
@@ -17,9 +17,9 @@ namespace WinGridProxy
 
         private void buttonLoadPlugin_Click(object sender, EventArgs e)
         {
-            if(openFileDialog1.ShowDialog() == DialogResult.OK)
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
-                LoadPlugin(openFileDialog1.FileName);   
+                LoadPlugin(openFileDialog1.FileName);
             }
         }
         public void LoadPlugin(string name)
@@ -35,7 +35,7 @@ namespace WinGridProxy
                         ConstructorInfo info = t.GetConstructor(new Type[] { typeof(ProxyFrame) });
                         ProxyPlugin plugin = (ProxyPlugin)info.Invoke(new object[] { _Frame });
                         plugin.Init();
-                        listView1.Items.Add(new ListViewItem(new []{assembly.ManifestModule.Name, Path.GetFullPath(name)}));
+                        listView1.Items.Add(new ListViewItem(new[] { assembly.ManifestModule.Name, Path.GetFullPath(name) }));
                     }
                 }
                 catch (Exception e)

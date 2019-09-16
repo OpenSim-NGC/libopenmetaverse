@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Threading;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -23,11 +21,11 @@ namespace OpenMetaverse.TestClient
         {
             StringBuilder sb = new StringBuilder();
             string result;
-            EventHandler<SimParcelsDownloadedEventArgs> del = delegate(object sender, SimParcelsDownloadedEventArgs e)
+            EventHandler<SimParcelsDownloadedEventArgs> del = delegate (object sender, SimParcelsDownloadedEventArgs e)
             {
                 ParcelsDownloaded.Set();
             };
-            
+
 
             ParcelsDownloaded.Reset();
             Client.Parcels.SimParcelsDownloaded += del;
@@ -38,10 +36,10 @@ namespace OpenMetaverse.TestClient
 
             if (ParcelsDownloaded.WaitOne(30000, false) && Client.Network.Connected)
             {
-                sb.AppendFormat("Downloaded {0} Parcels in {1} " + System.Environment.NewLine, 
+                sb.AppendFormat("Downloaded {0} Parcels in {1} " + System.Environment.NewLine,
                     Client.Network.CurrentSim.Parcels.Count, Client.Network.CurrentSim.Name);
 
-                Client.Network.CurrentSim.Parcels.ForEach(delegate(Parcel parcel)
+                Client.Network.CurrentSim.Parcels.ForEach(delegate (Parcel parcel)
                 {
                     sb.AppendFormat("Parcel[{0}]: Name: \"{1}\", Description: \"{2}\" ACLBlacklist Count: {3}, ACLWhiteList Count: {5} Traffic: {4}" + System.Environment.NewLine,
                         parcel.LocalID, parcel.Name, parcel.Desc, parcel.AccessBlackList.Count, parcel.Dwell, parcel.AccessWhiteList.Count);

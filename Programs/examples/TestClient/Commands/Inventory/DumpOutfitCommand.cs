@@ -1,10 +1,9 @@
-using System;
-using System.Text;
-using System.IO;
-using System.Collections.Generic;
-using OpenMetaverse;
-using OpenMetaverse.Imaging;
 using OpenMetaverse.Assets;
+using OpenMetaverse.Imaging;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
 
 namespace OpenMetaverse.TestClient
 {
@@ -35,7 +34,7 @@ namespace OpenMetaverse.TestClient
                 for (int i = 0; i < Client.Network.Simulators.Count; i++)
                 {
                     Avatar targetAv = Client.Network.Simulators[i].ObjectsAvatars.Find(
-                        delegate(Avatar avatar)
+                        delegate (Avatar avatar)
                         {
                             return avatar.ID == target;
                         }

@@ -1,13 +1,8 @@
+using OpenMetaverse;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Text;
 using System.Windows.Forms;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace Heightmap
 {
@@ -102,7 +97,7 @@ namespace Heightmap
                     {
                         float height;
                         if (Client.Network.CurrentSim.TerrainHeightAtPoint(x * 16 + e.X, y * 16 + e.Y, out height))
-                            MessageBox.Show( string.Format("{0},{1}:{2}",x*16+e.X,255-(y*16+e.Y),height) );
+                            MessageBox.Show(string.Format("{0},{1}:{2}", x * 16 + e.X, 255 - (y * 16 + e.Y), height));
                         else
                             MessageBox.Show("Unknown height");
                         return;
@@ -140,11 +135,11 @@ namespace Heightmap
             {
                 for (int xp = 0; xp < 16; xp++)
                 {
-                    float height = e.HeightMap[(15-yp) * 16 + xp]; // data[0] is south west
+                    float height = e.HeightMap[(15 - yp) * 16 + xp]; // data[0] is south west
                     Color color;
                     if (height >= e.Simulator.WaterHeight)
                     {
-                        float maxVal = (float)Math.Log(Math.Abs(512+1-e.Simulator.WaterHeight),2);
+                        float maxVal = (float)Math.Log(Math.Abs(512 + 1 - e.Simulator.WaterHeight), 2);
                         float lgHeight = (float)Math.Log(Math.Abs(height + 1 - e.Simulator.WaterHeight), 2);
                         int colorVal1 = Utils.FloatToByte(lgHeight, e.Simulator.WaterHeight, maxVal);
                         int colorVal2 = Utils.FloatToByte(height, e.Simulator.WaterHeight, 25.0f);
@@ -162,7 +157,7 @@ namespace Heightmap
                 }
             }
 
-            Boxes[e.X, 15-e.Y].Image = (System.Drawing.Image)patch;
+            Boxes[e.X, 15 - e.Y].Image = (System.Drawing.Image)patch;
         }
 
         private void frmHeightmap_FormClosing(object sender, FormClosingEventArgs e)

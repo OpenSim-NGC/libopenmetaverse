@@ -1,6 +1,4 @@
-using System;
 using System.Text.RegularExpressions;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -35,7 +33,7 @@ namespace OpenMetaverse.TestClient
                     Client.Network.CurrentSim.ObjectsPrimitives.Count), Helpers.LogLevel.Info, Client);
 
                 Client.Network.CurrentSim.ObjectsPrimitives.ForEach(
-                    delegate(Primitive prim)
+                    delegate (Primitive prim)
                     {
                         bool match = false;
                         string name = "(unknown)";

@@ -24,10 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.StructuredData;
+using System;
 
 namespace OpenMetaverse.Messages
 {
@@ -102,24 +102,24 @@ namespace OpenMetaverse.Messages
                 case "RenderMaterials": message = new RenderMaterialsMessage(); break;
                 case "GetObjectCost": message = GetObjectCostMessage.GetMessageHandler(map); break;
 
-                // Capabilities TODO:
-                // DispatchRegionInfo
-                // EstateChangeInfo
-                // EventQueueGet
-                // FetchInventoryDescendents
-                // GroupProposalBallot
-                // MapLayerGod
-                // NewFileAgentInventory
-                // RequestTextureDownload
-                // SearchStatTracking
-                // SendUserReport
-                // SendUserReportWithScreenshot
-                // ServerReleaseNotes
-                // StartGroupProposal
-                // UpdateGestureTaskInventory
-                // UpdateNotecardTaskInventory
-                // ViewerStartAuction
-                // UntrustedSimulatorMessage
+                    // Capabilities TODO:
+                    // DispatchRegionInfo
+                    // EstateChangeInfo
+                    // EventQueueGet
+                    // FetchInventoryDescendents
+                    // GroupProposalBallot
+                    // MapLayerGod
+                    // NewFileAgentInventory
+                    // RequestTextureDownload
+                    // SearchStatTracking
+                    // SendUserReport
+                    // SendUserReportWithScreenshot
+                    // ServerReleaseNotes
+                    // StartGroupProposal
+                    // UpdateGestureTaskInventory
+                    // UpdateNotecardTaskInventory
+                    // ViewerStartAuction
+                    // UntrustedSimulatorMessage
             }
 
             if (message != null)
@@ -131,7 +131,7 @@ namespace OpenMetaverse.Messages
                 }
                 catch (Exception e)
                 {
-                    Logger.Log("Exception while trying to Deserialize " + eventName + ":" + e.Message + ": " + e.StackTrace, Helpers.LogLevel.Error);                    
+                    Logger.Log("Exception while trying to Deserialize " + eventName + ":" + e.Message + ": " + e.StackTrace, Helpers.LogLevel.Error);
                 }
 
                 return null;

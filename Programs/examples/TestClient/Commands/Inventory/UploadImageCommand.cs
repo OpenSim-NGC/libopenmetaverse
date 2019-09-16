@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-using System.Drawing;
-using OpenMetaverse;
-using OpenMetaverse.Http;
 using OpenMetaverse.Imaging;
+using System;
+using System.Drawing;
+using System.Threading;
 
 namespace OpenMetaverse.TestClient
 {
@@ -64,7 +60,7 @@ namespace OpenMetaverse.TestClient
 
                 Client.Inventory.RequestCreateItemFromAsset(UploadData, name, "Uploaded with TestClient",
                     AssetType.Texture, InventoryType.Texture, Client.Inventory.FindFolderForType(AssetType.Texture),
-                    delegate(bool success, string status, UUID itemID, UUID assetID)
+                    delegate (bool success, string status, UUID itemID, UUID assetID)
                     {
                         Console.WriteLine(String.Format(
                             "RequestCreateItemFromAsset() returned: Success={0}, Status={1}, ItemID={2}, AssetID={3}",
@@ -93,7 +89,7 @@ namespace OpenMetaverse.TestClient
 
                     // Upload JPEG2000 images untouched
                     UploadData = System.IO.File.ReadAllBytes(fileName);
-                    
+
                     OpenJPEG.DecodeToImage(UploadData, out managedImage, out image);
                     bitmap = (Bitmap)image;
                 }

@@ -1,14 +1,6 @@
 #region Using Statements
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
-using System.Text;
-using CSJ2K;
 using CSJ2K.Color;
 using CSJ2K.Icc;
-using CSJ2K.j2k;
 using CSJ2K.j2k.codestream;
 using CSJ2K.j2k.codestream.reader;
 using CSJ2K.j2k.decoder;
@@ -21,6 +13,11 @@ using CSJ2K.j2k.quantization.dequantizer;
 using CSJ2K.j2k.roi;
 using CSJ2K.j2k.util;
 using CSJ2K.j2k.wavelet.synthesis;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 #endregion
 
 namespace CSJ2K
@@ -465,14 +462,14 @@ namespace CSJ2K
           "by terminating them with '\\'. Lines starting with '#' are "+
           "considered as comments. This option is not recursive: any 'pfile' "+
           "argument appearing in the file is ignored.",null},
-	    new string[] { "res", "<resolution level index>",
+        new string[] { "res", "<resolution level index>",
           "The resolution level at which to reconstruct the image "+
-	      " (0 means the lowest available resolution whereas the maximum "+
+          " (0 means the lowest available resolution whereas the maximum "+
           "resolution level corresponds to the original image resolution). "+
           "If the given index"+
-	      " is greater than the number of available resolution levels of the "+
-	      "compressed image, the image is reconstructed at its highest "+
-	      "resolution (among all tile-components). Note that this option"+
+          " is greater than the number of available resolution levels of the "+
+          "compressed image, the image is reconstructed at its highest "+
+          "resolution (among all tile-components). Note that this option"+
           " affects only the inverse wavelet transform and not the number "+
           " of bytes read by the codestream parser: this number of bytes "+
           "depends only on options '-nbytes' or '-rate'.", null},
@@ -511,8 +508,8 @@ namespace CSJ2K
           "The codestream is either parsed (default) or truncated depending "+
           "the command line option '-parsing'. To specify the decoding "+
           "rate in bits per pixel, use '-rate' options instead.","-1"},
-	    new string[] { "parsing", null,
-	      "Enable or not the parsing mode when decoding rate is specified "+
+        new string[] { "parsing", null,
+          "Enable or not the parsing mode when decoding rate is specified "+
           "('-nbytes' or '-rate' options). If it is false, the codestream "+
           "is decoded as if it were truncated to the given rate. If it is "+
           "true, the decoder creates, truncates and decodes a virtual layer"+
@@ -547,11 +544,11 @@ namespace CSJ2K
           "Display information about the codestream. This information is: "+
           "\n- Marker segments value in main and tile-part headers,"+
           "\n- Tile-part length and position within the code-stream.", "off"},
-	    new string[] { "nocolorspace",null,
-	      "Ignore any colorspace information in the image.","off"},
-	    new string[] { "colorspace_debug", null,
-	      "Print debugging messages when an error is encountered in the"+
-	      " colorspace module.","off"}
+        new string[] { "nocolorspace",null,
+          "Ignore any colorspace information in the image.","off"},
+        new string[] { "colorspace_debug", null,
+          "Print debugging messages when an error is encountered in the"+
+          " colorspace module.","off"}
         };
         #endregion
 
@@ -603,7 +600,7 @@ namespace CSJ2K
           "effects) is discarded during compression.\n"+
           "Note: In the case where '-file_format' option is used, the "+
           "resulting file may have a larger bitrate.","-1"},
-        new string[] { "lossless", "[on|off]", 
+        new string[] { "lossless", "[on|off]",
           "Specifies a lossless compression for the encoder. This options"+
           " is equivalent to use reversible quantization ('-Qtype "+
           "reversible')"+

@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -20,9 +18,9 @@ namespace OpenMetaverse.TestClient
         {
             testClient.Avatars.AvatarInterestsReply += new EventHandler<AvatarInterestsReplyEventArgs>(Avatars_AvatarInterestsReply);
             testClient.Avatars.AvatarPropertiesReply += new EventHandler<AvatarPropertiesReplyEventArgs>(Avatars_AvatarPropertiesReply);
-            testClient.Avatars.AvatarGroupsReply += new EventHandler<AvatarGroupsReplyEventArgs>(Avatars_AvatarGroupsReply);            
+            testClient.Avatars.AvatarGroupsReply += new EventHandler<AvatarGroupsReplyEventArgs>(Avatars_AvatarGroupsReply);
             testClient.Groups.GroupJoinedReply += new EventHandler<GroupOperationEventArgs>(Groups_OnGroupJoined);
-            testClient.Avatars.AvatarPicksReply += new EventHandler<AvatarPicksReplyEventArgs>(Avatars_AvatarPicksReply);            
+            testClient.Avatars.AvatarPicksReply += new EventHandler<AvatarPicksReplyEventArgs>(Avatars_AvatarPicksReply);
             testClient.Avatars.PickInfoReply += new EventHandler<PickInfoReplyEventArgs>(Avatars_PickInfoReply);
 
             Name = "cloneprofile";
@@ -30,7 +28,7 @@ namespace OpenMetaverse.TestClient
                 "destroy your existing profile! Usage: cloneprofile [targetuuid]";
             Category = CommandCategory.Other;
         }
-        
+
         public override string Execute(string[] args, UUID fromAgentID)
         {
             if (args.Length != 1)
@@ -79,7 +77,7 @@ namespace OpenMetaverse.TestClient
             }
 
             return "Synchronized our profile to the profile of " + targetID.ToString();
-        }                           
+        }
 
         void Groups_OnGroupJoined(object sender, GroupOperationEventArgs e)
         {
@@ -152,7 +150,7 @@ namespace OpenMetaverse.TestClient
                 if (ReceivedInterests && ReceivedProperties && ReceivedGroups)
                     ReceivedProfileEvent.Set();
             }
-        }        
+        }
 
 
     }

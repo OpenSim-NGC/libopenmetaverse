@@ -1,24 +1,18 @@
 ﻿#region Using Statements
+using CSJ2K.j2k.codestream.writer;
+using CSJ2K.j2k.encoder;
+using CSJ2K.j2k.entropy.encoder;
+using CSJ2K.j2k.image;
+using CSJ2K.j2k.image.forwcomptransf;
+using CSJ2K.j2k.image.input;
+using CSJ2K.j2k.quantization.quantizer;
+using CSJ2K.j2k.roi.encoder;
+using CSJ2K.j2k.util;
+using CSJ2K.j2k.wavelet.analysis;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using CSJ2K.j2k.quantization.quantizer;
-using CSJ2K.j2k.image.forwcomptransf;
-using CSJ2K.j2k.codestream.writer;
-using CSJ2K.j2k.fileformat.writer;
-using CSJ2K.j2k.wavelet.analysis;
-using CSJ2K.j2k.entropy.encoder;
-using CSJ2K.j2k.entropy;
-using CSJ2K.j2k.quantization;
-using CSJ2K.j2k.image.input;
-using CSJ2K.j2k.roi.encoder;
-using CSJ2K.j2k.roi;
-using CSJ2K.j2k.codestream;
-using CSJ2K.j2k.image;
-using CSJ2K.j2k.util;
-using CSJ2K.j2k.encoder;
-using CSJ2K.j2k;
 #endregion
 
 namespace CSJ2K
@@ -74,7 +68,7 @@ namespace CSJ2K
               "effects) is discarded during compression.\n"+
               "Note: In the case where '-file_format' option is used, the "+
               "resulting file may have a larger bitrate.","-1"},
-            new string[] { "lossless", "[on|off]", 
+            new string[] { "lossless", "[on|off]",
               "Specifies a lossless compression for the encoder. This options"+
               " is equivalent to use reversible quantization ('-Qtype "+
               "reversible')"+

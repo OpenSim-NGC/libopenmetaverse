@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -26,7 +22,7 @@ namespace OpenMetaverse.TestClient
                 for (int i = 0; i < Client.Network.Simulators.Count; i++)
                 {
                     Avatar master = Client.Network.Simulators[i].ObjectsAvatars.Find(
-                        delegate(Avatar avatar)
+                        delegate (Avatar avatar)
                         {
                             return avatar.ID == Client.MasterKey;
                         }

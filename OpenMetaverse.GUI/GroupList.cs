@@ -25,9 +25,7 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Windows.Forms;
 
 namespace OpenMetaverse.GUI
@@ -102,7 +100,7 @@ namespace OpenMetaverse.GUI
                     this.Items.Add(group.Key.ToString(), group.Value.Name, null).Tag = group.Value;
             }
         }
-        
+
         private void GroupList_ColumnClick(object sender, ColumnClickEventArgs e)
         {
             if ((_ColumnSorter.Ascending = (this.Sorting == SortOrder.Ascending))) this.Sorting = SortOrder.Descending;

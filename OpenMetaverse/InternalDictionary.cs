@@ -45,7 +45,7 @@ namespace OpenMetaverse
         /// on this member</summary>
         internal Dictionary<TKey, TValue> Dictionary;
 
-        public Dictionary<TKey,TValue> Copy()
+        public Dictionary<TKey, TValue> Copy()
         {
             lock (Dictionary)
                 return new Dictionary<TKey, TValue>(Dictionary);

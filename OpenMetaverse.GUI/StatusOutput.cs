@@ -100,7 +100,7 @@ namespace OpenMetaverse.GUI
             if (e.Description != String.Empty) LogText(e.Description, Color.Green);
             LogText("Balance: L$" + e.Balance, Color.Green);
         }
-        
+
         void Network_OnCurrentSimChanged(object sender, SimChangedEventArgs e)
         {
             if (Client.Network.CurrentSim != null)

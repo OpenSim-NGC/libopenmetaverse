@@ -1,6 +1,3 @@
-using System;
-using CSJ2K.Icc;
-
 namespace CSJ2K.Icc.Tags
 {
     public class ICCDataType : ICCTag

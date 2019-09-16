@@ -38,7 +38,7 @@ namespace OpenMetaverse.Rendering
     /// Partial class which extends the auto-generated 'LindenSkeleton.Xsd.cs'.eton.xsd
     /// </remarks>
     public partial class LindenSkeleton
-   {
+    {
         /// <summary>
         /// Load a skeleton from a given file.
         /// </summary>
@@ -100,7 +100,7 @@ namespace OpenMetaverse.Rendering
 
             // not really sure about this algorithm, but it seems to fit the bill:
             // and the mesh doesn't seem to be overly distorted
-            if(bone.bone != null)
+            if (bone.bone != null)
                 foreach (Joint child in bone.bone)
                     ExpandJoint(bone, child, expandedJointList, jointsFilter);
 
@@ -134,7 +134,7 @@ namespace OpenMetaverse.Rendering
             }
 
             // recurse the joint hierarchy
-            if(currentJoint.bone != null)
+            if (currentJoint.bone != null)
                 foreach (Joint child in currentJoint.bone)
                     ExpandJoint(currentJoint, child, expandedJointList, jointsFilter);
         }

@@ -24,9 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
 using log4net;
 using log4net.Config;
+using System;
 
 [assembly: log4net.Config.XmlConfigurator(Watch = true)]
 
@@ -67,7 +67,7 @@ namespace OpenMetaverse
                 appender.Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level - %message%newline");
                 BasicConfigurator.Configure(appender);
 
-                if(Settings.LOG_LEVEL != Helpers.LogLevel.None)
+                if (Settings.LOG_LEVEL != Helpers.LogLevel.None)
                     LogInstance.Info("No log configuration found, defaulting to console logging");
             }
         }
@@ -145,7 +145,7 @@ namespace OpenMetaverse
                     break;
                 default:
                     break;
-            } 
+            }
         }
 
         /// <summary>

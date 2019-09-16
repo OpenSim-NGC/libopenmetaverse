@@ -115,7 +115,7 @@ public class IRCClient
 
             string[] lines = Encoding.ASCII.GetString(buffer).Split(new string[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
 
-            for(int i=0; i<lines.Length - 1; i++)
+            for (int i = 0; i < lines.Length - 1; i++)
             {
                 string[] words = lines[i].Split(new char[] { ' ' });
 
@@ -143,7 +143,7 @@ public class IRCClient
                         OnMessage(words[2], name, address, lines[i].Substring(lines[i].IndexOf(":", 1) + 1));
                     }
                 }
-            }            
+            }
         }
 
         if (!ircClient.Connected)

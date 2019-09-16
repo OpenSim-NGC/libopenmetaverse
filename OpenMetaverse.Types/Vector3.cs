@@ -25,8 +25,8 @@
  */
 
 using System;
-using System.Runtime.InteropServices;
 using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace OpenMetaverse
 {
@@ -402,13 +402,13 @@ namespace OpenMetaverse
             const double piOverfour = 0.25 * Math.PI;
             double magProduct = Math.Sqrt(a.LengthSquared() * b.LengthSquared());
             double angle;
-            if(magProduct > 1e-6)
+            if (magProduct > 1e-6)
             {
                 float dotProduct = Dot(a, b);
-                if(dotProduct < 1e-6)
+                if (dotProduct < 1e-6)
                     angle = piOverfour;
                 else
-                   angle = 0.5 * Math.Acos(dotProduct / magProduct);
+                    angle = 0.5 * Math.Acos(dotProduct / magProduct);
             }
             else
                 angle = piOverfour;
@@ -504,7 +504,7 @@ namespace OpenMetaverse
         {
             int hash = X.GetHashCode();
             hash = Utils.CombineHash(hash, Y.GetHashCode());
-            hash = Utils.CombineHash(hash, Y.GetHashCode()); 
+            hash = Utils.CombineHash(hash, Y.GetHashCode());
             return hash;
         }
 
@@ -555,7 +555,7 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector3 operator -(Vector3 value)
         {
-            return new Vector3(-value.X , -value.Y, -value.Z);
+            return new Vector3(-value.X, -value.Y, -value.Z);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

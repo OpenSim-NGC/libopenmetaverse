@@ -24,13 +24,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using ComponentAce.Compression.Libs.zlib;
+using OpenMetaverse.Interfaces;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.IO;
-using ComponentAce.Compression.Libs.zlib;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Interfaces;
+using System.Net;
 
 namespace OpenMetaverse.Messages.Linden
 {
@@ -1452,11 +1452,11 @@ namespace OpenMetaverse.Messages.Linden
                     TransactionID = adata["TransactionID"];
                 }
             }
-            
+
             if (map["FolderData"] is OSDArray)
             {
                 OSDArray array = (OSDArray)map["FolderData"];
-                FolderData =  new FolderDataInfo[array.Count];
+                FolderData = new FolderDataInfo[array.Count];
                 for (int i = 0; i < array.Count; i++)
                 {
                     FolderData[i] = FolderDataInfo.FromOSD(array[i]);
@@ -4510,7 +4510,7 @@ namespace OpenMetaverse.Messages.Linden
         public void Deserialize(OSDMap map)
         {
             if (map.Count != 1)
-                Logger.Log("GetObjectCostMessage returned values for more than one object! Function needs to be fixed for that!", Helpers.LogLevel.Error);                    
+                Logger.Log("GetObjectCostMessage returned values for more than one object! Function needs to be fixed for that!", Helpers.LogLevel.Error);
 
             foreach (string key in map.Keys)
             {

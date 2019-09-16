@@ -37,11 +37,9 @@
 //
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Security.Permissions;
 using System.Diagnostics;
 using System.Runtime.Serialization;
+using System.Security.Permissions;
 using System.Threading;
 
 namespace OpenMetaverse

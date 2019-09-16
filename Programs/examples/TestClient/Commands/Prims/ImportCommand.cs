@@ -1,9 +1,8 @@
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.IO;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
+using System.Threading;
 
 namespace OpenMetaverse.TestClient
 {
@@ -46,7 +45,7 @@ namespace OpenMetaverse.TestClient
             Name = "import";
             Description = "Import prims from an exported xml file. Usage: import inputfile.xml [usegroup]";
             Category = CommandCategory.Objects;
-            
+
             testClient.Objects.ObjectUpdate += Objects_OnNewPrim;
         }
 
@@ -135,7 +134,7 @@ namespace OpenMetaverse.TestClient
                     // Create a list of the local IDs of the newly created prims
                     List<uint> primIDs = new List<uint>(primsCreated.Count);
                     primIDs.Add(rootLocalID); // Root prim is first in list.
-                    
+
                     if (linkset.Children.Count != 0)
                     {
                         // Add the rest of the prims to the list of local IDs
@@ -161,12 +160,12 @@ namespace OpenMetaverse.TestClient
                     {
                         Client.Objects.SetRotation(Client.Network.CurrentSim, rootLocalID, rootRotation);
                     }
-                    
+
                     // Set permissions on newly created prims
                     Client.Objects.SetPermissions(Client.Network.CurrentSim, primIDs,
                         PermissionWho.Everyone | PermissionWho.Group | PermissionWho.NextOwner,
                         PermissionMask.All, true);
-                    
+
                     state = ImporterState.Idle;
                 }
                 else
@@ -217,7 +216,7 @@ namespace OpenMetaverse.TestClient
                             Client.Objects.SetSculpt(e.Simulator, prim.LocalID, currentPrim.Sculpt);
                         }
 
-                        if (currentPrim.Properties!= null && !String.IsNullOrEmpty(currentPrim.Properties.Name))
+                        if (currentPrim.Properties != null && !String.IsNullOrEmpty(currentPrim.Properties.Name))
                         {
                             Client.Objects.SetName(e.Simulator, prim.LocalID, currentPrim.Properties.Name);
                         }

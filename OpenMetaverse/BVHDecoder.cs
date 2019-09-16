@@ -36,7 +36,7 @@ namespace OpenMetaverse
         /// Rotation Keyframe count (used internally)
         /// </summary>
         private int rotationkeys;
-        
+
         /// <summary>
         /// Position Keyframe count (used internally)
         /// </summary>
@@ -271,7 +271,7 @@ namespace OpenMetaverse
                 pJoint.Priority = Utils.BytesToInt(data, i); i += 4; // Joint Priority override?
                 rotationkeys = Utils.BytesToInt(data, i); i += 4; // How many rotation keyframes
             }
-            
+
             // Sanity check how many rotation keys there are
             if (rotationkeys < 0 || rotationkeys > 10000)
             {
@@ -279,7 +279,7 @@ namespace OpenMetaverse
             }
 
             rotations = readKeys(data, ref i, rotationkeys, -1.0f, 1.0f);
-            
+
             if (!BitConverter.IsLittleEndian)
             {
                 positionkeys = Utils.BytesToInt(EndianSwap(data, i, 4)); i += 4; // How many position keyframes
@@ -378,9 +378,9 @@ namespace OpenMetaverse
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != typeof(BinBVHAnimationReader)) return false;
             return Equals((BinBVHAnimationReader)obj);
-    }
+        }
 
-    /// <summary>
+        /// <summary>
         /// Serves as a hash function for a particular type.  
         /// </summary> 
         /// <returns> 

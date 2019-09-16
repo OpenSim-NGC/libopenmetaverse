@@ -24,14 +24,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using ComponentAce.Compression.Libs.zlib;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse.Packets;
 using System.IO;
 using System.Reflection;
-using OpenMetaverse.StructuredData;
-using ComponentAce.Compression.Libs.zlib;
+using System.Text;
 
 namespace OpenMetaverse
 {
@@ -99,7 +98,7 @@ namespace OpenMetaverse
                 offset += 0.5f;
             else
                 offset -= 0.5f;
-            short tmp =  (short)offset;
+            short tmp = (short)offset;
             return tmp * invScale;
         }
 
@@ -377,7 +376,7 @@ namespace OpenMetaverse
         /// <returns>The length of the output buffer</returns>
         public static int ZeroEncode(byte[] src, int srclen, byte[] dest)
         {
-            
+
             byte zerocount = 0;
 
             Buffer.BlockCopy(src, 0, dest, 0, 6);

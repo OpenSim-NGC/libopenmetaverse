@@ -24,7 +24,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
 using System.Collections.Generic;
 
 namespace OpenMetaverse.Rendering
@@ -124,18 +123,18 @@ namespace OpenMetaverse.Rendering
         private List<ushort> GenerateIndices()
         {
             ushort[] indices = new ushort[] {
-                0, 1, 2, 
-		        0, 2, 3, 
-		        4, 7, 6, 
-		        4, 6, 5, 
-		        0, 4, 5,
-		        0, 5, 1, 
-		        1, 5, 6, 
-		        1, 6, 2, 
-		        2, 6, 7, 
-		        2, 7, 3, 
-		        4, 0, 3, 
-		        4, 3, 7, 
+                0, 1, 2,
+                0, 2, 3,
+                4, 7, 6,
+                4, 6, 5,
+                0, 4, 5,
+                0, 5, 1,
+                1, 5, 6,
+                1, 6, 2,
+                2, 6, 7,
+                2, 7, 3,
+                4, 0, 3,
+                4, 3, 7,
             };
 
             return new List<ushort>(indices);

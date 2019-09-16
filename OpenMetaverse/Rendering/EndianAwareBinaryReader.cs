@@ -52,7 +52,7 @@ namespace OpenMetaverse.Rendering
         /// </summary>
         /// <param name="stream">The stream to read from</param>
         public EndianAwareBinaryReader(Stream stream)
-            : this(stream, SourceFormat.LittleEndian) {}
+            : this(stream, SourceFormat.LittleEndian) { }
 
         /// <summary>
         /// Construct a reader from a stream

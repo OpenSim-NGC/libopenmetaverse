@@ -25,8 +25,8 @@
  */
 
 using System;
-using System.Runtime.InteropServices;
 using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace OpenMetaverse
 {
@@ -471,7 +471,7 @@ namespace OpenMetaverse
 
         public static bool operator ==(Vector4 value1, Vector4 value2)
         {
-            return 
+            return
                    value1.X == value2.X
                 && value1.Y == value2.Y
                 && value1.Z == value2.Z

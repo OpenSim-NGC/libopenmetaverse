@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace OpenMetaverse.TestClient.Commands
 {
@@ -28,7 +26,7 @@ namespace OpenMetaverse.TestClient.Commands
             searchText = searchText.TrimEnd();
 
             waitQuery.Reset();
-            
+
             Client.Directory.DirEventsReply += Directory_DirEvents;
 
             // send the request to the directory manager
@@ -36,15 +34,15 @@ namespace OpenMetaverse.TestClient.Commands
             string result;
             if (waitQuery.WaitOne(20000, false) && Client.Network.Connected)
             {
-                result =  "Your query '" + searchText + "' matched " + resultCount + " Events. ";
+                result = "Your query '" + searchText + "' matched " + resultCount + " Events. ";
             }
             else
             {
-                result =  "Timeout waiting for simulator to respond.";
+                result = "Timeout waiting for simulator to respond.";
             }
 
             Client.Directory.DirEventsReply -= Directory_DirEvents;
-            
+
             return result;
         }
 
@@ -57,7 +55,7 @@ namespace OpenMetaverse.TestClient.Commands
             else
             {
                 foreach (DirectoryManager.EventsSearchData ev in e.MatchedEvents)
-                {                    
+                {
                     Console.WriteLine("Event ID: {0} Event Name: {1} Event Date: {2}", ev.ID, ev.Name, ev.Date);
                 }
             }

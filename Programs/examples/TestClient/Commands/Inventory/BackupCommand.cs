@@ -1,15 +1,10 @@
+using OpenMetaverse.Assets;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Text;
 using System.Threading;
-using System.ComponentModel;
-using System.Xml;
-using System.Xml.Serialization;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using OpenMetaverse.TestClient;
-using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -311,7 +306,7 @@ namespace OpenMetaverse.TestClient
             lock (CurrentDownloads)
             {
                 // see if we have this in our transfer list
-                QueuedDownloadInfo r = CurrentDownloads.Find(delegate(QueuedDownloadInfo q)
+                QueuedDownloadInfo r = CurrentDownloads.Find(delegate (QueuedDownloadInfo q)
                 {
                     return q.AssetID == asset.AssetID;
                 });

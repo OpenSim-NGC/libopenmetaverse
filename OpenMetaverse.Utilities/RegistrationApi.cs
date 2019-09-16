@@ -24,12 +24,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.Http;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Text;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Http;
 
 namespace OpenMetaverse
 {
@@ -134,7 +133,7 @@ namespace OpenMetaverse
         {
             // build post data
             byte[] postData = Encoding.ASCII.GetBytes(
-                String.Format("first_name={0}&last_name={1}&password={2}", _userInfo.FirstName, _userInfo.LastName, 
+                String.Format("first_name={0}&last_name={1}&password={2}", _userInfo.FirstName, _userInfo.LastName,
                 _userInfo.Password));
 
             CapsClient request = new CapsClient(RegistrationApiCaps);
@@ -182,15 +181,15 @@ namespace OpenMetaverse
                 //FIXME: wtf?
                 //foreach (KeyValuePair<string, object> error in (Dictionary<string, object>)response)
                 //{
-                    //StringBuilder sb = new StringBuilder();
+                //StringBuilder sb = new StringBuilder();
 
-                    //sb.Append(error[1]);
-                    //sb.Append(" (");
-                    //sb.Append(error[0]);
-                    //sb.Append("): ");
-                    //sb.Append(error[2]);
+                //sb.Append(error[1]);
+                //sb.Append(" (");
+                //sb.Append(error[0]);
+                //sb.Append("): ");
+                //sb.Append(error[2]);
 
-                    //_errors.Add((int)error[0], sb.ToString());
+                //_errors.Add((int)error[0], sb.ToString());
                 //}
 
                 // finalize

@@ -147,7 +147,7 @@ namespace OpenMetaverse
         /// <summary>Ensemble beginning range</summary>
         EnsembleStart = 26,
         /// <summary>Ensemble ending range</summary>
-        EnsembleEnd= 45,
+        EnsembleEnd = 45,
         /// <summary>Current outfit folder</summary>
         CurrentOutfit = 46,
         /// <summary>Outfit folder</summary>

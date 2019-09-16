@@ -25,16 +25,16 @@
  */
 
 
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.IO;
-using System.Xml;
-using System.Drawing;
-using System.Xml.Serialization;
+using OpenMetaverse.Imaging;
 using OpenMetaverse.ImportExport.Collada14;
 using OpenMetaverse.Rendering;
-using OpenMetaverse.Imaging;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Text.RegularExpressions;
+using System.Xml;
+using System.Xml.Serialization;
 
 namespace OpenMetaverse.ImportExport
 {
@@ -217,59 +217,59 @@ namespace OpenMetaverse.ImportExport
             List<ModelMaterial> tmpEffects = new List<ModelMaterial>();
 
 
-/*
-            // Here is how Collada works: Texture files are refered in four steps! Check ////////////// comments below.
+            /*
+                        // Here is how Collada works: Texture files are refered in four steps! Check ////////////// comments below.
 
 
-            <profile_COMMON>
-                ////////////////// Here is an <image> clause which binds its id to a file name (relative to some root)
-                // <image> clauses can be found both in <library_images>, in <effect> and in <profile_XXXX>. Hopefully identifiers
-                // are unique even in the latter cases, or this code won't work.
-                <image id="material_1_effect-image" height="0" width="0">
-                    <init_from>solar_panel_001.png</init_from>
-                </image>
-                ////////////////// Here is a definition of a surface. Typically bound to a <image> using <init_from> but can also be bound as a
-                // render target for a previous pass (or it would be a useless intermediate step).
-                <newparam sid="material_1_effect-surface">
-                    <surface type="2D">
-                        <init_from>material_1_effect-image</init_from>
-                    </surface>
-                </newparam>
-                ////////////////// A sampler defines some parameters for how the texture unit is to sample the underlying surface, which is refered
-                // to by the <source> element.
-                <newparam sid="material_1_effect-sampler">
-                    <sampler2D>
-                        <source>material_1_effect-surface</source>
-                        <wrap_s>WRAP</wrap_s>
-                        <wrap_t>WRAP</wrap_t>
-                        <minfilter>LINEAR_MIPMAP_LINEAR</minfilter>
-                        <magfilter>LINEAR</magfilter>
-                        <border_color>0 0 0 0</border_color>
-                    </sampler2D>
-                </newparam>
-                <technique sid="t0">
-                    <phong>
-                        <emission>
-                            <color>0 0 0 1</color>
-                        </emission>
-                        <ambient>
-                            <color>0 0 0 0</color>
-                        </ambient>
-                        <diffuse>
-                            //////////////// The texture itself refers to the sampelr by its 'texture' property.
-                            <texture texture="material_1_effect-sampler" texcoord="texcoord0"/>
-                        </diffuse>
-                        <specular>
-                            <color>0 0 0 1</color>
-                        </specular>
-                        <shininess>
-                            <float>50</float>
-                        </shininess>
-                    </phong>
-                </technique>
-            </profile_COMMON>
+                        <profile_COMMON>
+                            ////////////////// Here is an <image> clause which binds its id to a file name (relative to some root)
+                            // <image> clauses can be found both in <library_images>, in <effect> and in <profile_XXXX>. Hopefully identifiers
+                            // are unique even in the latter cases, or this code won't work.
+                            <image id="material_1_effect-image" height="0" width="0">
+                                <init_from>solar_panel_001.png</init_from>
+                            </image>
+                            ////////////////// Here is a definition of a surface. Typically bound to a <image> using <init_from> but can also be bound as a
+                            // render target for a previous pass (or it would be a useless intermediate step).
+                            <newparam sid="material_1_effect-surface">
+                                <surface type="2D">
+                                    <init_from>material_1_effect-image</init_from>
+                                </surface>
+                            </newparam>
+                            ////////////////// A sampler defines some parameters for how the texture unit is to sample the underlying surface, which is refered
+                            // to by the <source> element.
+                            <newparam sid="material_1_effect-sampler">
+                                <sampler2D>
+                                    <source>material_1_effect-surface</source>
+                                    <wrap_s>WRAP</wrap_s>
+                                    <wrap_t>WRAP</wrap_t>
+                                    <minfilter>LINEAR_MIPMAP_LINEAR</minfilter>
+                                    <magfilter>LINEAR</magfilter>
+                                    <border_color>0 0 0 0</border_color>
+                                </sampler2D>
+                            </newparam>
+                            <technique sid="t0">
+                                <phong>
+                                    <emission>
+                                        <color>0 0 0 1</color>
+                                    </emission>
+                                    <ambient>
+                                        <color>0 0 0 0</color>
+                                    </ambient>
+                                    <diffuse>
+                                        //////////////// The texture itself refers to the sampelr by its 'texture' property.
+                                        <texture texture="material_1_effect-sampler" texcoord="texcoord0"/>
+                                    </diffuse>
+                                    <specular>
+                                        <color>0 0 0 1</color>
+                                    </specular>
+                                    <shininess>
+                                        <float>50</float>
+                                    </shininess>
+                                </phong>
+                            </technique>
+                        </profile_COMMON>
 
-*/
+            */
 
 
             // Image id -> filename mapping (<init_from> field in <image>)
@@ -333,23 +333,29 @@ namespace OpenMetaverse.ImportExport
                             string ID = effect.id;
                             foreach (var effItem in effect.Items)
                             {
-                                if (effItem is image) {
+                                if (effItem is image)
+                                {
                                     var img = (image)effItem;
                                     string IMID = img.id;
                                     if (img.Item is string)
                                         imgMap[IMID] = (string)img.Item;
                                 }
-                                else if (effItem is effectFx_profile_abstractProfile_COMMON) {
+                                else if (effItem is effectFx_profile_abstractProfile_COMMON)
+                                {
                                     var pc = (effectFx_profile_abstractProfile_COMMON)effItem;
-                                    if (pc.Items != null) {
-                                        foreach (var pcitem in pc.Items) {
-                                            if (pcitem is image) {
+                                    if (pc.Items != null)
+                                    {
+                                        foreach (var pcitem in pc.Items)
+                                        {
+                                            if (pcitem is image)
+                                            {
                                                 var img = (image)pcitem;
                                                 string IMID = img.id;
                                                 if (img.Item is string)
                                                     imgMap[IMID] = (string)img.Item;
                                             }
-                                            else if (pcitem is common_newparam_type) {
+                                            else if (pcitem is common_newparam_type)
+                                            {
                                                 var newparam = (common_newparam_type)pcitem;
                                                 if (newparam.Item is fx_surface_common)
                                                 {
@@ -365,7 +371,8 @@ namespace OpenMetaverse.ImportExport
                                         }
                                     }
                                     var teq = pc.technique;
-                                    if (teq != null) {
+                                    if (teq != null)
+                                    {
                                         if (teq.Item is effectFx_profile_abstractProfile_COMMONTechniquePhong)
                                         {
                                             var shader = (effectFx_profile_abstractProfile_COMMONTechniquePhong)teq.Item;
@@ -400,11 +407,14 @@ namespace OpenMetaverse.ImportExport
                 {
                     effect.ID = matEffect[effect.ID];
 
-                    if (!string.IsNullOrEmpty(effect.Texture)) {
-                        if (samplerMap.ContainsKey(effect.Texture)) {
+                    if (!string.IsNullOrEmpty(effect.Texture))
+                    {
+                        if (samplerMap.ContainsKey(effect.Texture))
+                        {
                             string surfaceId = samplerMap[effect.Texture];
 
-                            if (surfaceMap.ContainsKey(surfaceId)) {
+                            if (surfaceMap.ContainsKey(surfaceId))
+                            {
                                 string imageId = surfaceMap[surfaceId];
 
                                 if (imgMap.ContainsKey(imageId))
@@ -531,33 +541,40 @@ namespace OpenMetaverse.ImportExport
             ParseVisualScene();
             ParseMaterials();
 
-            foreach (var item in Model.Items) {
-                if (item is library_geometries) {
+            foreach (var item in Model.Items)
+            {
+                if (item is library_geometries)
+                {
                     var geometries = (library_geometries)item;
-                    foreach (var geo in geometries.geometry) {
+                    foreach (var geo in geometries.geometry)
+                    {
                         var mesh = geo.Item as mesh;
-                        if (mesh == null) 
+                        if (mesh == null)
                             continue;
 
                         var nodes = Nodes.FindAll(n => n.MeshID == geo.id);     // Find all instances of this geometry
-                        if (nodes != null) {
+                        if (nodes != null)
+                        {
                             ModelPrim firstPrim = null;         // The first prim is actually calculated, the others are just copied from it.
 
-                            Vector3 asset_scale = new Vector3(1,1,1);
+                            Vector3 asset_scale = new Vector3(1, 1, 1);
                             Vector3 asset_offset = new Vector3(0, 0, 0);            // Scale and offset between Collada and OS asset (Which is always in a unit cube)
 
-                            foreach (var node in nodes) {
+                            foreach (var node in nodes)
+                            {
                                 var prim = new ModelPrim();
                                 prim.ID = node.ID;
                                 Prims.Add(prim);
 
                                 // First node is used to create the asset. This is as the code to crate the byte array is somewhat
                                 // erroneously placed in the ModelPrim class.
-                                if (firstPrim == null) {
+                                if (firstPrim == null)
+                                {
                                     firstPrim = prim;
                                     AddPositions(out asset_scale, out asset_offset, mesh, prim, transform);     // transform is used only for inch -> meter and up axis transform. 
 
-                                    foreach (var mitem in mesh.Items) {
+                                    foreach (var mitem in mesh.Items)
+                                    {
                                         if (mitem is triangles)
                                             AddFacesFromPolyList(Triangles2Polylist((triangles)mitem), mesh, prim, transform);  // Transform is used to turn normals according to up axis
                                         if (mitem is polylist)
@@ -566,13 +583,14 @@ namespace OpenMetaverse.ImportExport
 
                                     prim.CreateAsset(UUID.Zero);
                                 }
-                                else {
-                                     // Copy the values set by Addpositions and AddFacesFromPolyList as these are the same as long as the mesh is the same
-                                     prim.Asset = firstPrim.Asset;
-                                     prim.BoundMin = firstPrim.BoundMin;
-                                     prim.BoundMax = firstPrim.BoundMax;
-                                     prim.Positions = firstPrim.Positions;
-                                     prim.Faces = firstPrim.Faces;
+                                else
+                                {
+                                    // Copy the values set by Addpositions and AddFacesFromPolyList as these are the same as long as the mesh is the same
+                                    prim.Asset = firstPrim.Asset;
+                                    prim.BoundMin = firstPrim.BoundMin;
+                                    prim.BoundMax = firstPrim.BoundMax;
+                                    prim.Positions = firstPrim.Positions;
+                                    prim.Faces = firstPrim.Faces;
                                 }
 
                                 // Note: This ignores any shear or similar non-linear effects. This can cause some problems but it
@@ -699,10 +717,10 @@ namespace OpenMetaverse.ImportExport
 
             stride += 1;
 
-            if (posSrc == null) 
+            if (posSrc == null)
                 return;
 
-           if (list.vcount == "")
+            if (list.vcount == "")
                 return;                     // Zero triangles (or quads). StrToArray produces one 0 entry for this so just quit and don't produce any face.
 
             var vcount = StrToArray(list.vcount);

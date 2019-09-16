@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -24,25 +21,25 @@ namespace OpenMetaverse.TestClient
 
         private bool registered = false;
 
-        private bool IsVoiceManagerRunning() 
+        private bool IsVoiceManagerRunning()
         {
             if (null == Client.VoiceManager) return false;
-            
+
             if (!registered)
             {
                 Client.VoiceManager.OnParcelVoiceInfo += Voice_OnParcelVoiceInfo;
                 registered = true;
             }
-            return true;           
+            return true;
         }
 
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            if (!IsVoiceManagerRunning()) 
+            if (!IsVoiceManagerRunning())
                 return String.Format("VoiceManager not running for {0}", fromAgentID);
 
-            if (!Client.VoiceManager.RequestParcelVoiceInfo()) 
+            if (!Client.VoiceManager.RequestParcelVoiceInfo())
             {
                 return "RequestParcelVoiceInfo failed. Not available for the current grid?";
             }

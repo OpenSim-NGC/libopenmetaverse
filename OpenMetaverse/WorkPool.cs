@@ -26,9 +26,6 @@
 
 #define SMARTHREADPOOL_REF
 
-using System;
-using System.IO;
-using System.Reflection;
 
 #if SMARTHREADPOOL_REF
 using Amib.Threading;
@@ -39,7 +36,7 @@ using System.Threading;
 namespace OpenMetaverse
 {
 
-// Use statically referenced SmartThreadPool.dll
+    // Use statically referenced SmartThreadPool.dll
 #if SMARTHREADPOOL_REF
     public static class WorkPool
     {

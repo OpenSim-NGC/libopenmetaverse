@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
-using OpenMetaverse;
 
 namespace OpenMetaverse.Assets
 {
@@ -120,7 +119,7 @@ namespace OpenMetaverse.Assets
                     {
                         output.Append("\t\tshadow_id\t" + InventoryManager.EncryptAssetID(item.AssetUUID) + "\n");
                     }
-                    
+
                     output.Append("\t\ttype\t" + Utils.AssetTypeToString(item.AssetType) + "\n");
                     output.Append("\t\tinv_type\t" + Utils.InventoryTypeToString(item.InventoryType) + "\n");
                     output.Append("\t\tflags\t" + item.Flags.ToString().PadLeft(8, '0') + "\n");

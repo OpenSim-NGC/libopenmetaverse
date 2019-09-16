@@ -22,7 +22,7 @@ namespace IRCGateway
             {
                 _Client = new GridClient();
                 _Client.Network.LoginProgress += Network_OnLogin;
-                _Client.Self.ChatFromSimulator += Self_ChatFromSimulator;                
+                _Client.Self.ChatFromSimulator += Self_ChatFromSimulator;
                 _Client.Self.IM += Self_IM;
                 _ClientLogin = _Client.Network.DefaultLoginParams(args[0], args[1], args[2], "", "IRCGateway");
 
@@ -34,7 +34,7 @@ namespace IRCGateway
                 _IRC.Connect();
 
                 string read = Console.ReadLine();
-                while (read != null) read = Console.ReadLine();                
+                while (read != null) read = Console.ReadLine();
             }
         }
 

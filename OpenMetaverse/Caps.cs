@@ -24,15 +24,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.Http;
+using OpenMetaverse.Interfaces;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text;
-using System.Threading;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Http;
 
 namespace OpenMetaverse
 {
@@ -299,6 +297,6 @@ namespace OpenMetaverse
                     }
                 }
             }
-        }        
+        }
     }
 }

@@ -24,18 +24,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Text;
-using System.IO;
-using System.Xml;
-using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.StructuredData;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Sockets;
+using System.Text;
+using System.Xml;
 
 namespace OpenMetaverse.Utilities
 {
@@ -341,17 +339,17 @@ namespace OpenMetaverse.Utilities
                     }
                     else
                     {
-                        Logger.Log("VoiceManager." + me + "(): " + capsName + " capability is missing", 
+                        Logger.Log("VoiceManager." + me + "(): " + capsName + " capability is missing",
                                    Helpers.LogLevel.Info, Client);
                         return false;
                     }
                 }
             }
 
-            Logger.Log("VoiceManager.RequestVoiceInternal(): Voice system is currently disabled", 
+            Logger.Log("VoiceManager.RequestVoiceInternal(): Voice system is currently disabled",
                        Helpers.LogLevel.Info, Client);
             return false;
-            
+
         }
 
         public bool RequestProvisionAccount()
@@ -528,17 +526,17 @@ namespace OpenMetaverse.Utilities
         private void RequiredVoiceVersionEventHandler(string capsKey, IMessage message, Simulator simulator)
         {
             RequiredVoiceVersionMessage msg = (RequiredVoiceVersionMessage)message;
-            
-                if (VOICE_MAJOR_VERSION != msg.MajorVersion)
-                {
-                    Logger.Log(String.Format("Voice version mismatch! Got {0}, expecting {1}. Disabling the voice manager",
-                        msg.MajorVersion, VOICE_MAJOR_VERSION), Helpers.LogLevel.Error, Client);
-                    Enabled = false;
-                }
-                else
-                {
-                    Logger.DebugLog("Voice version " + msg.MajorVersion + " verified", Client);
-                }
+
+            if (VOICE_MAJOR_VERSION != msg.MajorVersion)
+            {
+                Logger.Log(String.Format("Voice version mismatch! Got {0}, expecting {1}. Disabling the voice manager",
+                    msg.MajorVersion, VOICE_MAJOR_VERSION), Helpers.LogLevel.Error, Client);
+                Enabled = false;
+            }
+            else
+            {
+                Logger.DebugLog("Voice version " + msg.MajorVersion + " verified", Client);
+            }
         }
 
         private void ProvisionCapsResponse(CapsClient client, OSD response, Exception error)
@@ -570,7 +568,7 @@ namespace OpenMetaverse.Utilities
                     OSDMap creds = (OSDMap)respTable["voice_credentials"];
                     channelURI = creds["channel_uri"].AsString();
                 }
-                
+
                 if (OnParcelVoiceInfo != null) OnParcelVoiceInfo(regionName, localID, channelURI);
             }
         }
@@ -590,160 +588,160 @@ namespace OpenMetaverse.Utilities
                 switch (reader.NodeType)
                 {
                     case XmlNodeType.Element:
-                    {
-                        if (reader.Depth == 0)
                         {
-                            isEvent = (reader.Name == "Event");
-
-                            if (isEvent || reader.Name == "Response")
+                            if (reader.Depth == 0)
                             {
-                                for (int i = 0; i < reader.AttributeCount; i++)
-                                {
-                                    reader.MoveToAttribute(i);
+                                isEvent = (reader.Name == "Event");
 
-                                    switch (reader.Name)
+                                if (isEvent || reader.Name == "Response")
+                                {
+                                    for (int i = 0; i < reader.AttributeCount; i++)
                                     {
-//                                         case "requestId":
-//                                             uuidString = reader.Value;
-//                                             break;
-                                        case "action":
-                                            actionString = reader.Value;
-                                            break;
-                                        case "type":
-                                            eventTypeString = reader.Value;
-                                            break;
+                                        reader.MoveToAttribute(i);
+
+                                        switch (reader.Name)
+                                        {
+                                            //                                         case "requestId":
+                                            //                                             uuidString = reader.Value;
+                                            //                                             break;
+                                            case "action":
+                                                actionString = reader.Value;
+                                                break;
+                                            case "type":
+                                                eventTypeString = reader.Value;
+                                                break;
+                                        }
                                     }
                                 }
                             }
-                        }
-                        else
-                        {
-                            switch (reader.Name)
+                            else
                             {
-                                case "InputXml":
-                                    cookie = -1;
+                                switch (reader.Name)
+                                {
+                                    case "InputXml":
+                                        cookie = -1;
 
-                                    // Parse through here to get the cookie value
-                                    reader.Read();
-                                    if (reader.Name == "Request")
-                                    {
-                                        for (int i = 0; i < reader.AttributeCount; i++)
+                                        // Parse through here to get the cookie value
+                                        reader.Read();
+                                        if (reader.Name == "Request")
                                         {
-                                            reader.MoveToAttribute(i);
-
-                                            if (reader.Name == "requestId")
+                                            for (int i = 0; i < reader.AttributeCount; i++)
                                             {
-                                                Int32.TryParse(reader.Value, out cookie);
-                                                break;
+                                                reader.MoveToAttribute(i);
+
+                                                if (reader.Name == "requestId")
+                                                {
+                                                    Int32.TryParse(reader.Value, out cookie);
+                                                    break;
+                                                }
                                             }
                                         }
-                                    }
 
-                                    if (cookie == -1)
-                                    {
-                                        Logger.Log("VoiceManager._DaemonPipe_OnReceiveLine(): Failed to parse InputXml for the cookie",
-                                            Helpers.LogLevel.Warning, Client);
-                                    }
-                                    break;
-                                case "CaptureDevices":
-                                    _CaptureDevices.Clear();
-                                    break;
-                                case "RenderDevices":
-                                    _RenderDevices.Clear();
-                                    break;
-//                                 case "ReturnCode":
-//                                     returnCode = reader.ReadElementContentAsInt();
-//                                     break;
-                                case "StatusCode":
-                                    statusCode = reader.ReadElementContentAsInt();
-                                    break;
-                                case "StatusString":
-                                    statusString = reader.ReadElementContentAsString();
-                                    break;
-                                case "State":
-                                    state = reader.ReadElementContentAsInt();
-                                    break;
-                                case "ConnectorHandle":
-                                    connectorHandle = reader.ReadElementContentAsString();
-                                    break;
-                                case "AccountHandle":
-                                    accountHandle = reader.ReadElementContentAsString();
-                                    break;
-                                case "SessionHandle":
-                                    sessionHandle = reader.ReadElementContentAsString();
-                                    break;
-                                case "URI":
-                                    uriString = reader.ReadElementContentAsString();
-                                    break;
-                                case "IsChannel":
-                                    isChannel = reader.ReadElementContentAsBoolean();
-                                    break;
-                                case "Name":
-                                    nameString = reader.ReadElementContentAsString();
-                                    break;
-//                                 case "AudioMedia":
-//                                     audioMediaString = reader.ReadElementContentAsString();
-//                                     break;
-                                case "ChannelName":
-                                    nameString = reader.ReadElementContentAsString();
-                                    break;
-                                case "ParticipantURI":
-                                    uriString = reader.ReadElementContentAsString();
-                                    break;
-                                case "DisplayName":
-                                    displayNameString = reader.ReadElementContentAsString();
-                                    break;
-                                case "AccountName":
-                                    nameString = reader.ReadElementContentAsString();
-                                    break;
-                                case "ParticipantType":
-                                    participantType = reader.ReadElementContentAsInt();
-                                    break;
-                                case "IsLocallyMuted":
-                                    isLocallyMuted = reader.ReadElementContentAsBoolean();
-                                    break;
-                                case "IsModeratorMuted":
-                                    isModeratorMuted = reader.ReadElementContentAsBoolean();
-                                    break;
-                                case "IsSpeaking":
-                                    isSpeaking = reader.ReadElementContentAsBoolean();
-                                    break;
-                                case "Volume":
-                                    volume = reader.ReadElementContentAsInt();
-                                    break;
-                                case "Energy":
-                                    energy = reader.ReadElementContentAsFloat();
-                                    break;
-                                case "MicEnergy":
-                                    energy = reader.ReadElementContentAsFloat();
-                                    break;
-                                case "ChannelURI":
-                                    uriString = reader.ReadElementContentAsString();
-                                    break;
-                                case "ChannelListResult":
-                                    _ChannelMap[nameString] = uriString;
-                                    break;
-                                case "CaptureDevice":
-                                    reader.Read();
-                                    _CaptureDevices.Add(reader.ReadElementContentAsString());
-                                    break;
-                                case "CurrentCaptureDevice":
-                                    reader.Read();
-                                    nameString = reader.ReadElementContentAsString();
-                                    break;
-                                case "RenderDevice":
-                                    reader.Read();
-                                    _RenderDevices.Add(reader.ReadElementContentAsString());
-                                    break;
-                                case "CurrentRenderDevice":
-                                    reader.Read();
-                                    nameString = reader.ReadElementContentAsString();
-                                    break;
+                                        if (cookie == -1)
+                                        {
+                                            Logger.Log("VoiceManager._DaemonPipe_OnReceiveLine(): Failed to parse InputXml for the cookie",
+                                                Helpers.LogLevel.Warning, Client);
+                                        }
+                                        break;
+                                    case "CaptureDevices":
+                                        _CaptureDevices.Clear();
+                                        break;
+                                    case "RenderDevices":
+                                        _RenderDevices.Clear();
+                                        break;
+                                    //                                 case "ReturnCode":
+                                    //                                     returnCode = reader.ReadElementContentAsInt();
+                                    //                                     break;
+                                    case "StatusCode":
+                                        statusCode = reader.ReadElementContentAsInt();
+                                        break;
+                                    case "StatusString":
+                                        statusString = reader.ReadElementContentAsString();
+                                        break;
+                                    case "State":
+                                        state = reader.ReadElementContentAsInt();
+                                        break;
+                                    case "ConnectorHandle":
+                                        connectorHandle = reader.ReadElementContentAsString();
+                                        break;
+                                    case "AccountHandle":
+                                        accountHandle = reader.ReadElementContentAsString();
+                                        break;
+                                    case "SessionHandle":
+                                        sessionHandle = reader.ReadElementContentAsString();
+                                        break;
+                                    case "URI":
+                                        uriString = reader.ReadElementContentAsString();
+                                        break;
+                                    case "IsChannel":
+                                        isChannel = reader.ReadElementContentAsBoolean();
+                                        break;
+                                    case "Name":
+                                        nameString = reader.ReadElementContentAsString();
+                                        break;
+                                    //                                 case "AudioMedia":
+                                    //                                     audioMediaString = reader.ReadElementContentAsString();
+                                    //                                     break;
+                                    case "ChannelName":
+                                        nameString = reader.ReadElementContentAsString();
+                                        break;
+                                    case "ParticipantURI":
+                                        uriString = reader.ReadElementContentAsString();
+                                        break;
+                                    case "DisplayName":
+                                        displayNameString = reader.ReadElementContentAsString();
+                                        break;
+                                    case "AccountName":
+                                        nameString = reader.ReadElementContentAsString();
+                                        break;
+                                    case "ParticipantType":
+                                        participantType = reader.ReadElementContentAsInt();
+                                        break;
+                                    case "IsLocallyMuted":
+                                        isLocallyMuted = reader.ReadElementContentAsBoolean();
+                                        break;
+                                    case "IsModeratorMuted":
+                                        isModeratorMuted = reader.ReadElementContentAsBoolean();
+                                        break;
+                                    case "IsSpeaking":
+                                        isSpeaking = reader.ReadElementContentAsBoolean();
+                                        break;
+                                    case "Volume":
+                                        volume = reader.ReadElementContentAsInt();
+                                        break;
+                                    case "Energy":
+                                        energy = reader.ReadElementContentAsFloat();
+                                        break;
+                                    case "MicEnergy":
+                                        energy = reader.ReadElementContentAsFloat();
+                                        break;
+                                    case "ChannelURI":
+                                        uriString = reader.ReadElementContentAsString();
+                                        break;
+                                    case "ChannelListResult":
+                                        _ChannelMap[nameString] = uriString;
+                                        break;
+                                    case "CaptureDevice":
+                                        reader.Read();
+                                        _CaptureDevices.Add(reader.ReadElementContentAsString());
+                                        break;
+                                    case "CurrentCaptureDevice":
+                                        reader.Read();
+                                        nameString = reader.ReadElementContentAsString();
+                                        break;
+                                    case "RenderDevice":
+                                        reader.Read();
+                                        _RenderDevices.Add(reader.ReadElementContentAsString());
+                                        break;
+                                    case "CurrentRenderDevice":
+                                        reader.Read();
+                                        nameString = reader.ReadElementContentAsString();
+                                        break;
+                                }
                             }
-                        }
 
-                        break;
-                    }
+                            break;
+                        }
                     case XmlNodeType.EndElement:
                         if (reader.Depth == 0)
                             ProcessEvent();

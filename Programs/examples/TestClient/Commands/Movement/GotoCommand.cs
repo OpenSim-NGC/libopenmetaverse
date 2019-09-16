@@ -1,23 +1,19 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
-    public class GotoCommand: Command
+    public class GotoCommand : Command
     {
         public GotoCommand(TestClient testClient)
-		{
-			Name = "goto";
-			Description = "Teleport to a location (e.g. \"goto Hooper/100/100/30\")";
+        {
+            Name = "goto";
+            Description = "Teleport to a location (e.g. \"goto Hooper/100/100/30\")";
             Category = CommandCategory.Movement;
-		}
+        }
 
         public override string Execute(string[] args, UUID fromAgentID)
-		{
-			if (args.Length < 1)
+        {
+            if (args.Length < 1)
                 return "Usage: goto sim/x/y/z";
 
             string destination = String.Empty;
@@ -46,6 +42,6 @@ namespace OpenMetaverse.TestClient
                 return "Teleported to " + Client.Network.CurrentSim;
             else
                 return "Teleport failed: " + Client.Self.TeleportMessage;
-		}
+        }
     }
 }

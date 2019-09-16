@@ -1,8 +1,7 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -51,7 +50,7 @@ namespace OpenMetaverse.TestClient
             // Create a delegate which will be fired when the simulator receives our download request
             // Starts the actual transfer request
             EventHandler<InitiateDownloadEventArgs> initiateDownloadDelegate =
-                delegate(object sender, InitiateDownloadEventArgs e)
+                delegate (object sender, InitiateDownloadEventArgs e)
                 {
                     Client.Assets.RequestAssetXfer(e.SimFileName, false, false, UUID.Zero, AssetType.Unknown, false);
                 };

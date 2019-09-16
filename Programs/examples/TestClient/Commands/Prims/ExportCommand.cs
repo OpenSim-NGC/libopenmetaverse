@@ -1,10 +1,9 @@
+using OpenMetaverse.Assets;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -29,7 +28,7 @@ namespace OpenMetaverse.TestClient
             Name = "export";
             Description = "Exports an object to an xml file. Usage: export uuid outputfile.xml";
             Category = CommandCategory.Objects;
-        }        
+        }
 
         void Avatars_ViewerEffectPointAt(object sender, ViewerEffectPointAtEventArgs e)
         {
@@ -64,7 +63,7 @@ namespace OpenMetaverse.TestClient
             Primitive exportPrim;
 
             exportPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                delegate(Primitive prim) { return prim.ID == id; }
+                delegate (Primitive prim) { return prim.ID == id; }
             );
 
             if (exportPrim != null)
@@ -85,8 +84,8 @@ namespace OpenMetaverse.TestClient
                 else
                 {
                     GotPermissions = false;
-                    if (Properties.OwnerID != Client.Self.AgentID && 
-                        Properties.OwnerID != Client.MasterKey && 
+                    if (Properties.OwnerID != Client.Self.AgentID &&
+                        Properties.OwnerID != Client.MasterKey &&
                         Client.Self.AgentID != Client.Self.AgentID)
                     {
                         return "That object is owned by " + Properties.OwnerID + ", we don't have permission " +
@@ -95,7 +94,7 @@ namespace OpenMetaverse.TestClient
                 }
 
                 List<Primitive> prims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(
-                    delegate(Primitive prim)
+                    delegate (Primitive prim)
                     {
                         return (prim.LocalID == localid || prim.ParentID == localid);
                     }
@@ -162,8 +161,8 @@ namespace OpenMetaverse.TestClient
             }
             else
             {
-                return "Couldn't find UUID " + id.ToString() + " in the " + 
-                    Client.Network.CurrentSim.ObjectsPrimitives.Count + 
+                return "Couldn't find UUID " + id.ToString() + " in the " +
+                    Client.Network.CurrentSim.ObjectsPrimitives.Count +
                     "objects currently indexed in the current simulator";
             }
         }
@@ -172,7 +171,7 @@ namespace OpenMetaverse.TestClient
         {
             // Create an array of the local IDs of all the prims we are requesting properties for
             uint[] localids = new uint[objects.Count];
-            
+
             lock (PrimsWaiting)
             {
                 PrimsWaiting.Clear();

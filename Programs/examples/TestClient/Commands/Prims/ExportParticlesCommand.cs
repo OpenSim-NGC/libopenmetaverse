@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -29,7 +26,7 @@ namespace OpenMetaverse.TestClient
                 for (int i = 0; i < Client.Network.Simulators.Count; i++)
                 {
                     Primitive exportPrim = Client.Network.Simulators[i].ObjectsPrimitives.Find(
-                        delegate(Primitive prim)
+                        delegate (Primitive prim)
                         {
                             return prim.ID == id;
                         }

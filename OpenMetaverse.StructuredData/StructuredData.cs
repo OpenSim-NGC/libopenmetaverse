@@ -36,7 +36,7 @@ namespace OpenMetaverse.StructuredData
     /// <summary>
     /// 
     /// </summary>
-    public enum OSDType:byte
+    public enum OSDType : byte
     {
         /// <summary></summary>
         Unknown,
@@ -103,7 +103,7 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.String:
                     string s = ((OSDString)this).value;
                     if (String.IsNullOrEmpty(s))
-                    return false;
+                        return false;
                     if (s == "0" || s.ToLower() == "false")
                         return false;
                     return true;
@@ -177,7 +177,7 @@ namespace OpenMetaverse.StructuredData
                     return Utils.DateTimeToUnixTime(((OSDDate)this).value);
                 case OSDType.Binary:
                     byte[] b = ((OSDBinary)this).value;
-                    if(b.Length < 4)
+                    if (b.Length < 4)
                         return 0;
                     return (uint)(
                         (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]);
@@ -221,38 +221,38 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.Date:
                     return Utils.DateTimeToUnixTime(((OSDDate)this).value);
                 case OSDType.Binary:
-                {
-                    byte[] b = ((OSDBinary)this).value;
-                    if(b.Length < 8)
-                        return 0;
-                    return (
-                        ((long)b[0] << 56) |
-                        ((long)b[1] << 48) |
-                        ((long)b[2] << 40) |
-                        ((long)b[3] << 32) |
-                        ((long)b[4] << 24) |
-                        ((long)b[5] << 16) |
-                        ((long)b[6] << 8) |
-                        b[7]);
-                }
+                    {
+                        byte[] b = ((OSDBinary)this).value;
+                        if (b.Length < 8)
+                            return 0;
+                        return (
+                            ((long)b[0] << 56) |
+                            ((long)b[1] << 48) |
+                            ((long)b[2] << 40) |
+                            ((long)b[3] << 32) |
+                            ((long)b[4] << 24) |
+                            ((long)b[5] << 16) |
+                            ((long)b[6] << 8) |
+                            b[7]);
+                    }
                 case OSDType.Array:
-                {
-                    List<OSD> l = ((OSDArray)this).value;
-                    if (l.Count < 8)
-                        return 0;
-                    byte[] b = new byte[8];
-                    for (int i = 0; i < 8; i++)
-                        b[i] = (byte)l[i].AsInteger();
-                    return (
-                        ((long)b[0] << 56) |
-                        ((long)b[1] << 48) |
-                        ((long)b[2] << 40) |
-                        ((long)b[3] << 32) |
-                        ((long)b[4] << 24) |
-                        ((long)b[5] << 16) |
-                        ((long)b[6] << 8) |
-                        b[7]);
-                }
+                    {
+                        List<OSD> l = ((OSDArray)this).value;
+                        if (l.Count < 8)
+                            return 0;
+                        byte[] b = new byte[8];
+                        for (int i = 0; i < 8; i++)
+                            b[i] = (byte)l[i].AsInteger();
+                        return (
+                            ((long)b[0] << 56) |
+                            ((long)b[1] << 48) |
+                            ((long)b[2] << 40) |
+                            ((long)b[3] << 32) |
+                            ((long)b[4] << 24) |
+                            ((long)b[5] << 16) |
+                            ((long)b[6] << 8) |
+                            b[7]);
+                    }
                 default:
                     return 0;
             }
@@ -285,38 +285,38 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.Date:
                     return Utils.DateTimeToUnixTime(((OSDDate)this).value);
                 case OSDType.Binary:
-                {
-                    byte[] b = ((OSDBinary)this).value;
-                    if (b.Length < 8)
-                        return 0;
-                    return (
-                        ((ulong)b[0] << 56) |
-                        ((ulong)b[1] << 48) |
-                        ((ulong)b[2] << 40) |
-                        ((ulong)b[3] << 32) |
-                        ((ulong)b[4] << 24) |
-                        ((ulong)b[5] << 16) |
-                        ((ulong)b[6] << 8) |
-                        b[7]);
-                }
+                    {
+                        byte[] b = ((OSDBinary)this).value;
+                        if (b.Length < 8)
+                            return 0;
+                        return (
+                            ((ulong)b[0] << 56) |
+                            ((ulong)b[1] << 48) |
+                            ((ulong)b[2] << 40) |
+                            ((ulong)b[3] << 32) |
+                            ((ulong)b[4] << 24) |
+                            ((ulong)b[5] << 16) |
+                            ((ulong)b[6] << 8) |
+                            b[7]);
+                    }
                 case OSDType.Array:
-                {
-                    List<OSD> l = ((OSDArray)this).value;
-                    if (l.Count < 8)
-                        return 0;
-                    byte[] b = new byte[8];
-                    for (int i = 0; i < 8; i++)
-                        b[i] = (byte)l[i].AsInteger();
-                    return (
-                        ((ulong)b[0] << 56) |
-                        ((ulong)b[1] << 48) |
-                        ((ulong)b[2] << 40) |
-                        ((ulong)b[3] << 32) |
-                        ((ulong)b[4] << 24) |
-                        ((ulong)b[5] << 16) |
-                        ((ulong)b[6] << 8) |
-                        b[7]);
-                }
+                    {
+                        List<OSD> l = ((OSDArray)this).value;
+                        if (l.Count < 8)
+                            return 0;
+                        byte[] b = new byte[8];
+                        for (int i = 0; i < 8; i++)
+                            b[i] = (byte)l[i].AsInteger();
+                        return (
+                            ((ulong)b[0] << 56) |
+                            ((ulong)b[1] << 48) |
+                            ((ulong)b[2] << 40) |
+                            ((ulong)b[3] << 32) |
+                            ((ulong)b[4] << 24) |
+                            ((ulong)b[5] << 16) |
+                            ((ulong)b[6] << 8) |
+                            b[7]);
+                    }
                 default:
                     return 0;
             }
@@ -394,7 +394,7 @@ namespace OpenMetaverse.StructuredData
                     if (UUID.TryParse(((OSDString)this).value, out uuid))
                         return uuid;
                     else
-                    return UUID.Zero;
+                        return UUID.Zero;
                 case OSDType.UUID:
                     return ((OSDUUID)this).value;
                 default:
@@ -1492,7 +1492,7 @@ namespace OpenMetaverse.StructuredData
         {
             return dicvalue.ContainsKey(key);
         }
-        
+
         public void Add(string key, OSD llsd)
         {
             dicvalue.Add(key, llsd);
@@ -1581,133 +1581,133 @@ namespace OpenMetaverse.StructuredData
                 this.value = new List<OSD>();
         }
 
-                public override byte[] AsBinary()
+        public override byte[] AsBinary()
+        {
+            byte[] binary = new byte[value.Count];
+
+            for (int i = 0; i < value.Count; i++)
+                binary[i] = (byte)value[i].AsInteger();
+
+            return binary;
+        }
+
+        public override long AsLong()
+        {
+            if (value.Count < 8)
+                return 0;
+            byte[] b = new byte[8];
+            for (int i = 0; i < 8; i++)
+                b[i] = (byte)value[i].AsInteger();
+            return (
+                ((long)b[0] << 56) |
+                ((long)b[1] << 48) |
+                ((long)b[2] << 40) |
+                ((long)b[3] << 32) |
+                ((long)b[4] << 24) |
+                ((long)b[5] << 16) |
+                ((long)b[6] << 8) |
+                b[7]);
+        }
+
+        public override ulong AsULong()
+        {
+            if (value.Count < 8)
+                return 0;
+            byte[] b = new byte[8];
+            for (int i = 0; i < 8; i++)
+                b[i] = (byte)value[i].AsInteger();
+            return (
+                ((ulong)b[0] << 56) |
+                ((ulong)b[1] << 48) |
+                ((ulong)b[2] << 40) |
+                ((ulong)b[3] << 32) |
+                ((ulong)b[4] << 24) |
+                ((ulong)b[5] << 16) |
+                ((ulong)b[6] << 8) |
+                b[7]);
+        }
+
+        public override uint AsUInteger()
+        {
+            if (value.Count < 4)
+                return 0;
+            byte[] by = new byte[4];
+            for (int i = 0; i < 4; i++)
+                by[i] = (byte)value[i].AsInteger();
+            return (uint)((by[0] << 24) | (by[1] << 16) | (by[2] << 8) | by[3]);
+        }
+        /*
+                    public override Vector2 AsVector2()
+                    {
+                        Vector2 vector = Vector2.Zero;
+
+                        if (this.Count == 2)
+                        {
+                            vector.X = (float)this[0].AsReal();
+                            vector.Y = (float)this[1].AsReal();
+                        }
+
+                        return vector;
+                    }
+
+                public override Vector3 AsVector3()
                 {
-                    byte[] binary = new byte[value.Count];
+                    Vector3 vector = Vector3.Zero;
 
-                    for (int i = 0; i < value.Count; i++)
-                        binary[i] = (byte)value[i].AsInteger();
+                    if (this.Count == 3)
+                    {
+                        vector.X = this[0].AsReal();
+                        vector.Y = this[1].AsReal();
+                        vector.Z = this[2].AsReal();
+                    }
 
-                    return binary;
+                    return vector;
                 }
 
-            public override long AsLong()
-            {
-                if (value.Count < 8)
-                    return 0;
-                byte[] b = new byte[8];
-                for (int i = 0; i < 8; i++)
-                    b[i] = (byte)value[i].AsInteger();
-                return (
-                    ((long)b[0] << 56) |
-                    ((long)b[1] << 48) |
-                    ((long)b[2] << 40) |
-                    ((long)b[3] << 32) |
-                    ((long)b[4] << 24) |
-                    ((long)b[5] << 16) |
-                    ((long)b[6] << 8) |
-                    b[7]);
-            }
-
-            public override ulong AsULong()
-            {
-                if (value.Count < 8)
-                    return 0;
-                byte[] b = new byte[8];
-                for (int i = 0; i < 8; i++)
-                    b[i] = (byte)value[i].AsInteger();
-                return (
-                    ((ulong)b[0] << 56) |
-                    ((ulong)b[1] << 48) |
-                    ((ulong)b[2] << 40) |
-                    ((ulong)b[3] << 32) |
-                    ((ulong)b[4] << 24) |
-                    ((ulong)b[5] << 16) |
-                    ((ulong)b[6] << 8) |
-                    b[7]);
-            }
-
-            public override uint AsUInteger()
-            {
-                if (value.Count < 4)
-                    return 0;
-                byte[] by = new byte[4];
-                for (int i = 0; i < 4; i++)
-                    by[i] = (byte)value[i].AsInteger();
-                return (uint)((by[0] << 24) | (by[1] << 16) | (by[2] << 8) | by[3]);
-            }
-/*
-            public override Vector2 AsVector2()
-            {
-                Vector2 vector = Vector2.Zero;
-
-                if (this.Count == 2)
+                public override Vector3d AsVector3d()
                 {
-                    vector.X = (float)this[0].AsReal();
-                    vector.Y = (float)this[1].AsReal();
+                    Vector3d vector = Vector3d.Zero;
+
+                    if (this.Count == 3)
+                    {
+                        vector.X = this[0].AsReal();
+                        vector.Y = this[1].AsReal();
+                        vector.Z = this[2].AsReal();
+                    }
+
+                    return vector;
                 }
 
-                return vector;
-            }
+                public override Vector4 AsVector4()
+                {
+                    Vector4 vector = Vector4.Zero;
 
-        public override Vector3 AsVector3()
-        {
-            Vector3 vector = Vector3.Zero;
+                    if (this.Count == 4)
+                    {
+                        vector.X = (float)this[0].AsReal();
+                        vector.Y = (float)this[1].AsReal();
+                        vector.Z = (float)this[2].AsReal();
+                        vector.W = (float)this[3].AsReal();
+                    }
 
-            if (this.Count == 3)
-            {
-                vector.X = this[0].AsReal();
-                vector.Y = this[1].AsReal();
-                vector.Z = this[2].AsReal();
-            }
+                    return vector;
+                }
 
-            return vector;
-        }
+                public override Quaternion AsQuaternion()
+                {
+                    Quaternion quaternion = Quaternion.Identity;
 
-        public override Vector3d AsVector3d()
-        {
-            Vector3d vector = Vector3d.Zero;
+                    if (this.Count == 4)
+                    {
+                        quaternion.X = (float)this[0].AsReal();
+                        quaternion.Y = (float)this[1].AsReal();
+                        quaternion.Z = (float)this[2].AsReal();
+                        quaternion.W = (float)this[3].AsReal();
+                    }
 
-            if (this.Count == 3)
-            {
-                vector.X = this[0].AsReal();
-                vector.Y = this[1].AsReal();
-                vector.Z = this[2].AsReal();
-            }
-
-            return vector;
-        }
-
-        public override Vector4 AsVector4()
-        {
-            Vector4 vector = Vector4.Zero;
-
-            if (this.Count == 4)
-            {
-                vector.X = (float)this[0].AsReal();
-                vector.Y = (float)this[1].AsReal();
-                vector.Z = (float)this[2].AsReal();
-                vector.W = (float)this[3].AsReal();
-            }
-
-            return vector;
-        }
-
-        public override Quaternion AsQuaternion()
-        {
-            Quaternion quaternion = Quaternion.Identity;
-
-            if (this.Count == 4)
-            {
-                quaternion.X = (float)this[0].AsReal();
-                quaternion.Y = (float)this[1].AsReal();
-                quaternion.Z = (float)this[2].AsReal();
-                quaternion.W = (float)this[3].AsReal();
-            }
-
-            return quaternion;
-        }
-*/
+                    return quaternion;
+                }
+        */
         public override Color4 AsColor4()
         {
             Color4 color = Color4.Black;

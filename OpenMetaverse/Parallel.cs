@@ -66,7 +66,7 @@ namespace OpenMetaverse
             for (int i = 0; i < threadCount; i++)
             {
                 WorkPool.QueueUserWorkItem(
-                    delegate(object o)
+                    delegate (object o)
                     {
                         int threadIndex = (int)o;
 
@@ -121,7 +121,7 @@ namespace OpenMetaverse
             for (int i = 0; i < threadCount; i++)
             {
                 WorkPool.QueueUserWorkItem(
-                    delegate(object o)
+                    delegate (object o)
                     {
                         int threadIndex = (int)o;
 
@@ -176,7 +176,7 @@ namespace OpenMetaverse
             for (int i = 0; i < threadCount; i++)
             {
                 WorkPool.QueueUserWorkItem(
-                    delegate(object o)
+                    delegate (object o)
                     {
                         int threadIndex = (int)o;
 

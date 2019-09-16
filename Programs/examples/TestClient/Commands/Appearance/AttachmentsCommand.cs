@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -17,7 +16,7 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             List<Primitive> attachments = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(
-                delegate(Primitive prim) { return prim.ParentID == Client.Self.LocalID; }
+                delegate (Primitive prim) { return prim.ParentID == Client.Self.LocalID; }
             );
 
             for (int i = 0; i < attachments.Count; i++)

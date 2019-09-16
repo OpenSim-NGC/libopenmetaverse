@@ -24,16 +24,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.Assets;
+using OpenMetaverse.Http;
+using OpenMetaverse.Imaging;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Drawing;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Imaging;
-using OpenMetaverse.Assets;
-using OpenMetaverse.Http;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {
@@ -350,7 +348,7 @@ namespace OpenMetaverse
 
         /// <summary>Visual parameters last sent to the sim</summary>
         public byte[] MyVisualParameters = null;
-        
+
         /// <summary>Textures about this client sent to the sim</summary>
         public Primitive.TextureEntry MyTextures = null;
 
@@ -454,7 +452,7 @@ namespace OpenMetaverse
 
             // This is the first time setting appearance, run through the entire sequence
             AppearanceThread = new Thread(
-                delegate()
+                delegate ()
                 {
                     bool success = true;
                     try
@@ -1497,7 +1495,7 @@ namespace OpenMetaverse
             Logger.DebugLog("Downloading " + pendingWearables + " wearable assets");
 
             Parallel.ForEach<WearableData>(Math.Min(pendingWearables, MAX_CONCURRENT_DOWNLOADS), wearables.Values,
-                delegate(WearableData wearable)
+                delegate (WearableData wearable)
                 {
                     if (wearable.Asset == null)
                     {
@@ -1505,7 +1503,7 @@ namespace OpenMetaverse
 
                         // Fetch this wearable asset
                         Client.Assets.RequestAsset(wearable.AssetID, wearable.AssetType, true,
-                            delegate(AssetDownload transfer, Asset asset)
+                            delegate (AssetDownload transfer, Asset asset)
                             {
                                 if (transfer.Success && asset is AssetWearable)
                                 {
@@ -1616,14 +1614,14 @@ namespace OpenMetaverse
             Logger.DebugLog("Downloading " + textureIDs.Count + " textures for baking");
 
             Parallel.ForEach<UUID>(MAX_CONCURRENT_DOWNLOADS, textureIDs,
-                delegate(UUID textureID)
+                delegate (UUID textureID)
                 {
                     try
                     {
                         AutoResetEvent downloadEvent = new AutoResetEvent(false);
 
                         Client.Assets.RequestImage(textureID,
-                            delegate(TextureRequestState state, AssetTexture assetTexture)
+                            delegate (TextureRequestState state, AssetTexture assetTexture)
                             {
                                 if (state == TextureRequestState.Finished)
                                 {
@@ -1650,7 +1648,7 @@ namespace OpenMetaverse
                     catch (Exception e)
                     {
                         Logger.Log(
-                            string.Format("Download of texture {0} failed with exception {1}", textureID, e), 
+                            string.Format("Download of texture {0} failed with exception {1}", textureID, e),
                             Helpers.LogLevel.Warning, Client);
                     }
                 }
@@ -1687,7 +1685,7 @@ namespace OpenMetaverse
                 DownloadTextures(pendingBakes);
 
                 Parallel.ForEach<BakeType>(Math.Min(MAX_CONCURRENT_UPLOADS, pendingBakes.Count), pendingBakes,
-                    delegate(BakeType bakeType)
+                    delegate (BakeType bakeType)
                     {
                         if (!CreateBake(bakeType))
                             success = false;
@@ -1763,7 +1761,7 @@ namespace OpenMetaverse
             AutoResetEvent uploadEvent = new AutoResetEvent(false);
 
             Client.Assets.RequestUploadBakedTexture(textureData,
-                delegate(UUID newAssetID)
+                delegate (UUID newAssetID)
                 {
                     bakeID = newAssetID;
                     uploadEvent.Set();
@@ -1955,7 +1953,7 @@ namespace OpenMetaverse
                 int vpIndex = 0;
                 int nrParams;
                 bool wearingPhysics = false;
-                
+
                 foreach (WearableData wearable in Wearables.Values)
                 {
                     if (wearable.WearableType == WearableType.Physics)

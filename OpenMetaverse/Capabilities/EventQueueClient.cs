@@ -24,10 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.StructuredData;
 using System;
 using System.Net;
 using System.Threading;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Http
 {
@@ -208,7 +208,7 @@ namespace OpenMetaverse.Http
                 // Resume the connection. The event handler for the connection opening
                 // just sets class _Request variable to the current HttpWebRequest
                 CapsBase.UploadDataAsync(_Address, null, "application/xml", postData, REQUEST_TIMEOUT,
-                    delegate(HttpWebRequest newRequest) { _Request = newRequest; }, null, RequestCompletedHandler);
+                    delegate (HttpWebRequest newRequest) { _Request = newRequest; }, null, RequestCompletedHandler);
 
                 // If the event queue is dead at this point, turn it off since
                 // that was the last thing we want to do

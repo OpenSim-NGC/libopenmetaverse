@@ -26,11 +26,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
-using System.Diagnostics;
-using System.Threading;
 using System.Text;
+using System.Threading;
 
 namespace OpenMetaverse.Voice
 {
@@ -73,7 +73,7 @@ namespace OpenMetaverse.Voice
             StopDaemon();
             daemonLoopSignal.Set();
 
-            Thread thread = new Thread(new ThreadStart(delegate()
+            Thread thread = new Thread(new ThreadStart(delegate ()
             {
                 while (daemonLoopSignal.WaitOne(500, false))
                 {
@@ -82,7 +82,7 @@ namespace OpenMetaverse.Voice
                     daemonProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(path);
                     daemonProcess.StartInfo.Arguments = args;
                     daemonProcess.StartInfo.UseShellExecute = false;
-                    
+
                     if (Environment.OSVersion.Platform == PlatformID.Unix)
                     {
                         string ldPath = string.Empty;
@@ -184,7 +184,7 @@ namespace OpenMetaverse.Voice
 
             daemonPipe = new TCPPipe();
             daemonPipe.OnDisconnected +=
-                delegate(SocketException e)
+                delegate (SocketException e)
                 {
                     if (OnDaemonDisconnected != null)
                     {
@@ -323,7 +323,7 @@ namespace OpenMetaverse.Voice
                         foreach (CaptureDevice device in rsp.Results.CaptureDevices)
                             inputDevices.Add(device.Device);
                         currentCaptureDevice = rsp.Results.CurrentCaptureDevice.Device;
- 
+
                         if (OnAuxGetCaptureDevicesResponse != null && rsp.Results.CaptureDevices.Count > 0)
                         {
                             OnAuxGetCaptureDevicesResponse(
@@ -342,7 +342,7 @@ namespace OpenMetaverse.Voice
 
                         if (rsp.Results.RenderDevices.Count == 0 || rsp.Results.CurrentRenderDevice == null)
                             break;
-						
+
                         foreach (RenderDevice device in rsp.Results.RenderDevices)
                             outputDevices.Add(device.Device);
 
@@ -642,7 +642,7 @@ namespace OpenMetaverse.Voice
                                     int.Parse(evt.IsMuted) != 0,
                                     int.Parse(evt.Volume),
                                     int.Parse(evt.TransmitEnabled) != 0,
-+                                   int.Parse(evt.IsFocused) != 0));
++int.Parse(evt.IsFocused) != 0));
                         }
                         break;
 

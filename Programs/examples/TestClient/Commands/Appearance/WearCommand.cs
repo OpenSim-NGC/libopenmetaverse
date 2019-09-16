@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -35,7 +34,7 @@ namespace OpenMetaverse.TestClient
                 return "Outfit path " + target + " not found";
             }
 
-            List<InventoryBase> contents =  Client.Inventory.FolderContents(folder, Client.Self.AgentID, true, true, InventorySortOrder.ByName, 20 * 1000);
+            List<InventoryBase> contents = Client.Inventory.FolderContents(folder, Client.Self.AgentID, true, true, InventorySortOrder.ByName, 20 * 1000);
             List<InventoryItem> items = new List<InventoryItem>();
 
             if (contents == null)

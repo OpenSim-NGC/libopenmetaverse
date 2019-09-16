@@ -25,22 +25,22 @@
  */
 
 using System;
-using System.Net;
-using System.Text;
-using System.Reflection;
 using System.IO;
+using System.Net;
+using System.Reflection;
+using System.Text;
 
 namespace OpenMetaverse
 {
     public static partial class Utils
     {
-//        public static readonly bool NoAlignment = CheckNeedAlignment();
+        //        public static readonly bool NoAlignment = CheckNeedAlignment();
         public static readonly bool CanDirectCopyLE = CheckNeedAlignment();
-//        public static readonly bool CanDirectCopyBE = CheckDirectCopyBE();
+        //        public static readonly bool CanDirectCopyBE = CheckDirectCopyBE();
 
         public unsafe static bool CheckNeedAlignment()
         {
-            if(!BitConverter.IsLittleEndian)
+            if (!BitConverter.IsLittleEndian)
                 return false;
 
             byte[] bytes = new byte[4096];
@@ -75,24 +75,24 @@ namespace OpenMetaverse
                         l = *(long*)ptr;
                     if (l != ll)
                         return false;
-                    }
+                }
                 return true;
             }
             catch { }
             return false;
 
         }
-/*
-        static bool CheckDirectCopyLE()
-        {
-            return BitConverter.IsLittleEndian && NoAlignment;
-        }
+        /*
+                static bool CheckDirectCopyLE()
+                {
+                    return BitConverter.IsLittleEndian && NoAlignment;
+                }
 
-        static bool CheckDirectCopyBE()
-        {
-            return !BitConverter.IsLittleEndian && NoAlignment;
-        }
-*/
+                static bool CheckDirectCopyBE()
+                {
+                    return !BitConverter.IsLittleEndian && NoAlignment;
+                }
+        */
         #region String Arrays
 
         private static readonly string[] _AssetTypeNames = new string[]
@@ -313,12 +313,12 @@ namespace OpenMetaverse
         public static bool ApproxEqual(float a, float b, float tolerance, float reltolerance = float.Epsilon)
         {
             float dif = Math.Abs(a - b);
-            if(dif <= tolerance)
+            if (dif <= tolerance)
                 return true;
 
             a = Math.Abs(a);
             b = Math.Abs(b);
-            if(b > a)
+            if (b > a)
                 a = b;
             return dif <= a * reltolerance;
         }
@@ -389,8 +389,8 @@ namespace OpenMetaverse
                     return *(int*)p;
             }
 
-            return bytes[pos]              |
-                    (bytes[pos + 1] << 8)  |
+            return bytes[pos] |
+                    (bytes[pos + 1] << 8) |
                     (bytes[pos + 2] << 16) |
                     (bytes[pos + 3] << 24);
         }
@@ -426,8 +426,8 @@ namespace OpenMetaverse
                     return *(int*)p;
             }
             else
-                return bytes[0]      |
-                    (bytes[1] << 8)  |
+                return bytes[0] |
+                    (bytes[1] << 8) |
                     (bytes[2] << 16) |
                     (bytes[3] << 24);
         }
@@ -449,8 +449,8 @@ namespace OpenMetaverse
             }
             else
                 return
-                    bytes[0]               |
-                    ((long)bytes[1] << 8)  |
+                    bytes[0] |
+                    ((long)bytes[1] << 8) |
                     ((long)bytes[2] << 16) |
                     ((long)bytes[3] << 24) |
                     ((long)bytes[4] << 32) |
@@ -594,8 +594,8 @@ namespace OpenMetaverse
             }
             else
                 return (uint)(
-                    bytes[0]         |
-                    (bytes[1] << 8)  |
+                    bytes[0] |
+                    (bytes[1] << 8) |
                     (bytes[2] << 16) |
                     (bytes[3] << 24));
         }
@@ -665,8 +665,8 @@ namespace OpenMetaverse
             }
             else
                 return (ulong)(
-                    bytes[0]               |
-                    ((long)bytes[1] << 8)  |
+                    bytes[0] |
+                    ((long)bytes[1] << 8) |
                     ((long)bytes[2] << 16) |
                     ((long)bytes[3] << 24) |
                     ((long)bytes[4] << 32) |
@@ -695,8 +695,8 @@ namespace OpenMetaverse
             else
             {
                 int tmp =
-                    bytes[0]         |
-                    (bytes[1] << 8)  |
+                    bytes[0] |
+                    (bytes[1] << 8) |
                     (bytes[2] << 16) |
                     (bytes[3] << 24);
                 return *(float*)&tmp;
@@ -978,7 +978,7 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void UIntToBytesBig(uint value, byte[] dest, int pos)
         {
-           IntToBytesBig((int)value, dest, pos);
+            IntToBytesBig((int)value, dest, pos);
         }
 
         /// <summary>
@@ -1113,7 +1113,7 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void UInt64ToBytesBig(ulong value, byte[] dest, int pos)
         {
-            Int64ToBytesBig((long) value, dest, pos);
+            Int64ToBytesBig((long)value, dest, pos);
         }
 
         /// <summary>

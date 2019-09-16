@@ -24,26 +24,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using GridProxy;
+using Nwc.XmlRpc;
+using OpenMetaverse;
+using OpenMetaverse.Interfaces;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 using System;
-using System.IO;
-using System.Net;
-using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Text.RegularExpressions;
 using System.Drawing;
-using System.Text;
-using System.Windows.Forms;
+using System.IO;
+using System.Net;
 using System.Reflection;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
-using GridProxy;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Interfaces;
+using System.Windows.Forms;
 using System.Xml;
-using Nwc.XmlRpc;
 using Logger = OpenMetaverse.Logger;
 
 namespace WinGridProxy
@@ -676,7 +675,7 @@ namespace WinGridProxy
 
             if (!String.IsNullOrEmpty(opts.SearchText))
             {
-                Thread sThread = new Thread(delegate()
+                Thread sThread = new Thread(delegate ()
                 {
                     SearchSessions(opts);
                 });
@@ -843,12 +842,12 @@ namespace WinGridProxy
                     importedSession.Deserialize(session["tag"].AsBinary());
 
                     ListViewItem addedItem = new ListViewItem(new string[] {
-                        session["id"].AsString(), 
+                        session["id"].AsString(),
                         importedSession.TimeStamp.ToString("HH:mm:ss.fff"),
                         importedSession.Protocol,
                         importedSession.Name,
                         importedSession.Length.ToString(),
-                        importedSession.Host, 
+                        importedSession.Host,
                         importedSession.ContentType});
                     AddSession(addedItem);
                     //addedItem.ImageIndex = session["image_index"].AsInteger();
@@ -1062,7 +1061,7 @@ namespace WinGridProxy
                         /*|| TagToString(item.Tag, item.SubItems[2].Text).Contains(opts.SearchText)*/)
                         ) // no case matching
                         || ((item.SubItems[3].Text.ToLower().Contains(opts.SearchText.ToLower())
-                        /*|| TagToString(item.Tag, item.SubItems[2].Text).ToLower().Contains(opts.SearchText.ToLower())*/
+                            /*|| TagToString(item.Tag, item.SubItems[2].Text).ToLower().Contains(opts.SearchText.ToLower())*/
                             ))
                         )
                     {
@@ -1249,7 +1248,7 @@ namespace WinGridProxy
             {
                 toolStripMenuSessionsRemove.Enabled =
                 toolStripSeparatorSelectPacketProto.Visible =
-                    //                toolStripMenuItemSelectProtocol.Visible =
+                //                toolStripMenuItemSelectProtocol.Visible =
                 toolStripMenuItemSelectPacketName.Visible =
                 findToolStripMenuItem.Enabled =
                 selectToolStripMenuItem1.Enabled =

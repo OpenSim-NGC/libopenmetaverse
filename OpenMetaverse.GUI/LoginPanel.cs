@@ -117,7 +117,7 @@ namespace OpenMetaverse.GUI
                     if (start.Length < 2 || int.TryParse(start[1], out x)) x = 128;
                     if (start.Length < 3 || int.TryParse(start[2], out y)) y = 128;
                     if (start.Length < 4 || int.TryParse(start[3], out z)) z = 0;
-                    
+
                     return NetworkManager.StartLocation(start[0], x, y, z);
                 }
             }
@@ -196,7 +196,7 @@ namespace OpenMetaverse.GUI
                 LoginThread.Abort();
                 LoginThread = null;
             }
-            LoginThread = new Thread(new ThreadStart(delegate() { _Client.Network.Login(_LoginParams); }));
+            LoginThread = new Thread(new ThreadStart(delegate () { _Client.Network.Login(_LoginParams); }));
             LoginThread.Start();
         }
 
@@ -204,7 +204,7 @@ namespace OpenMetaverse.GUI
         private void SetText(object control, string text)
         {
             if (this.InvokeRequired)
-                this.BeginInvoke(new MethodInvoker(delegate() { SetText(control, text); }));
+                this.BeginInvoke(new MethodInvoker(delegate () { SetText(control, text); }));
             else
             {
                 if (control is Button) ((Button)control).Text = text;
@@ -272,13 +272,13 @@ namespace OpenMetaverse.GUI
         private void Network_OnDisconnected(object sender, DisconnectedEventArgs e)
         {
             if (!this.IsHandleCreated) return;
-                
+
             SetText(btnLogin, "Login");
         }
 
         private void Network_OnLogin(object sender, LoginProgressEventArgs e)
         {
-            if (!this.IsHandleCreated) return; 
+            if (!this.IsHandleCreated) return;
 
             SetText(btnLogin, "Logout");
 

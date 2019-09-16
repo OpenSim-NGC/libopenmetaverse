@@ -1,15 +1,12 @@
 
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Net;
-using System.Text.RegularExpressions;
-using System.Reflection;
 using Nwc.XmlRpc;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
-using GridProxy;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Reflection;
 using Logger = OpenMetaverse.Logger;
 
 

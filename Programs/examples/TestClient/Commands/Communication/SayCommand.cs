@@ -1,11 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
-    public class SayCommand: Command
+    public class SayCommand : Command
     {
         public SayCommand(TestClient testClient)
         {
@@ -34,7 +31,7 @@ namespace OpenMetaverse.TestClient
             for (int i = startIndex; i < args.Length; i++)
             {
                 // Append a space before the next arg
-                if( i > 0 )
+                if (i > 0)
                     message += " ";
                 message += args[i];
             }

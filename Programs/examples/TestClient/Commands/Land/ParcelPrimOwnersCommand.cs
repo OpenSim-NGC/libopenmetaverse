@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Threading;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -28,7 +26,7 @@ namespace OpenMetaverse.TestClient
             {
                 AutoResetEvent wait = new AutoResetEvent(false);
 
-                EventHandler<ParcelObjectOwnersReplyEventArgs> callback = delegate(object sender, ParcelObjectOwnersReplyEventArgs e)
+                EventHandler<ParcelObjectOwnersReplyEventArgs> callback = delegate (object sender, ParcelObjectOwnersReplyEventArgs e)
                 {
                     for (int i = 0; i < e.PrimOwners.Count; i++)
                     {
@@ -39,20 +37,20 @@ namespace OpenMetaverse.TestClient
 
 
                 Client.Parcels.ParcelObjectOwnersReply += callback;
-                
+
                 Client.Parcels.RequestObjectOwners(Client.Network.CurrentSim, parcelID);
                 if (!wait.WaitOne(10000, false))
                 {
                     result.AppendLine("Timed out waiting for packet.");
                 }
                 Client.Parcels.ParcelObjectOwnersReply -= callback;
-                
+
                 return result.ToString();
             }
             else
             {
                 return String.Format("Unable to find Parcel {0} in Parcels Dictionary, Did you run parcelinfo to populate the dictionary first?", args[0]);
             }
-        }        
+        }
     }
 }

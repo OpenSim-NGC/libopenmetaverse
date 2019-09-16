@@ -24,12 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Text;
 using NUnit.Framework;
-using System.Collections;
 using OpenMetaverse.StructuredData;
+using System;
+using System.Text;
 
 namespace OpenMetaverse.Tests
 {
@@ -115,7 +113,7 @@ namespace OpenMetaverse.Tests
             Assert.IsTrue(tempSD is OSDReal);
             Assert.IsTrue(tempSD.Type == OSDType.Real);
             tempReal = (OSDReal)tempSD;
-            
+
             Assert.AreEqual(0.9878624d, tempReal.AsReal());
             //TODO - figure out any relevant rounding variability for 64 bit reals
             tempSD = map["sim fps"];
@@ -450,12 +448,12 @@ namespace OpenMetaverse.Tests
 
             Assert.AreEqual(OSDType.Binary, array[0].Type);
             tempBinary = (OSDBinary)array[0];
-            byte[] testData1 = {114, 97, 110, 100, 111, 109};
+            byte[] testData1 = { 114, 97, 110, 100, 111, 109 };
             TestHelper.TestBinary(tempBinary, testData1);
 
             Assert.AreEqual(OSDType.Binary, array[1].Type);
             tempBinary = (OSDBinary)array[1];
-            byte[] testData2 = {116, 104, 101, 32, 113, 117, 105, 99, 107, 32, 98, 
+            byte[] testData2 = {116, 104, 101, 32, 113, 117, 105, 99, 107, 32, 98,
                                 114, 111, 119, 110, 32, 102, 111, 120};
             TestHelper.TestBinary(tempBinary, testData2);
 

@@ -25,7 +25,6 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
@@ -66,7 +65,7 @@ namespace OpenMetaverse.GUI
             rtfOutput.Height = this.Height - txtInput.Height;
             rtfOutput.ReadOnly = true;
             rtfOutput.Top = 0;
-            rtfOutput.Left = 0;           
+            rtfOutput.Left = 0;
 
             txtInput.Dock = DockStyle.Bottom;
             txtInput.KeyDown += new KeyEventHandler(txtInput_KeyDown);
@@ -77,7 +76,7 @@ namespace OpenMetaverse.GUI
         /// <summary>
         /// Panel control for the specified client's local chat interaction
         /// </summary>
-        public LocalChat(GridClient client) : this ()
+        public LocalChat(GridClient client) : this()
         {
             _Client = client;
         }
@@ -121,7 +120,7 @@ namespace OpenMetaverse.GUI
                     output = string.Format("{0}[{1}:{2}] {3}{4}: {5}", Environment.NewLine, now.Hour.ToString().PadLeft(2, '0'), now.Minute.ToString().PadLeft(2, '0'), name, volume, message);
                 }
 
-                rtfOutput.SelectedText = output;                
+                rtfOutput.SelectedText = output;
                 rtfOutput.ScrollToCaret();
 
                 if (LogFile != null)

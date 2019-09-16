@@ -27,8 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Text.RegularExpressions;
-using OpenMetaverse;
 
 namespace OpenMetaverse.Assets
 {
@@ -181,7 +179,7 @@ namespace OpenMetaverse.Assets
         /// </summary>
         public float WaitTime;
 
-        public override string  ToString()
+        public override string ToString()
         {
             StringBuilder ret = new StringBuilder("-- Wait for: ");
 

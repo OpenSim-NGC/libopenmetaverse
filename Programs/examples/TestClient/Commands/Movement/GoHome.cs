@@ -1,11 +1,8 @@
-using System;
-using OpenMetaverse;
-
 namespace OpenMetaverse.TestClient
 {
     public class GoHomeCommand : Command
     {
-		public GoHomeCommand(TestClient testClient)
+        public GoHomeCommand(TestClient testClient)
         {
             Name = "gohome";
             Description = "Teleports home";
@@ -14,11 +11,14 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-			if ( Client.Self.GoHome() ) {
-				return "Teleport Home Succesful";
-			} else {
-				return "Teleport Home Failed";
-			}
+            if (Client.Self.GoHome())
+            {
+                return "Teleport Home Succesful";
+            }
+            else
+            {
+                return "Teleport Home Failed";
+            }
         }
     }
 }

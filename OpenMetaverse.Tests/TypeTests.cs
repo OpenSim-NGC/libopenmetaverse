@@ -24,13 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
 using NUnit.Framework;
+using OpenMetaverse.StructuredData;
+using System;
+using System.Collections.Generic;
 
 namespace OpenMetaverse.Tests
 {
@@ -52,7 +49,7 @@ namespace OpenMetaverse.Tests
             UUID b = new UUID(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
                 0x0B, 0x0C, 0x0D, 0x0E, 0x0F }, 0);
 
-            Assert.IsTrue(a == b, "UUID comparison operator failed, " + a.ToString() + " should equal " + 
+            Assert.IsTrue(a == b, "UUID comparison operator failed, " + a.ToString() + " should equal " +
                 b.ToString());
 
             // From string
@@ -61,11 +58,11 @@ namespace OpenMetaverse.Tests
             string zeroonetwo = "00010203-0405-0607-0809-0a0b0c0d0e0f";
             b = new UUID(zeroonetwo);
 
-            Assert.IsTrue(a == b, "UUID hyphenated string constructor failed, should have " + a.ToString() + 
+            Assert.IsTrue(a == b, "UUID hyphenated string constructor failed, should have " + a.ToString() +
                 " but we got " + b.ToString());
 
             // ToString()            
-            Assert.IsTrue(a == b);                        
+            Assert.IsTrue(a == b);
             Assert.IsTrue(a == (UUID)zeroonetwo);
 
             // TODO: CRC test
@@ -189,31 +186,31 @@ namespace OpenMetaverse.Tests
             Assert.IsTrue(result == expected, a.ToString() + " * " + b.ToString() + " produced " + result.ToString() +
                 " instead of " + expected.ToString());
         }
-        
+
         [Test]
         public void testMatrix()
         {
-    	    Matrix4 matrix = new Matrix4(0, 0, 74, 1,
-				                         0, 435, 0, 1,
-				                         345, 0, 34, 1,
-				                         0, 0, 0, 0);
-    	
-    	    /* determinant of singular matrix returns zero */
-    	    Assert.AreEqual(0d, (double)matrix.Determinant(), 0.001d);
-    	
-    	    /* inverse of identity matrix is the identity matrix */
-       	    Assert.IsTrue(Matrix4.Identity == Matrix4.Inverse(Matrix4.Identity));
-  	 
-    	    /* inverse of non-singular matrix returns True And InverseMatrix */
+            Matrix4 matrix = new Matrix4(0, 0, 74, 1,
+                                         0, 435, 0, 1,
+                                         345, 0, 34, 1,
+                                         0, 0, 0, 0);
+
+            /* determinant of singular matrix returns zero */
+            Assert.AreEqual(0d, (double)matrix.Determinant(), 0.001d);
+
+            /* inverse of identity matrix is the identity matrix */
+            Assert.IsTrue(Matrix4.Identity == Matrix4.Inverse(Matrix4.Identity));
+
+            /* inverse of non-singular matrix returns True And InverseMatrix */
             matrix = new Matrix4(1, 1, 0, 0,
-    			    		     1, 1, 1, 0,
-    					         0, 1, 1, 0,
-    					         0, 0, 0, 1);
-    	    Matrix4 expectedInverse = new Matrix4(0, 1,-1, 0,
-    						                      1,-1, 1, 0,
-    						                     -1, 1, 0, 0,
-    						                      0, 0, 0, 1);
-    	    Assert.AreEqual(expectedInverse, Matrix4.Inverse(matrix));
+                                 1, 1, 1, 0,
+                                 0, 1, 1, 0,
+                                 0, 0, 0, 1);
+            Matrix4 expectedInverse = new Matrix4(0, 1, -1, 0,
+                                                  1, -1, 1, 0,
+                                                 -1, 1, 0, 0,
+                                                  0, 0, 0, 1);
+            Assert.AreEqual(expectedInverse, Matrix4.Inverse(matrix));
         }
 
         //[Test]
@@ -234,7 +231,7 @@ namespace OpenMetaverse.Tests
             float f = 1.20f;
             string a = String.Empty;
             string b = "1.2";
-            
+
             a = Helpers.FloatToTerseString(f);
             Assert.IsTrue(a == b, f.ToString() + " converted to " + a + ", expecting " + b);
 

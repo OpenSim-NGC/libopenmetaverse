@@ -10,9 +10,6 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using CSJ2K.j2k.image;
-using CSJ2K.j2k.io;
-using CSJ2K.j2k;
 
 namespace CSJ2K.j2k.image.input
 {
@@ -232,7 +229,7 @@ namespace CSJ2K.j2k.image.input
                 unsafe
                 {
                     byte* ptr = (byte*)data.Scan0.ToPointer();
-                    
+
                     int k = 0;
                     for (int j = 0; j < blk.w * blk.h; j++)
                     {

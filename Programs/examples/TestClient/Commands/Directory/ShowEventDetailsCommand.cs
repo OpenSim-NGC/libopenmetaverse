@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace OpenMetaverse.TestClient.Commands
@@ -17,7 +16,7 @@ namespace OpenMetaverse.TestClient.Commands
         {
             if (args.Length < 1)
                 return "Usage: showevent [eventID] (use searchevents to get ID)";
-            
+
             Client.Directory.EventInfoReply += Directory_EventDetails;
             uint eventID;
 
@@ -38,7 +37,7 @@ namespace OpenMetaverse.TestClient.Commands
             Helpers.GlobalPosToRegionHandle((float)e.MatchedEvent.GlobalPos.X, (float)e.MatchedEvent.GlobalPos.Y, out x, out y);
             StringBuilder sb = new StringBuilder("secondlife://" + e.MatchedEvent.SimName + "/" + x + "/" + y + "/0" + System.Environment.NewLine);
             sb.AppendLine(e.MatchedEvent.ToString());
-            
+
             //sb.AppendFormat("       Name: {0} ({1})" + System.Environment.NewLine, e.MatchedEvent.Name, e.MatchedEvent.ID);
             //sb.AppendFormat("   Location: {0}/{1}/{2}" + System.Environment.NewLine, e.MatchedEvent.SimName, x, y);
             //sb.AppendFormat("       Date: {0}" + System.Environment.NewLine, e.MatchedEvent.Date);

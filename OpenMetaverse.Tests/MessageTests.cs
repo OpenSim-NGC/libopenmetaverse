@@ -24,18 +24,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using NUnit.Framework;
+using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.StructuredData;
 using System;
 using System.IO;
 using System.Net;
-using System.Collections.Generic;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Xml.Serialization;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Messages.Linden;
-using NUnit.Framework;
 
 namespace OpenMetaverse.Tests
 {

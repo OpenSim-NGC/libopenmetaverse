@@ -1,8 +1,7 @@
-﻿using System;
+﻿using OpenMetaverse.Assets;
+using System;
 using System.IO;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -34,9 +33,12 @@ namespace OpenMetaverse.TestClient
             if (!UUID.TryParse(args[0], out AssetID))
                 return usage;
 
-            try {
+            try
+            {
                 assetType = (AssetType)Enum.Parse(typeof(AssetType), args[1], true);
-            } catch (ArgumentException) {
+            }
+            catch (ArgumentException)
+            {
                 return usage;
             }
             if (!Enum.IsDefined(typeof(AssetType), assetType))

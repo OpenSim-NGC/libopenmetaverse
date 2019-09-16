@@ -24,14 +24,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.Http;
+using OpenMetaverse.Interfaces;
+using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using OpenMetaverse.Http;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {

@@ -24,12 +24,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Assets
 {
@@ -252,7 +251,7 @@ namespace OpenMetaverse.Assets
 
             obj.RegionHandle = (ulong)reader.ReadElementContentAsLong("RegionHandle", String.Empty);
             obj.RemoteScriptAccessPIN = reader.ReadElementContentAsInt("ScriptAccessPin", String.Empty);
-            
+
             if (reader.Name == "PlaySoundSlavePrims")
                 reader.ReadInnerXml();
             if (reader.Name == "LoopSoundSlavePrims")
@@ -282,7 +281,7 @@ namespace OpenMetaverse.Assets
 
             obj.LinkNumber = reader.ReadElementContentAsInt("LinkNum", String.Empty);
             obj.ClickAction = reader.ReadElementContentAsInt("ClickAction", String.Empty);
-            
+
             reader.ReadStartElement("Shape");
             obj.Shape.ProfileCurve = reader.ReadElementContentAsInt("ProfileCurve", String.Empty);
 
@@ -1070,7 +1069,7 @@ namespace OpenMetaverse.Assets
             prim.Name = obj.Properties.Name;
             prim.OwnerID = obj.Properties.OwnerID;
             prim.ParentID = obj.ParentID;
-            
+
             prim.Particles = new ParticlesBlock();
             prim.Particles.AngularVelocity = obj.ParticleSys.AngularVelocity;
             prim.Particles.Acceleration = obj.ParticleSys.PartAcceleration;
@@ -1163,7 +1162,7 @@ namespace OpenMetaverse.Assets
         {
             Primitive prim = new Primitive();
             prim.Properties = new Primitive.ObjectProperties();
-            
+
             prim.Acceleration = this.Acceleration;
             prim.AngularVelocity = this.AngularVelocity;
             prim.ClickAction = (ClickAction)this.ClickAction;

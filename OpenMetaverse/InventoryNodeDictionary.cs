@@ -26,11 +26,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace OpenMetaverse
 {
-    public class InventoryNodeDictionary: IComparer<UUID>
+    public class InventoryNodeDictionary : IComparer<UUID>
     {
         protected SortedDictionary<UUID, InventoryNode> SDictionary;
         protected Dictionary<UUID, InventoryNode> Dictionary = new Dictionary<UUID, InventoryNode>();
@@ -134,7 +133,7 @@ namespace OpenMetaverse
             {
                 Dictionary[key] = value;
                 if (Settings.SORT_INVENTORY) this.SDictionary.Add(key, value);
-            } 
+            }
         }
 
         public void Remove(UUID key)
@@ -156,7 +155,7 @@ namespace OpenMetaverse
             if (Settings.SORT_INVENTORY)
             {
                 // TODO resort SDictionary now that more data has come?  
-            } 
+            }
         }
     }
 }

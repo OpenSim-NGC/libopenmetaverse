@@ -1,12 +1,11 @@
+using OpenMetaverse;
+using OpenMetaverse.Imaging;
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using System.IO;
 using System.Drawing;
 using System.Globalization;
-using OpenMetaverse;
-using OpenMetaverse.Http;
-using OpenMetaverse.Imaging;
+using System.IO;
+using System.Threading;
 
 namespace importprimscript
 {
@@ -36,7 +35,7 @@ namespace importprimscript
             {
                 Console.WriteLine("Usage: importprimscript.exe [firstname] [lastname] [password] " +
                     "[loginuri] [Simulator] [x] [y] [z] [input.primscript]" +
-                    Environment.NewLine + "Example: importprimscript.exe My Bot password " + 
+                    Environment.NewLine + "Example: importprimscript.exe My Bot password " +
                     "Hooper 128 128 40 maya-export" + Path.DirectorySeparatorChar + "ant.primscript" +
                     Environment.NewLine + "(the loginuri is optional and only used for logging in to another grid)");
                 Environment.Exit(-1);
@@ -88,12 +87,12 @@ namespace importprimscript
             // it is safe to start uploading
             AutoResetEvent eventQueueEvent = new AutoResetEvent(false);
             EventHandler<EventQueueRunningEventArgs> eventQueueCallback =
-                delegate(object sender, EventQueueRunningEventArgs e)
+                delegate (object sender, EventQueueRunningEventArgs e)
                 {
                     if (e.Simulator == Client.Network.CurrentSim)
                         eventQueueEvent.Set();
                 };
-            
+
             Client.Network.EventQueueRunning += eventQueueCallback;
 
             int x = Int32.Parse(args[args.Length - 4]);
@@ -165,7 +164,7 @@ namespace importprimscript
 
                 // Rez this prim
                 CurrentSculpt = sculpties[i];
-                Client.Objects.AddPrim(Client.Network.CurrentSim, volume, UUID.Zero, 
+                Client.Objects.AddPrim(Client.Network.CurrentSim, volume, UUID.Zero,
                     RootPosition + CurrentSculpt.Offset, CurrentSculpt.Scale, Quaternion.Identity);
 
                 // Wait for the prim to rez and the properties be set for it
@@ -218,7 +217,7 @@ namespace importprimscript
             AutoResetEvent uploadEvent = new AutoResetEvent(false);
             Client.Inventory.RequestCreateItemFromAsset(jp2data, Path.GetFileNameWithoutExtension(filename),
                 "Uploaded with importprimscript", AssetType.Texture, InventoryType.Texture, UploadFolderID,
-                delegate(bool success, string status, UUID itemID, UUID assetID)
+                delegate (bool success, string status, UUID itemID, UUID assetID)
                 {
                     if (success)
                     {

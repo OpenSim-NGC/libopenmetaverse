@@ -24,8 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
 using OpenMetaverse.StructuredData;
+using System;
 
 namespace OpenMetaverse
 {

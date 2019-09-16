@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 using System.Text;
+using System.Threading;
 
 namespace OpenMetaverse.TestClient
 {
@@ -12,7 +10,7 @@ namespace OpenMetaverse.TestClient
     /// </summary>
     public class GroupRolesCommand : Command
     {
-            private ManualResetEvent GroupsEvent = new ManualResetEvent(false);
+        private ManualResetEvent GroupsEvent = new ManualResetEvent(false);
         private string GroupName;
         private UUID GroupUUID;
         private UUID GroupRequestID;
@@ -35,8 +33,9 @@ namespace OpenMetaverse.TestClient
             GroupName = GroupName.Trim();
 
             GroupUUID = Client.GroupName2UUID(GroupName);
-            if (UUID.Zero != GroupUUID) {
-                Client.Groups.GroupRoleDataReply += Groups_GroupRoles;                
+            if (UUID.Zero != GroupUUID)
+            {
+                Client.Groups.GroupRoleDataReply += Groups_GroupRoles;
                 GroupRequestID = Client.Groups.RequestGroupRoles(GroupUUID);
                 GroupsEvent.WaitOne(30000, false);
                 GroupsEvent.Reset();
@@ -61,7 +60,7 @@ namespace OpenMetaverse.TestClient
                 sb.AppendFormat("GroupRole: RoleCount {0}", e.Roles.Count).AppendLine();
                 Console.WriteLine(sb.ToString());
                 GroupsEvent.Set();
-            } 
-        }       
+            }
+        }
     }
 }

@@ -25,8 +25,8 @@
  */
 
 using System;
-using System.Reflection;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace OpenMetaverse
 {
@@ -157,7 +157,7 @@ namespace OpenMetaverse
             Type type = typeof(Sounds);
             foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
             {
-                dict.Add((UUID)field.GetValue(type), field.Name);                              
+                dict.Add((UUID)field.GetValue(type), field.Name);
             }
             return dict;
         }
