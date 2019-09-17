@@ -1668,11 +1668,11 @@ namespace OpenMetaverse.Packets
         private static void RecursePacketArray(FieldInfo fieldInfo, object packet, ref StringBuilder result)
         {
             var packetDataObject = fieldInfo.GetValue(packet);
-
+            int k = -1;
             foreach (object nestedArrayRecord in packetDataObject as Array)
             {
                 FieldInfo[] fields = nestedArrayRecord.GetType().GetFields();
-
+                ++k;
                 for (int i = 0; i < fields.Length; i++)
                 {
                     String special;
@@ -1684,14 +1684,14 @@ namespace OpenMetaverse.Packets
                     else if (fields[i].FieldType.IsArray) // default for an array (probably a byte[])
                     {
                         result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
-                            fields[i].Name,
+                            fields[i].Name + "[" + k.ToString() + "]",
                             Utils.BytesToString((byte[])fields[i].GetValue(nestedArrayRecord)),
                             /*fields[i].GetValue(nestedArrayRecord).GetType().Name*/ "String");
                     }
                     else // default for a field
                     {
                         result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
-                            fields[i].Name,
+                            fields[i].Name + "[" + k.ToString() + "]",
                             fields[i].GetValue(nestedArrayRecord),
                             fields[i].GetValue(nestedArrayRecord).GetType().Name);
                     }

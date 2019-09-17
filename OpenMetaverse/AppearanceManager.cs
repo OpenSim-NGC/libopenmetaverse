@@ -72,6 +72,22 @@ namespace OpenMetaverse
         HeadTattoo,
         UpperTattoo,
         LowerTattoo,
+        HeadUnivTattoo,
+        UpperUnivTattoo,
+        LowerUnivTattoo,
+        SkirtTattoo,
+        HairTattoo,
+        EyesTattoo,
+        LeftArmTattoo,
+        LeftLegTattoo,
+        Aux1Tattoo,
+        Aux2Tattoo,
+        Aux3Tattoo,
+        LeftArmBaked,
+        LeftLegBaked,
+        Aux1Baked,
+        Aux2Baked,
+        Aux3Baked,
         NumberOfEntries
     }
 
@@ -86,7 +102,13 @@ namespace OpenMetaverse
         LowerBody = 2,
         Eyes = 3,
         Skirt = 4,
-        Hair = 5
+        Hair = 5,
+        LeftArm = 6,
+        LeftLeg = 7,
+        Aux1 = 8,
+        Aux2 = 9,
+        Aux3 = 10,
+        NumberOfEntries
     }
 
     /// <summary>
@@ -107,7 +129,7 @@ namespace OpenMetaverse
         /// <summary>Mask for multiple attachments</summary>
         public static readonly byte ATTACHMENT_ADD = 0x80;
         /// <summary>Mapping between BakeType and AvatarTextureIndex</summary>
-        public static readonly byte[] BakeIndexToTextureIndex = new byte[BAKED_TEXTURE_COUNT] { 8, 9, 10, 11, 19, 20 };
+        public static readonly byte[] BakeIndexToTextureIndex = new byte[BAKED_TEXTURE_COUNT] { 8, 9, 10, 11, 19, 20, 40, 41, 42, 43, 44 };
         /// <summary>Maximum number of concurrent downloads for wearable assets and textures</summary>
         const int MAX_CONCURRENT_DOWNLOADS = 5;
         /// <summary>Maximum number of concurrent uploads for baked textures</summary>
@@ -127,9 +149,9 @@ namespace OpenMetaverse
         const int REBAKE_DELAY = 1000 * 20;
 
         /// <summary>Total number of wearables for each avatar</summary>
-        public const int WEARABLE_COUNT = 16;
+        public const int WEARABLE_COUNT = 17;
         /// <summary>Total number of baked textures on each avatar</summary>
-        public const int BAKED_TEXTURE_COUNT = 6;
+        public const int BAKED_TEXTURE_COUNT = 11;
         /// <summary>Total number of wearables per bake layer</summary>
         public const int WEARABLES_PER_LAYER = 9;
         /// <summary>Map of what wearables are included in each bake</summary>
@@ -2387,6 +2409,7 @@ namespace OpenMetaverse
                 case WearableType.Tattoo:
                 case WearableType.Alpha:
                 case WearableType.Physics:
+                case WearableType.Universal:
                     return AssetType.Clothing;
                 default:
                     return AssetType.Unknown;
@@ -2414,6 +2437,18 @@ namespace OpenMetaverse
                     return AvatarTextureIndex.SkirtBaked;
                 case BakeType.Hair:
                     return AvatarTextureIndex.HairBaked;
+                case BakeType.LeftArm:
+                    return AvatarTextureIndex.LeftArmBaked;
+                case BakeType.LeftLeg:
+                    return AvatarTextureIndex.LeftLegBaked;
+                case BakeType.Aux1:
+                    return AvatarTextureIndex.Aux1Baked;
+                case BakeType.Aux2:
+                    return AvatarTextureIndex.Aux2Baked;
+                case BakeType.Aux3:
+                    return AvatarTextureIndex.Aux3Baked;
+
+
                 default:
                     return AvatarTextureIndex.Unknown;
             }

@@ -125,6 +125,19 @@ namespace OpenMetaverse.StructuredData
             }
         }
 
+        public static string SerializeLLSDInnerXmlString(OSD data)
+        {
+            StringWriter sw = new StringWriter();
+            using (XmlTextWriter writer = new XmlTextWriter(sw))
+            {
+                writer.Formatting = Formatting.None;
+
+                SerializeLLSDXmlElement(writer, data);
+
+                return sw.ToString();
+            }
+        }
+
         /// <summary>
         /// 
         /// </summary>

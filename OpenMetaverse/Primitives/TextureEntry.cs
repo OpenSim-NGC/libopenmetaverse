@@ -1177,7 +1177,7 @@ namespace OpenMetaverse
                             continue;
 
                         UUID id = FaceTextures[i].TextureID;
-                        if (id == null || id == DefaultTexture.m_textureID)
+                        if (id == DefaultTexture.m_textureID)
                             continue;
 
                         for (int j = i - 1; j >= 0; --j)
@@ -1614,17 +1614,15 @@ namespace OpenMetaverse
                 using (MemoryStream ms = new MemoryStream(256))
                 {
                     #region Texture
-                    ms.Write(DefaultTexture.m_textureID.GetBytes(), 0, 16);
+                    UUID defText = DefaultTexture.TextureID;
+                    ms.Write(defText.GetBytes(), 0, 16);
                     foreach (int i in bakedIndexes)
                     {
                         if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.TextureID) == 0)
-                            continue;
-
                         UUID id = FaceTextures[i].TextureID;
-                        if (id == null || id == DefaultTexture.m_textureID)
+                        if (id == defText)
                             continue;
 
                         WriteFaceBitfieldBytes(ms, (1UL << i));
@@ -1635,17 +1633,14 @@ namespace OpenMetaverse
 
                     #region Color
                     // Serialize the color bytes inverted to optimize for zerocoding
-                    ms.Write(DefaultTexture.m_rgba.GetBytes(true), 0, 4);
+                    ms.Write(DefaultTexture.RGBA.GetBytes(true), 0, 4);
                     foreach (int i in bakedIndexes)
                     {
                         if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.RGBA) == 0)
-                            continue;
-
-                        Color4 c = FaceTextures[i].m_rgba;
-                        if (c == DefaultTexture.m_rgba)
+                        Color4 c = FaceTextures[i].RGBA;
+                        if (c == DefaultTexture.RGBA)
                             continue;
 
                         WriteFaceBitfieldBytes(ms, (1UL << i));
@@ -1655,17 +1650,14 @@ namespace OpenMetaverse
                     #endregion Color
 
                     #region RepeatU
-                    float deff = DefaultTexture.m_repeatU;
+                    float deff = DefaultTexture.RepeatU;
                     Utils.FloatToBytes(ms, deff);
                     foreach (int i in bakedIndexes)
                     {
                         if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.RepeatU) == 0)
-                            continue;
-
-                        float repeat = FaceTextures[i].m_repeatU;
+                        float repeat = FaceTextures[i].RepeatU;
                         if (repeat == deff)
                             continue;
 
@@ -1676,17 +1668,14 @@ namespace OpenMetaverse
                     #endregion RepeatU
 
                     #region RepeatV
-                    deff = DefaultTexture.m_repeatV;
+                    deff = DefaultTexture.RepeatV;
                     Utils.FloatToBytes(ms, deff);
                     foreach (int i in bakedIndexes)
                     {
                         if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.RepeatV) == 0)
-                            continue;
-
-                        float repeat = FaceTextures[i].m_repeatV;
+                        float repeat = FaceTextures[i].RepeatV;
                         if (repeat == deff)
                             continue;
 
@@ -1703,9 +1692,6 @@ namespace OpenMetaverse
                     foreach (int i in bakedIndexes)
                     {
                         if (FaceTextures[i] == null)
-                            continue;
-
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.OffsetU) == 0)
                             continue;
 
                         short offset = FaceTextures[i].m_offsetU;
@@ -1726,9 +1712,6 @@ namespace OpenMetaverse
                         if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.OffsetV) == 0)
-                            continue;
-
                         short offset = FaceTextures[i].m_offsetV;
                         if (offset == def)
                             continue;
@@ -1745,9 +1728,6 @@ namespace OpenMetaverse
                     foreach (int i in bakedIndexes)
                     {
                         if (FaceTextures[i] == null)
-                            continue;
-
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.Rotation) == 0)
                             continue;
 
                         short rotation = FaceTextures[i].m_rotation;
@@ -1767,9 +1747,6 @@ namespace OpenMetaverse
                         if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.Material) == 0)
-                            continue;
-
                         byte material = FaceTextures[i].m_material;
                         if (material == DefaultTexture.m_material)
                             continue;
@@ -1785,9 +1762,6 @@ namespace OpenMetaverse
                     foreach (int i in bakedIndexes)
                     {
                         if (FaceTextures[i] == null)
-                            continue;
-
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.Media) == 0)
                             continue;
 
                         byte media = FaceTextures[i].m_media;
@@ -1808,9 +1782,6 @@ namespace OpenMetaverse
                         if (FaceTextures[i] == null)
                             continue;
 
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.Glow) == 0)
-                            continue;
-
                         byte glow = FaceTextures[i].m_glow;
                         if (glow == defg)
                             continue;
@@ -1826,9 +1797,6 @@ namespace OpenMetaverse
                     foreach (int i in bakedIndexes)
                     {
                         if (FaceTextures[i] == null)
-                            continue;
-
-                        if ((FaceTextures[i].m_attributes & TextureAttributes.MaterialID) == 0)
                             continue;
 
                         UUID materialID = FaceTextures[i].m_materialID;
