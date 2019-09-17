@@ -1595,18 +1595,18 @@ namespace OpenMetaverse
 
 
             private static List<int> AllBakedIndexes = new List<int>() { 44, 43, 42, 41, 40, 20, 19, 11, 10, 9, 8 };
-            private static List<int> LegacyBakedIndexes = new List<int>() { 20, 19, 11, 10, 9, 8 };
+            private static List<int> LegacyBakedIndexes = new List<int>() {20, 19, 11, 10, 9, 8 };
 
             public byte[] GetBakesBytes(int maxfaces = MAX_FACES)
             {
                 if (DefaultTexture == null)
                     return Utils.EmptyBytes;
 
-                if (maxfaces > FaceTextures.Length)
+                if(maxfaces > FaceTextures.Length)
                     maxfaces = FaceTextures.Length;
 
                 List<int> bakedIndexes;
-                if (maxfaces > 21)
+                if(maxfaces > 21)
                     bakedIndexes = AllBakedIndexes;
                 else
                     bakedIndexes = LegacyBakedIndexes;
