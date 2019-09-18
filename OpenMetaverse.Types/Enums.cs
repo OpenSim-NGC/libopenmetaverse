@@ -284,6 +284,8 @@ namespace OpenMetaverse
         Tattoo,
         /// <summary>Physics</summary>
         Physics,
+        /// <summary>Universal</summary>
+        Universal,
         /// <summary>Invalid wearable asset</summary>
         Invalid = 255
     };
