@@ -25,8 +25,6 @@
  */
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -46,7 +44,7 @@ namespace OpenMetaverse.GUI
         /// <summary>
         /// Triggered when the user double clicks on a friend in the list
         /// </summary>
-        public event FriendDoubleClickCallback OnFriendDoubleClick;        
+        public event FriendDoubleClickCallback OnFriendDoubleClick;
 
         /// <summary>
         /// Gets or sets the GridClient associated with this control
@@ -82,7 +80,7 @@ namespace OpenMetaverse.GUI
         /// <summary>
         /// TreeView control for the specified client's friend list
         /// </summary>
-        public FriendList(GridClient client) : this ()
+        public FriendList(GridClient client) : this()
         {
             InitializeClient(client);
         }
@@ -105,14 +103,14 @@ namespace OpenMetaverse.GUI
         {
             RefreshFriends();
         }
-        
+
 
         private void RefreshFriends()
         {
             if (this.InvokeRequired) this.BeginInvoke((MethodInvoker)delegate { RefreshFriends(); });
             else
             {
-                Client.Friends.FriendList.ForEach(delegate(FriendInfo friend)
+                Client.Friends.FriendList.ForEach(delegate (FriendInfo friend)
                 {
                     string key = friend.UUID.ToString();
                     string onlineText;

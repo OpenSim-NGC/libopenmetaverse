@@ -1,9 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using System.Text;
 
 namespace OpenMetaverse.TestClient
 {
@@ -29,7 +25,8 @@ namespace OpenMetaverse.TestClient
             groupName = groupName.Trim();
 
             UUID groupUUID = Client.GroupName2UUID(groupName);
-            if (UUID.Zero != groupUUID) {                
+            if (UUID.Zero != groupUUID)
+            {
                 Client.Groups.GroupLeaveReply += Groups_GroupLeft;
                 Client.Groups.LeaveGroup(groupUUID);
 

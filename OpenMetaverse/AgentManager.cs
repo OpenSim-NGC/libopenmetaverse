@@ -24,19 +24,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Reflection;
-using System.Collections.Generic;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Http;
 using OpenMetaverse.Assets;
-using OpenMetaverse.Packets;
+using OpenMetaverse.Http;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace OpenMetaverse
 {
@@ -2526,7 +2524,7 @@ namespace OpenMetaverse
         /// <param name="gestureID">Asset <seealso cref="UUID"/> of the gesture</param>
         public void PlayGesture(UUID gestureID)
         {
-            Thread t = new Thread(new ThreadStart(delegate()
+            Thread t = new Thread(new ThreadStart(delegate ()
                 {
                     // First fetch the guesture
                     AssetGesture gesture = null;
@@ -2540,7 +2538,7 @@ namespace OpenMetaverse
                         AutoResetEvent gotAsset = new AutoResetEvent(false);
 
                         Client.Assets.RequestAsset(gestureID, AssetType.Gesture, true,
-                                                    delegate(AssetDownload transfer, Asset asset)
+                                                    delegate (AssetDownload transfer, Asset asset)
                                                     {
                                                         if (transfer.Success)
                                                         {
@@ -2864,7 +2862,7 @@ namespace OpenMetaverse
                 // Wait a bit to see if the event queue comes online
                 AutoResetEvent queueEvent = new AutoResetEvent(false);
                 EventHandler<EventQueueRunningEventArgs> queueCallback =
-                    delegate(object sender, EventQueueRunningEventArgs e)
+                    delegate (object sender, EventQueueRunningEventArgs e)
                     {
                         if (e.Simulator == Client.Network.CurrentSim)
                             queueEvent.Set();
@@ -3134,7 +3132,7 @@ namespace OpenMetaverse
 
             p.MuteData.MuteID = id;
             p.MuteData.MuteName = Utils.StringToBytes(name);
-            
+
             Client.Network.SendPacket(p);
 
             string listKey = string.Format("{0}|{1}", id, name);
@@ -3364,7 +3362,7 @@ namespace OpenMetaverse
                 Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("AttachmentResources");
                 CapsClient request = new CapsClient(url);
 
-                request.OnComplete += delegate(CapsClient client, OSD result, Exception error)
+                request.OnComplete += delegate (CapsClient client, OSD result, Exception error)
                 {
                     try
                     {
@@ -3477,7 +3475,7 @@ namespace OpenMetaverse
                 {
                     var map = ((OSDMap)result)["access_prefs"];
                     agentAccess = ((OSDMap)map)["max"];
-                    Logger.Log("Max maturity access set to " + agentAccess, Helpers.LogLevel.Info, Client );
+                    Logger.Log("Max maturity access set to " + agentAccess, Helpers.LogLevel.Info, Client);
                 }
                 else if (error == null)
                 {
@@ -3488,7 +3486,7 @@ namespace OpenMetaverse
                     Logger.Log("Failed setting max maturity access.", Helpers.LogLevel.Warning, Client);
                     success = false;
                 }
-                
+
                 if (callback != null)
                 {
                     try { callback(new AgentAccessEventArgs(success, agentAccess)); }
@@ -3758,7 +3756,7 @@ namespace OpenMetaverse
                     transactionInfo.DestID = reply.TransactionInfo.DestID;
                     transactionInfo.IsDestGroup = reply.TransactionInfo.IsDestGroup;
                     transactionInfo.Amount = reply.TransactionInfo.Amount;
-                    transactionInfo.ItemDescription =  Utils.BytesToString(reply.TransactionInfo.ItemDescription);
+                    transactionInfo.ItemDescription = Utils.BytesToString(reply.TransactionInfo.ItemDescription);
 
                     OnMoneyBalanceReply(new MoneyBalanceReplyEventArgs(reply.MoneyData.TransactionID,
                         reply.MoneyData.TransactionSuccess,
@@ -4028,7 +4026,7 @@ namespace OpenMetaverse
 
             if (m_AnimationsChanged != null)
             {
-                WorkPool.QueueUserWorkItem(delegate(object o)
+                WorkPool.QueueUserWorkItem(delegate (object o)
                 { OnAnimationsChanged(new AnimationsChangedEventArgs(this.SignaledAnimations)); });
             }
 
@@ -4207,7 +4205,7 @@ namespace OpenMetaverse
                 ChatSessionMember fndMbr;
                 lock (GroupChatSessions.Dictionary)
                 {
-                    fndMbr = GroupChatSessions[msg.SessionID].Find(delegate(ChatSessionMember member)
+                    fndMbr = GroupChatSessions[msg.SessionID].Find(delegate (ChatSessionMember member)
                     {
                         return member.AvatarKey == msg.Updates[i].AgentID;
                     });
@@ -4245,7 +4243,7 @@ namespace OpenMetaverse
                 }
 
                 // handle updates
-                ChatSessionMember update_member = GroupChatSessions.Dictionary[msg.SessionID].Find(delegate(ChatSessionMember m)
+                ChatSessionMember update_member = GroupChatSessions.Dictionary[msg.SessionID].Find(delegate (ChatSessionMember m)
                 {
                     return m.AvatarKey == msg.Updates[i].AgentID;
                 });
@@ -4260,7 +4258,7 @@ namespace OpenMetaverse
                 // replace existing member record
                 lock (GroupChatSessions.Dictionary)
                 {
-                    int found = GroupChatSessions.Dictionary[msg.SessionID].FindIndex(delegate(ChatSessionMember m)
+                    int found = GroupChatSessions.Dictionary[msg.SessionID].FindIndex(delegate (ChatSessionMember m)
                     {
                         return m.AvatarKey == msg.Updates[i].AgentID;
                     });
@@ -4508,12 +4506,12 @@ namespace OpenMetaverse
     {
         readonly string mNewLevel;
         readonly bool mSuccess;
-        
+
         /// <summary>
         /// New maturity accesss level returned from the sim
         /// </summary>
         public string NewLevel { get { return mNewLevel; } }
-        
+
         /// <summary>
         /// True if setting the new maturity access level has succedded
         /// </summary>

@@ -28,10 +28,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Text;
-using System.Xml;
 using System.Threading;
-using OpenMetaverse;
+using System.Xml;
 
 namespace OpenMetaverse.Assets
 {
@@ -236,21 +234,21 @@ namespace OpenMetaverse.Assets
                     }
                     break;
                 case ".ter":
-                    // Terragen
+                // Terragen
                 case ".raw":
-                    // LLRAW
+                // LLRAW
                 case ".jpg":
                 case ".jpeg":
-                    // JPG
+                // JPG
                 case ".bmp":
-                    // BMP
+                // BMP
                 case ".png":
-                    // PNG
+                // PNG
                 case ".gif":
-                    // GIF
+                // GIF
                 case ".tif":
                 case ".tiff":
-                    // TIFF
+                // TIFF
                 default:
                     Logger.Log("[OarFile] Unrecognized terrain format in " + filePath, Helpers.LogLevel.Warning);
                     break;
@@ -349,7 +347,7 @@ namespace OpenMetaverse.Assets
         private static void SaveTerrainStream(Stream s, Simulator sim)
         {
             BinaryWriter bs = new BinaryWriter(s);
-            
+
             int y;
             for (y = 0; y < 256; y++)
             {
@@ -541,7 +539,7 @@ namespace OpenMetaverse.Assets
                             textureList[face.TextureID] = face.TextureID;
                     }
                 }
-                if(prim.Sculpt != null && prim.Sculpt.Texture != UUID.Zero)
+                if (prim.Sculpt != null && prim.Sculpt.Texture != UUID.Zero)
                     textureList[prim.Sculpt.Texture] = prim.Sculpt.Texture;
             }
         }
@@ -572,7 +570,7 @@ namespace OpenMetaverse.Assets
             for (int i = 0; i < assets.Count; i++)
             {
                 UUID texture = assets[i];
-                if(assetType == AssetType.Texture)
+                if (assetType == AssetType.Texture)
                 {
                     assetManager.RequestImage(texture, (state, assetTexture) =>
                     {
@@ -694,7 +692,7 @@ namespace OpenMetaverse.Assets
             WriteUUID(writer, "CreatorID", prim.CreatorID);
             WriteUUID(writer, "FolderID", prim.FolderID);
             writer.WriteElementString("InventorySerial", (prim.Inventory != null) ? prim.Inventory.Serial.ToString() : "0");
-            
+
             // FIXME: Task inventory
             writer.WriteStartElement("TaskInventory");
             if (prim.Inventory != null)
@@ -766,10 +764,10 @@ namespace OpenMetaverse.Assets
             WriteVector(writer, "Acceleration", prim.Acceleration);
             writer.WriteElementString("Description", prim.Description);
             writer.WriteStartElement("Color");
-                writer.WriteElementString("R", prim.TextColor.R.ToString(Utils.EnUsCulture));
-                writer.WriteElementString("G", prim.TextColor.G.ToString(Utils.EnUsCulture));
-                writer.WriteElementString("B", prim.TextColor.B.ToString(Utils.EnUsCulture));
-                writer.WriteElementString("A", prim.TextColor.G.ToString(Utils.EnUsCulture));
+            writer.WriteElementString("R", prim.TextColor.R.ToString(Utils.EnUsCulture));
+            writer.WriteElementString("G", prim.TextColor.G.ToString(Utils.EnUsCulture));
+            writer.WriteElementString("B", prim.TextColor.B.ToString(Utils.EnUsCulture));
+            writer.WriteElementString("A", prim.TextColor.G.ToString(Utils.EnUsCulture));
             writer.WriteEndElement();
             writer.WriteElementString("Text", prim.Text);
             writer.WriteElementString("SitName", prim.SitName);

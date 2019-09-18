@@ -24,21 +24,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Threading;
-using System.Collections;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Sockets;
-using System.Globalization;
-using System.IO;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.Packets;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Threading;
 
 namespace OpenMetaverse
-{        
+{
     /// <summary>
     /// NetworkManager is responsible for managing the network layer of 
     /// OpenMetaverse. It tracks all the server connections, serializes 
@@ -466,7 +461,7 @@ namespace OpenMetaverse
             {
                 Logger.DebugLog("CurrentSim object was null, using first found connected simulator", Client);
                 simulator = Client.Network.Simulators[0];
-            }            
+            }
 
             if (simulator != null && simulator.Connected)
             {
@@ -559,7 +554,7 @@ namespace OpenMetaverse
                     // Start the packet sending thread
                     Thread sendThread = new Thread(new ThreadStart(OutgoingPacketHandler));
                     sendThread.Name = "Outgoing UDP packet dispatcher";
-                    sendThread.Start();                    
+                    sendThread.Start();
                 }
 
                 // raise the SimConnecting event and allow any event
@@ -600,7 +595,7 @@ namespace OpenMetaverse
                     {
                         OnSimConnected(new SimConnectedEventArgs(simulator));
                     }
-                    
+
                     // If enabled, send an AgentThrottle packet to the server to increase our bandwidth
                     if (Client.Settings.SEND_AGENT_THROTTLE)
                     {
@@ -615,7 +610,7 @@ namespace OpenMetaverse
                     lock (Simulators)
                     {
                         Simulators.Remove(simulator);
-                    }                    
+                    }
 
                     return null;
                 }
@@ -658,7 +653,8 @@ namespace OpenMetaverse
             // Otherwise we fire it manually with a NetworkTimeout type after LOGOUT_TIMEOUT
             System.Timers.Timer timeout = new System.Timers.Timer();
 
-            EventHandler<LoggedOutEventArgs> callback = delegate(object sender, LoggedOutEventArgs e) {
+            EventHandler<LoggedOutEventArgs> callback = delegate (object sender, LoggedOutEventArgs e)
+            {
                 Shutdown(DisconnectType.ClientInitiated);
                 timeout.Stop();
             };
@@ -666,7 +662,8 @@ namespace OpenMetaverse
             LoggedOut += callback;
 
             timeout.Interval = Client.Settings.LOGOUT_TIMEOUT;
-            timeout.Elapsed += delegate(object sender, System.Timers.ElapsedEventArgs e) {
+            timeout.Elapsed += delegate (object sender, System.Timers.ElapsedEventArgs e)
+            {
                 timeout.Stop();
                 Shutdown(DisconnectType.NetworkTimeout);
                 OnLoggedOut(new LoggedOutEventArgs(new List<UUID>()));
@@ -687,7 +684,7 @@ namespace OpenMetaverse
         public void Logout()
         {
             AutoResetEvent logoutEvent = new AutoResetEvent(false);
-            EventHandler<LoggedOutEventArgs> callback = delegate(object sender, LoggedOutEventArgs e) { logoutEvent.Set(); };
+            EventHandler<LoggedOutEventArgs> callback = delegate (object sender, LoggedOutEventArgs e) { logoutEvent.Set(); };
 
             LoggedOut += callback;
 
@@ -877,7 +874,7 @@ namespace OpenMetaverse
 
             // FIXME: This is kind of ridiculous. Port the HTB code from Simian over ASAP!
             System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
-            
+
             while (connected)
             {
                 if (PacketOutbox.Dequeue(100, ref outgoingPacket))

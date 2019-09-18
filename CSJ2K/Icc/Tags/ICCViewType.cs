@@ -1,5 +1,3 @@
-using System;
-using CSJ2K.Icc;
 using CSJ2K.Icc.Types;
 
 namespace CSJ2K.Icc.Tags
@@ -23,7 +21,7 @@ namespace CSJ2K.Icc.Tags
             type = ICCProfile.getInt(data, offset);
             reserved = ICCProfile.getInt(data, offset + ICCProfile.int_size);
             CIEilluminant = ICCProfile.getXYZNumber(data, offset + ICCProfile.int_size);
-            CIEsurround = ICCProfile.getXYZNumber(data, offset + (ICCProfile.int_size*3));
+            CIEsurround = ICCProfile.getXYZNumber(data, offset + (ICCProfile.int_size * 3));
             illuminant = ICCProfile.getInt(data, offset + (ICCProfile.int_size * 3));
         }
     }

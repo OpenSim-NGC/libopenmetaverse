@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -49,7 +46,7 @@ namespace OpenMetaverse.TestClient
                 {
                     WaitForSessionStart.Set();
                 }
-                
+
                 if (WaitForSessionStart.WaitOne(20000, false))
                 {
                     Client.Self.InstantMessageGroup(ToGroupID, message);
@@ -81,6 +78,6 @@ namespace OpenMetaverse.TestClient
             }
         }
 
-       
+
     }
 }

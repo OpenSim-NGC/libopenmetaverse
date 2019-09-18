@@ -24,13 +24,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.Interfaces;
+using OpenMetaverse.Packets;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.Interfaces;
 
 namespace OpenMetaverse
 {
@@ -134,7 +132,7 @@ namespace OpenMetaverse
         internal void RaiseEvent(PacketType packetType, Packet packet, Simulator simulator)
         {
             PacketCallback callback;
-            
+
             // Default handler first, if one exists
             if (_EventTable.TryGetValue(PacketType.Default, out callback) && callback.Callback != null)
             {
@@ -177,7 +175,7 @@ namespace OpenMetaverse
 
                 return;
             }
-            
+
             if (packetType != PacketType.Default && packetType != PacketType.PacketAck)
             {
                 Logger.DebugLog("No handler registered for packet event " + packetType, Client);
@@ -283,7 +281,7 @@ namespace OpenMetaverse
         {
             bool specialHandler = false;
             Caps.EventQueueCallback callback;
-            
+
             // Default handler first, if one exists
             if (_EventTable.TryGetValue(capsEvent, out callback))
             {
@@ -325,26 +323,26 @@ namespace OpenMetaverse
                 if (callback != null)
                 {
                     callback(capsEvent, message, simulator);
-//                    CapsCallbackWrapper wrapper;
-//                    wrapper.Callback = callback;
-//                    wrapper.CapsEvent = capsEvent;
-//                    wrapper.Message = message;
-//                    wrapper.Simulator = simulator;
-//                    WorkPool.QueueUserWorkItem(_ThreadPoolCallback, wrapper);
+                    //                    CapsCallbackWrapper wrapper;
+                    //                    wrapper.Callback = callback;
+                    //                    wrapper.CapsEvent = capsEvent;
+                    //                    wrapper.Message = message;
+                    //                    wrapper.Simulator = simulator;
+                    //                    WorkPool.QueueUserWorkItem(_ThreadPoolCallback, wrapper);
                 }
             }
-            
+
             // Explicit handler next
             if (_EventTable.TryGetValue(capsEvent, out callback) && callback != null)
             {
                 callback(capsEvent, message, simulator);
 
-//                CapsCallbackWrapper wrapper;
-//                wrapper.Callback = callback;
-//                wrapper.CapsEvent = capsEvent;
-//                wrapper.Message = message;
-//                wrapper.Simulator = simulator;
-//                WorkPool.QueueUserWorkItem(_ThreadPoolCallback, wrapper);
+                //                CapsCallbackWrapper wrapper;
+                //                wrapper.Callback = callback;
+                //                wrapper.CapsEvent = capsEvent;
+                //                wrapper.Message = message;
+                //                wrapper.Simulator = simulator;
+                //                WorkPool.QueueUserWorkItem(_ThreadPoolCallback, wrapper);
 
                 specialHandler = true;
             }

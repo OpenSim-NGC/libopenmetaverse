@@ -24,12 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Net;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 using NUnit.Framework;
+using OpenMetaverse.Packets;
+using System;
 
 namespace OpenMetaverse.Tests
 {
@@ -69,7 +66,7 @@ namespace OpenMetaverse.Tests
 
             //int start = Environment.TickCount;
 
-            Assert.AreEqual("hooper", Client.Network.CurrentSim.Name.ToLower(), "Logged in to sim " + 
+            Assert.AreEqual("hooper", Client.Network.CurrentSim.Name.ToLower(), "Logged in to sim " +
                 Client.Network.CurrentSim.Name + " instead of hooper");
         }
 
@@ -150,10 +147,10 @@ namespace OpenMetaverse.Tests
             bool Success = false;
             // make sure caps event queue is running
             System.Threading.AutoResetEvent waitforCAPS = new System.Threading.AutoResetEvent(false);
-            EventHandler<EventQueueRunningEventArgs> capsRunning = delegate(object sender, EventQueueRunningEventArgs e)
+            EventHandler<EventQueueRunningEventArgs> capsRunning = delegate (object sender, EventQueueRunningEventArgs e)
             {
                 waitforCAPS.Set();
-            };            
+            };
 
             Client.Network.EventQueueRunning += capsRunning;
             if (waitforCAPS.WaitOne(10000, false))

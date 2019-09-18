@@ -1,7 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.IO;
+using System.Text;
 
 namespace CSJ2K.Util
 {
@@ -353,10 +352,10 @@ namespace CSJ2K.Util
                 byte[] buf = this.ReadBytes(16);
                 Array.Reverse(buf);
                 int[] decimalints = new int[4];
-                decimalints[0]=BitConverter.ToInt32(buf, 0);
-                decimalints[1]=BitConverter.ToInt32(buf, 4);
-                decimalints[2]=BitConverter.ToInt32(buf, 8);
-                decimalints[3]=BitConverter.ToInt32(buf, 12);
+                decimalints[0] = BitConverter.ToInt32(buf, 0);
+                decimalints[1] = BitConverter.ToInt32(buf, 4);
+                decimalints[2] = BitConverter.ToInt32(buf, 8);
+                decimalints[3] = BitConverter.ToInt32(buf, 12);
                 return new decimal(decimalints);
             }
             else return base.ReadDecimal();

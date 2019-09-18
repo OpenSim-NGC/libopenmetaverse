@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-
 namespace OpenMetaverse.TestClient
 {
     public class LogoutCommand : Command
@@ -18,7 +12,7 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             string name = Client.ToString();
-			Client.ClientManager.Logout(Client);
+            Client.ClientManager.Logout(Client);
             return "Logged " + name + " out";
         }
     }

@@ -24,23 +24,23 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse;
+using OpenMetaverse.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Utilities;
 
 namespace VoiceTest
 {
-    public class VoiceException: Exception
+    public class VoiceException : Exception
     {
         public bool LoggedIn = false;
 
-        public VoiceException(string msg): base(msg) 
+        public VoiceException(string msg) : base(msg)
         {
         }
 
-        public VoiceException(string msg, bool loggedIn): base(msg) 
+        public VoiceException(string msg, bool loggedIn) : base(msg)
         {
             LoggedIn = loggedIn;
         }
@@ -68,7 +68,7 @@ namespace VoiceTest
             string firstName = args[0];
             string lastName = args[1];
             string password = args[2];
-            
+
 
             GridClient client = new GridClient();
             client.Settings.MULTIPLE_SIMS = false;
@@ -80,7 +80,8 @@ namespace VoiceTest
             client.Settings.SEND_AGENT_UPDATES = true;
 
             string loginURI = client.Settings.LOGIN_SERVER;
-            if (4 == args.Length) {
+            if (4 == args.Length)
+            {
                 loginURI = args[3];
             }
 
@@ -90,7 +91,8 @@ namespace VoiceTest
 
             client.Network.EventQueueRunning += client_OnEventQueueRunning;
 
-            try {
+            try
+            {
                 if (!voice.ConnectToDaemon()) throw new VoiceException("Failed to connect to the voice daemon");
 
                 List<string> captureDevices = voice.CaptureDevices();
@@ -110,7 +112,7 @@ namespace VoiceTest
 
                 // Login
                 Console.WriteLine("Logging into the grid as " + firstName + " " + lastName + "...");
-                LoginParams loginParams = 
+                LoginParams loginParams =
                     client.Network.DefaultLoginParams(firstName, lastName, password, "Voice Test", "1.0.0");
                 loginParams.URI = loginURI;
                 if (!client.Network.Login(loginParams))
@@ -121,36 +123,36 @@ namespace VoiceTest
                 Console.WriteLine("Creating voice connector...");
                 int status;
                 string connectorHandle = voice.CreateConnector(out status);
-                if (String.IsNullOrEmpty(connectorHandle)) 
+                if (String.IsNullOrEmpty(connectorHandle))
                     throw new VoiceException("Failed to create a voice connector, error code: " + status, true);
                 Console.WriteLine("Voice connector handle: " + connectorHandle);
 
 
                 Console.WriteLine("Waiting for OnEventQueueRunning");
-                if (!EventQueueRunningEvent.WaitOne(45 * 1000, false)) 
+                if (!EventQueueRunningEvent.WaitOne(45 * 1000, false))
                     throw new VoiceException("EventQueueRunning event did not occur", true);
                 Console.WriteLine("EventQueue running");
 
 
                 Console.WriteLine("Asking the current simulator to create a provisional account...");
-                if (!voice.RequestProvisionAccount()) 
-                    throw new VoiceException("Failed to request a provisional account", true); 
-                if (!ProvisionEvent.WaitOne(120 * 1000, false)) 
+                if (!voice.RequestProvisionAccount())
+                    throw new VoiceException("Failed to request a provisional account", true);
+                if (!ProvisionEvent.WaitOne(120 * 1000, false))
                     throw new VoiceException("Failed to create a provisional account", true);
-                Console.WriteLine("Provisional account created. Username: " + VoiceAccount + 
+                Console.WriteLine("Provisional account created. Username: " + VoiceAccount +
                                   ", Password: " + VoicePassword);
 
 
                 Console.WriteLine("Logging in to voice server " + voice.VoiceServer);
                 string accountHandle = voice.Login(VoiceAccount, VoicePassword, connectorHandle, out status);
-                if (String.IsNullOrEmpty(accountHandle)) 
+                if (String.IsNullOrEmpty(accountHandle))
                     throw new VoiceException("Login failed, error code: " + status, true);
                 Console.WriteLine("Login succeeded, account handle: " + accountHandle);
 
 
-                if (!voice.RequestParcelVoiceInfo()) 
+                if (!voice.RequestParcelVoiceInfo())
                     throw new Exception("Failed to request parcel voice info");
-                if (!ParcelVoiceInfoEvent.WaitOne(45 * 1000, false)) 
+                if (!ParcelVoiceInfoEvent.WaitOne(45 * 1000, false))
                     throw new VoiceException("Failed to obtain parcel info voice", true);
 
 
@@ -159,14 +161,14 @@ namespace VoiceTest
 
                 client.Network.Logout();
             }
-            catch(Exception e) 
+            catch (Exception e)
             {
                 Console.WriteLine(e.Message);
-                if (e is VoiceException && (e as VoiceException).LoggedIn) 
+                if (e is VoiceException && (e as VoiceException).LoggedIn)
                 {
                     client.Network.Logout();
                 }
-                
+
             }
             Console.WriteLine("Press any key to continue...");
             Console.ReadKey();

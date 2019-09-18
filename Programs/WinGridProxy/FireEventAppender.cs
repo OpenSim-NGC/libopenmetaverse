@@ -16,8 +16,8 @@
 //
 #endregion
 
-using System;
 using log4net.Core;
+using System;
 
 namespace WinGridProxy
 {

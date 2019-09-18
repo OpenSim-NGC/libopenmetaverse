@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 using System.Text;
+using System.Threading;
 
 namespace OpenMetaverse.TestClient
 {
@@ -12,7 +10,7 @@ namespace OpenMetaverse.TestClient
     /// </summary>
     public class GroupMembersCommand : Command
     {
-            private ManualResetEvent GroupsEvent = new ManualResetEvent(false);
+        private ManualResetEvent GroupsEvent = new ManualResetEvent(false);
         private string GroupName;
         private UUID GroupUUID;
         private UUID GroupRequestID;
@@ -35,8 +33,9 @@ namespace OpenMetaverse.TestClient
             GroupName = GroupName.Trim();
 
             GroupUUID = Client.GroupName2UUID(GroupName);
-            if (UUID.Zero != GroupUUID) {                
-                Client.Groups.GroupMembersReply += GroupMembersHandler;                
+            if (UUID.Zero != GroupUUID)
+            {
+                Client.Groups.GroupMembersReply += GroupMembersHandler;
                 GroupRequestID = Client.Groups.RequestGroupMembers(GroupUUID);
                 GroupsEvent.WaitOne(30000, false);
                 GroupsEvent.Reset();
@@ -48,7 +47,8 @@ namespace OpenMetaverse.TestClient
 
         private void GroupMembersHandler(object sender, GroupMembersReplyEventArgs e)
         {
-            if (e.RequestID == GroupRequestID) {
+            if (e.RequestID == GroupRequestID)
+            {
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine();
                 sb.AppendFormat("GroupMembers: RequestID {0}", e.RequestID).AppendLine();
@@ -60,7 +60,7 @@ namespace OpenMetaverse.TestClient
                 sb.AppendFormat("GroupMembers: MemberCount {0}", e.Members.Count).AppendLine();
                 Console.WriteLine(sb.ToString());
                 GroupsEvent.Set();
-            } 
+            }
         }
     }
 }

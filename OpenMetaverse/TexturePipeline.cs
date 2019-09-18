@@ -26,11 +26,11 @@
 
 //#define DEBUG_TIMING
 
+using OpenMetaverse.Assets;
+using OpenMetaverse.Packets;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Assets;
 
 namespace OpenMetaverse
 {
@@ -164,7 +164,8 @@ namespace OpenMetaverse
             }
 
             // Handle client connected and disconnected events
-            client.Network.LoginProgress += delegate(object sender, LoginProgressEventArgs e) {
+            client.Network.LoginProgress += delegate (object sender, LoginProgressEventArgs e)
+            {
                 if (e.Status == LoginStatus.Success)
                 {
                     Startup();
@@ -215,9 +216,9 @@ namespace OpenMetaverse
             Logger.Log(String.Format("Combined Execution Time: {0}, Network Execution Time {1}, Network {2}K/sec, Image Size {3}",
                         TotalTime, NetworkTime, Math.Round(TotalBytes / NetworkTime.TotalSeconds / 60, 2), TotalBytes), Helpers.LogLevel.Debug);
 #endif
-            if(null != RefreshDownloadsTimer) RefreshDownloadsTimer.Dispose();
+            if (null != RefreshDownloadsTimer) RefreshDownloadsTimer.Dispose();
             RefreshDownloadsTimer = null;
-            
+
             if (downloadMaster != null && downloadMaster.IsAlive)
             {
                 downloadMaster.Abort();
@@ -251,7 +252,7 @@ namespace OpenMetaverse
                         // Find the first missing packet in the download
                         ushort packet = 0;
                         lock (download) if (download.PacketsSeen != null && download.PacketsSeen.Count > 0)
-                            packet = GetFirstMissingPacket(download.PacketsSeen);
+                                packet = GetFirstMissingPacket(download.PacketsSeen);
 
                         if (download.TimeSinceLastPacket > 5000)
                         {
@@ -544,7 +545,7 @@ namespace OpenMetaverse
             // Find the first missing packet in the download
             ushort packet = 0;
             lock (task.Transfer) if (task.Transfer.PacketsSeen != null && task.Transfer.PacketsSeen.Count > 0)
-                packet = GetFirstMissingPacket(task.Transfer.PacketsSeen);
+                    packet = GetFirstMissingPacket(task.Transfer.PacketsSeen);
 
             // Request the texture
             RequestImage(task.RequestID, task.Type, task.Transfer.Priority, task.Transfer.DiscardLevel, packet);
@@ -748,17 +749,17 @@ namespace OpenMetaverse
                 task.Transfer.TimeSinceLastPacket = 0;
 
                 lock (task.Transfer) if (task.Transfer.Size == 0)
-                {
-                    task.Transfer.Codec = (ImageCodec)data.ImageID.Codec;
-                    task.Transfer.PacketCount = data.ImageID.Packets;
-                    task.Transfer.Size = (int)data.ImageID.Size;
-                    task.Transfer.AssetData = new byte[task.Transfer.Size];
-                    task.Transfer.AssetType = AssetType.Texture;
-                    task.Transfer.PacketsSeen = new SortedList<ushort, ushort>();
-                    Buffer.BlockCopy(data.ImageData.Data, 0, task.Transfer.AssetData, 0, data.ImageData.Data.Length);
-                    task.Transfer.InitialDataSize = data.ImageData.Data.Length;
-                    task.Transfer.Transferred += data.ImageData.Data.Length;
-                }
+                    {
+                        task.Transfer.Codec = (ImageCodec)data.ImageID.Codec;
+                        task.Transfer.PacketCount = data.ImageID.Packets;
+                        task.Transfer.Size = (int)data.ImageID.Size;
+                        task.Transfer.AssetData = new byte[task.Transfer.Size];
+                        task.Transfer.AssetType = AssetType.Texture;
+                        task.Transfer.PacketsSeen = new SortedList<ushort, ushort>();
+                        Buffer.BlockCopy(data.ImageData.Data, 0, task.Transfer.AssetData, 0, data.ImageData.Data.Length);
+                        task.Transfer.InitialDataSize = data.ImageData.Data.Length;
+                        task.Transfer.Transferred += data.ImageData.Data.Length;
+                    }
 
                 task.Transfer.HeaderReceivedEvent.Set();
 

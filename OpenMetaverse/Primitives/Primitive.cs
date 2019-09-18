@@ -24,9 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
 using OpenMetaverse.StructuredData;
+using System;
 
 namespace OpenMetaverse
 {
@@ -552,7 +551,7 @@ namespace OpenMetaverse
             public bool Mirror
             {
                 get { return ((type & (byte)SculptType.Mirror) != 0); }
-            }            
+            }
 
             /// <summary>
             /// Default constructor
@@ -984,7 +983,7 @@ namespace OpenMetaverse
             TextColor = prim.TextColor;
             MediaURL = prim.MediaURL;
             Joint = prim.Joint;
-            JointPivot = prim.JointPivot;            
+            JointPivot = prim.JointPivot;
             JointAxisOrAnchor = prim.JointAxisOrAnchor;
             if (prim.NameValues != null)
             {
@@ -1149,10 +1148,10 @@ namespace OpenMetaverse
             prim.Position = ((OSDArray)map["position"]).AsVector3();
             prim.Rotation = ((OSDArray)map["rotation"]).AsQuaternion();
             prim.Scale = ((OSDArray)map["scale"]).AsVector3();
-            
+
             if (map["flex"])
                 prim.Flexible = FlexibleData.FromOSD(map["flex"]);
-            
+
             if (map["light"])
                 prim.Light = LightData.FromOSD(map["light"]);
 
@@ -1163,7 +1162,7 @@ namespace OpenMetaverse
                 prim.Sculpt = SculptData.FromOSD(map["sculpt"]);
 
             prim.Textures = TextureEntry.FromOSD(map["textures"]);
-            
+
             if (map["texture_anim"])
                 prim.TextureAnim = TextureAnimation.FromOSD(map["texture_anim"]);
 

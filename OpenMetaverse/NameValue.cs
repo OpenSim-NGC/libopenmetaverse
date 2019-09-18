@@ -25,7 +25,6 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace OpenMetaverse
@@ -242,40 +241,40 @@ namespace OpenMetaverse
                     Value = value;
                     break;
                 case ValueType.F32:
-                {
-                    float temp;
-                    Utils.TryParseSingle(value, out temp);
-                    Value = temp;
-                    break;
-                }
+                    {
+                        float temp;
+                        Utils.TryParseSingle(value, out temp);
+                        Value = temp;
+                        break;
+                    }
                 case ValueType.S32:
-                {
-                    int temp;
-                    Int32.TryParse(value, out temp);
-                    Value = temp;
-                    break;
-                }
+                    {
+                        int temp;
+                        Int32.TryParse(value, out temp);
+                        Value = temp;
+                        break;
+                    }
                 case ValueType.U32:
-                {
-                    uint temp;
-                    UInt32.TryParse(value, out temp);
-                    Value = temp;
-                    break;
-                }
+                    {
+                        uint temp;
+                        UInt32.TryParse(value, out temp);
+                        Value = temp;
+                        break;
+                    }
                 case ValueType.U64:
-                {
-                    ulong temp;
-                    UInt64.TryParse(value, out temp);
-                    Value = temp;
-                    break;
-                }
+                    {
+                        ulong temp;
+                        UInt64.TryParse(value, out temp);
+                        Value = temp;
+                        break;
+                    }
                 case ValueType.VEC3:
-                {
-                    Vector3 temp;
-                    Vector3.TryParse(value, out temp);
-                    Value = temp;
-                    break;
-                }
+                    {
+                        Vector3 temp;
+                        Vector3.TryParse(value, out temp);
+                        Value = temp;
+                        break;
+                    }
                 default:
                     Value = null;
                     break;

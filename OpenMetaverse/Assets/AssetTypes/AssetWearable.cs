@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using OpenMetaverse;
 
 namespace OpenMetaverse.Assets
 {
@@ -120,7 +119,7 @@ namespace OpenMetaverse.Assets
                             if (fields[0] == "parameters")
                             {
                                 int count = Int32.Parse(fields[1]) + stri;
-                                for (; stri < count; )
+                                for (; stri < count;)
                                 {
                                     stri++;
                                     line = lines[stri].Trim();
@@ -146,7 +145,7 @@ namespace OpenMetaverse.Assets
                             else if (fields[0] == "textures")
                             {
                                 int count = Int32.Parse(fields[1]) + stri;
-                                for (; stri < count; )
+                                for (; stri < count;)
                                 {
                                     stri++;
                                     line = lines[stri].Trim();

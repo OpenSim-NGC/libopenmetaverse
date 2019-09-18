@@ -95,7 +95,7 @@ namespace mapgenerator
             }
             else
             {
-                if(temp.KeywordPosition == this.KeywordPosition)
+                if (temp.KeywordPosition == this.KeywordPosition)
                 {
                     return 0;
                 }
@@ -136,7 +136,7 @@ namespace mapgenerator
             }
             else
             {
-                if(temp.KeywordPosition == this.KeywordPosition)
+                if (temp.KeywordPosition == this.KeywordPosition)
                 {
                     return 0;
                 }
@@ -197,7 +197,7 @@ namespace mapgenerator
             HighMaps = new MapPacket[256];
 
             // Build the type size hash table
-            TypeSizes = new Dictionary<FieldType,int>();
+            TypeSizes = new Dictionary<FieldType, int>();
             TypeSizes.Add(FieldType.U8, 1);
             TypeSizes.Add(FieldType.U16, 2);
             TypeSizes.Add(FieldType.U32, 4);
@@ -338,7 +338,8 @@ namespace mapgenerator
         /// </summary>
         /// <param name="map"></param>
         /// <param name="frequency"></param>
-        private void PrintOneMap(TextWriter writer, MapPacket[] map, string frequency) {
+        private void PrintOneMap(TextWriter writer, MapPacket[] map, string frequency)
+        {
             int i;
 
             for (i = 0; i < map.Length; ++i)
@@ -351,11 +352,11 @@ namespace mapgenerator
 
                     foreach (MapBlock block in map[i].Blocks)
                     {
-                        if (block.Count == -1) 
+                        if (block.Count == -1)
                         {
                             writer.WriteLine("\t{0,4} {1} (Variable)", block.KeywordPosition, block.Name);
-                        } 
-                        else 
+                        }
+                        else
                         {
                             writer.WriteLine("\t{0,4} {1} ({2})", block.KeywordPosition, block.Name, block.Count);
                         }
@@ -387,7 +388,7 @@ namespace mapgenerator
             {
                 map = new BinaryReader(new FileStream(mapFile, FileMode.Open));
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 throw new Exception("Map file error", e);
             }
@@ -396,7 +397,7 @@ namespace mapgenerator
             {
                 output = new BinaryWriter(new FileStream(outputFile, FileMode.CreateNew));
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 throw new Exception("Map file error", e);
             }
@@ -427,16 +428,16 @@ namespace mapgenerator
             // Load the protocol map file
             try
             {
-                map = new FileStream(mapFile, FileMode.Open, FileAccess.Read); 
+                map = new FileStream(mapFile, FileMode.Open, FileAccess.Read);
             }
-            catch(Exception e) 
+            catch (Exception e)
             {
                 throw new Exception("Map file error", e);
             }
 
             try
             {
-                StreamReader r = new StreamReader(map);        
+                StreamReader r = new StreamReader(map);
                 r.BaseStream.Seek(0, SeekOrigin.Begin);
                 string newline;
                 string trimmedline;
@@ -444,10 +445,10 @@ namespace mapgenerator
                 bool inBlock = false;
                 MapPacket currentPacket = null;
                 MapBlock currentBlock = null;
-                char[] trimArray = new char[] {' ', '\t'};
+                char[] trimArray = new char[] { ' ', '\t' };
 
                 // While not at the end of the file
-                while (r.Peek() > -1) 
+                while (r.Peek() > -1)
                 {
                     #region ParseMap
 
@@ -482,7 +483,7 @@ namespace mapgenerator
                                 // currentPacket.Blocks.Sort();
                                 inPacket = false;
                             }
-                            else 
+                            else
                             {
                                 // Skip comments
                                 if (trimmedline.StartsWith("//")) continue;
@@ -491,28 +492,30 @@ namespace mapgenerator
                                 #region ParsePacketHeader
 
                                 // Splice the string in to tokens
-                                string[] tokens = trimmedline.Split(new char[] {' ', '\t'});
+                                string[] tokens = trimmedline.Split(new char[] { ' ', '\t' });
 
                                 if (tokens.Length > 3)
                                 {
                                     //Hash packet name to insure correct keyword ordering
                                     KeywordPosition(tokens[0]);
 
-                                    uint packetID;                                        
+                                    uint packetID;
 
                                     // Remove the leading "0x"
                                     if (tokens[2].Length > 2 && tokens[2].Substring(0, 2) == "0x")
                                     {
                                         tokens[2] = tokens[2].Substring(2, tokens[2].Length - 2);
                                         packetID = UInt32.Parse(tokens[2], System.Globalization.NumberStyles.HexNumber);
-                                    } else {
-                                        packetID = UInt32.Parse(tokens[2]);    
                                     }
-                                        
+                                    else
+                                    {
+                                        packetID = UInt32.Parse(tokens[2]);
+                                    }
+
 
                                     if (tokens[1] == "Fixed")
                                     {
-                                        
+
                                         // Truncate the id to a short
                                         packetID &= 0xFFFF;
                                         LowMaps[packetID] = new MapPacket();
@@ -584,7 +587,7 @@ namespace mapgenerator
                                 MapField field = new MapField();
 
                                 // Splice the string in to tokens
-                                string[] tokens = trimmedline.Split(new char[] {' ', '\t'});
+                                string[] tokens = trimmedline.Split(new char[] { ' ', '\t' });
 
                                 field.Name = tokens[1];
                                 field.KeywordPosition = KeywordPosition(field.Name);
@@ -617,7 +620,7 @@ namespace mapgenerator
                                 currentBlock = new MapBlock();
 
                                 // Splice the string in to tokens
-                                string[] tokens = trimmedline.Split(new char[] {' ', '\t'});
+                                string[] tokens = trimmedline.Split(new char[] { ' ', '\t' });
 
                                 currentBlock.Name = tokens[0];
                                 currentBlock.KeywordPosition = KeywordPosition(currentBlock.Name);
@@ -661,7 +664,7 @@ namespace mapgenerator
 
         private int KeywordPosition(string keyword)
         {
-            if (KeywordPositions.ContainsKey(keyword)) 
+            if (KeywordPositions.ContainsKey(keyword))
             {
                 return KeywordPositions[keyword];
             }

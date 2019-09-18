@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse;
 using OpenMetaverse.Packets;
+using System.Text;
 
 namespace OpenMetaverse.TestClient
 {
@@ -15,7 +12,7 @@ namespace OpenMetaverse.TestClient
         {
             Name = "sendgeneric";
             Description = "send a generic UDP message to the simulator.";
-            Category = CommandCategory.Other;        
+            Category = CommandCategory.Other;
         }
 
         public override string Execute(string[] args, UUID fromAgentID)

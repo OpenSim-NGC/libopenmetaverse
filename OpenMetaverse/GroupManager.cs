@@ -24,13 +24,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
+using OpenMetaverse.Http;
+using OpenMetaverse.Interfaces;
+using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Http;
+using System;
+using System.Collections.Generic;
 
 namespace OpenMetaverse
 {
@@ -372,7 +372,7 @@ namespace OpenMetaverse
         LandSetSale = 1UL << 14,
         /// <summary>Can subdivide and join parcels</summary>
         LandDivideJoin = 1UL << 15,
-        
+
         // Parcel settings
         /// <summary>Can change music and media settings</summary>
         ChangeMedia = 1UL << 20,
@@ -380,7 +380,7 @@ namespace OpenMetaverse
         LandEdit = 1UL << 21,
         /// <summary>Can toggle various About Land > Options settings</summary>
         LandOptions = 1UL << 22,
-        
+
         // Parcel identity
         /// <summary>Can toggle "Show in Find Places" and set search category</summary>
         FindPlaces = 1UL << 17,
@@ -401,8 +401,8 @@ namespace OpenMetaverse
         /// <summary>Can set home location on any group owned parcel</summary>
         AllowSetHome = 1UL << 28,
         /// <summary>Allowed to hold events on group-owned land</summary>
-        HostEvent = 1UL << 41,        
-        
+        HostEvent = 1UL << 41,
+
         // Parcel access
         /// <summary>Can modify public access settings for group owned parcels</summary>
         LandManageAllowed = 1UL << 29,
@@ -412,7 +412,7 @@ namespace OpenMetaverse
         LandManagePasses = 1UL << 31,
         /// <summary>Can eject and freeze other avatars on group owned land</summary>
         LandEjectAndFreeze = 1UL << 32,
-        
+
         // Parcel content
         /// <summary>Can return objects set to group</summary>
         ReturnGroupSet = 1UL << 33,
@@ -421,8 +421,8 @@ namespace OpenMetaverse
         /// <summary>Can return group owned objects</summary>
         ReturnGroupOwned = 1UL << 48,
         /// <summary>Can landscape using Linden plants</summary>
-        LandGardening = 1UL << 35,        
-        
+        LandGardening = 1UL << 35,
+
         // Object Management
         /// <summary>Can deed objects to group</summary>
         DeedObject = 1UL << 36,
@@ -430,11 +430,11 @@ namespace OpenMetaverse
         ObjectManipulate = 1UL << 38,
         /// <summary>Can set group owned objects for-sale</summary>
         ObjectSetForSale = 1UL << 39,
-        
+
         // Accounting
         /// <summary>Pay group liabilities and receive group dividends</summary>
         Accountable = 1UL << 40,
-        
+
         // Notices and proposals
         /// <summary>Can send group notices</summary>
         SendNotices = 1UL << 42,
@@ -444,7 +444,7 @@ namespace OpenMetaverse
         StartProposal = 1UL << 44,
         /// <summary>Can vote on group proposals</summary>
         VoteOnProposal = 1UL << 45,
-        
+
         // Group chat moderation related
         /// <summary>Can join group chat sessions</summary>
         JoinChat = 1UL << 16,
@@ -452,13 +452,13 @@ namespace OpenMetaverse
         AllowVoiceChat = 1UL << 27,
         /// <summary>Can moderate group chat sessions</summary>
         ModerateChat = 1UL << 37,
-        
+
         // Experiences
         /// <summary>Has admin rights to any experiences owned by this group</summary>
         ExperienceAdmin = 1UL << 49,
         /// <summary>Can sign scripts for experiences owned by this group</summary>
         ExperienceCreator = 1UL << 50,
-        
+
         // Group Banning
         /// <summary>Allows access to ban / un-ban agents from a group</summary>
         GroupBanAccess = 1UL << 51
@@ -1577,7 +1577,7 @@ namespace OpenMetaverse
         {
             RequestBanAction(groupID, action, agents, null);
         }
-        
+
         /// <summary>
         /// Request that group of agents be banned or unbanned from the group
         /// </summary>

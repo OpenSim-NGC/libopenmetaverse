@@ -1,5 +1,3 @@
-using System;
-using System.Reflection;
 using GridProxy;
 
 class ProxyMain
@@ -7,8 +5,8 @@ class ProxyMain
     public static void Main(string[] args)
     {
         ProxyFrame p = new ProxyFrame(args);
-	    ProxyPlugin analyst = new Analyst(p);
-        analyst.Init(); 
-	    p.proxy.Start();
+        ProxyPlugin analyst = new Analyst(p);
+        analyst.Init();
+        p.proxy.Start();
     }
 }

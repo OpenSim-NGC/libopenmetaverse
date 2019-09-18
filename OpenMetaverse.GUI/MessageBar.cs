@@ -1,8 +1,6 @@
-﻿using OpenMetaverse;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 
 namespace OpenMetaverse.GUI
@@ -171,7 +169,7 @@ namespace OpenMetaverse.GUI
             this.Location = new System.Drawing.Point(0, 523);
             this.Size = new System.Drawing.Size(772, 25);
             this.TabIndex = 6;
-            
+
             this.ItemClicked += new ToolStripItemClickedEventHandler(MessageBar_ItemClicked);
         }
 
@@ -202,7 +200,7 @@ namespace OpenMetaverse.GUI
             {
                 AddButton(button, false);
                 _Sessions[im.FromAgentID].Window.LogText(im.FromAgentName + ": " + im.Message, Color.FromKnownColor(KnownColor.ControlText));
-            }            
+            }
         }
 
         private void InitializeClient(GridClient client)
@@ -250,7 +248,7 @@ namespace OpenMetaverse.GUI
             if (this.InvokeRequired) this.BeginInvoke((MethodInvoker)delegate { button.Window.Show(); button.Window.Activate(); button.Window.WindowState = FormWindowState.Normal; });
             else { button.Window.Show(); button.Window.Activate(); button.Window.WindowState = FormWindowState.Normal; }
         }
-     
+
         void button_Disposed(object sender, EventArgs e)
         {
             MessageBarButton button = (MessageBarButton)sender;

@@ -23,10 +23,10 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-using System;
-using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.Packets;
+using System;
 using System.Collections.Generic;
 
 namespace OpenMetaverse
@@ -82,7 +82,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>Used by EstateOwnerMessage packets</summary>
-        public enum EstateAccessDelta : uint 
+        public enum EstateAccessDelta : uint
         {
             BanUser = 64,
             BanUserAllEstates = 66,
@@ -178,7 +178,7 @@ namespace OpenMetaverse
         {
             add { lock (m_TopCollidersReply_Lock) { m_TopCollidersReply += value; } }
             remove { lock (m_TopCollidersReply_Lock) { m_TopCollidersReply -= value; } }
-        }        
+        }
 
         /// <summary>The event subscribers. null if no subcribers</summary>
         private EventHandler<TopScriptsReplyEventArgs> m_TopScriptsReply;
@@ -296,7 +296,7 @@ namespace OpenMetaverse
             add { lock (m_EstateBansReply_Lock) { m_EstateBansReply += value; } }
             remove { lock (m_EstateBansReply_Lock) { m_EstateBansReply -= value; } }
         }
-                
+
         /// <summary>The event subscribers. null if no subcribers</summary>
         private EventHandler<EstateCovenantReplyEventArgs> m_EstateCovenantReply;
 
@@ -919,11 +919,11 @@ namespace OpenMetaverse
 
                 if (type == LandStatReportType.TopScripts)
                 {
-                    OnTopScriptsReply(new TopScriptsReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks)); 
+                    OnTopScriptsReply(new TopScriptsReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks));
                 }
                 else if (type == LandStatReportType.TopColliders)
                 {
-                    OnTopCollidersReply(new TopCollidersReplyEventArgs((int) p.RequestData.TotalObjectCount, Tasks)); 
+                    OnTopCollidersReply(new TopCollidersReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks));
                 }
 
                 /*
@@ -964,11 +964,11 @@ namespace OpenMetaverse
 
             if (type == LandStatReportType.TopScripts)
             {
-                OnTopScriptsReply(new TopScriptsReplyEventArgs((int)m.TotalObjectCount, Tasks)); 
+                OnTopScriptsReply(new TopScriptsReplyEventArgs((int)m.TotalObjectCount, Tasks));
             }
             else if (type == LandStatReportType.TopColliders)
             {
-                OnTopCollidersReply(new TopCollidersReplyEventArgs((int)m.TotalObjectCount, Tasks)); 
+                OnTopCollidersReply(new TopCollidersReplyEventArgs((int)m.TotalObjectCount, Tasks));
             }
         }
         #endregion

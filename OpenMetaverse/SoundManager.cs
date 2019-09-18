@@ -24,9 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
 using OpenMetaverse.Packets;
+using System;
 
 namespace OpenMetaverse
 {
@@ -63,7 +62,7 @@ namespace OpenMetaverse
             add { lock (m_AttachedSoundLock) { m_AttachedSound += value; } }
             remove { lock (m_AttachedSoundLock) { m_AttachedSound -= value; } }
         }
-                
+
         /// <summary>The event subscribers, null of no subscribers</summary>
         private EventHandler<AttachedSoundGainChangeEventArgs> m_AttachedSoundGainChange;
 
@@ -87,7 +86,7 @@ namespace OpenMetaverse
             add { lock (m_AttachedSoundGainChangeLock) { m_AttachedSoundGainChange += value; } }
             remove { lock (m_AttachedSoundGainChangeLock) { m_AttachedSoundGainChange -= value; } }
         }
-        
+
         /// <summary>The event subscribers, null of no subscribers</summary>
         private EventHandler<SoundTriggerEventArgs> m_SoundTrigger;
 
@@ -146,7 +145,7 @@ namespace OpenMetaverse
         public SoundManager(GridClient client)
         {
             Client = client;
-            
+
             Client.Network.RegisterCallback(PacketType.AttachedSound, AttachedSoundHandler);
             Client.Network.RegisterCallback(PacketType.AttachedSoundGainChange, AttachedSoundGainChangeHandler);
             Client.Network.RegisterCallback(PacketType.PreloadSound, PreloadSoundHandler);
@@ -226,13 +225,13 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void AttachedSoundHandler(object sender, PacketReceivedEventArgs e)
-        {            
+        {
             if (m_AttachedSound != null)
             {
                 AttachedSoundPacket sound = (AttachedSoundPacket)e.Packet;
 
-                OnAttachedSound(new AttachedSoundEventArgs(e.Simulator, sound.DataBlock.SoundID, sound.DataBlock.OwnerID, sound.DataBlock.ObjectID, 
-                    sound.DataBlock.Gain, (SoundFlags)sound.DataBlock.Flags));                
+                OnAttachedSound(new AttachedSoundEventArgs(e.Simulator, sound.DataBlock.SoundID, sound.DataBlock.OwnerID, sound.DataBlock.ObjectID,
+                    sound.DataBlock.Gain, (SoundFlags)sound.DataBlock.Flags));
             }
         }
 
@@ -240,11 +239,11 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void AttachedSoundGainChangeHandler(object sender, PacketReceivedEventArgs e)
-        {            
+        {
             if (m_AttachedSoundGainChange != null)
             {
                 AttachedSoundGainChangePacket change = (AttachedSoundGainChangePacket)e.Packet;
-                OnAttachedSoundGainChange(new AttachedSoundGainChangeEventArgs(e.Simulator, change.DataBlock.ObjectID, change.DataBlock.Gain));                
+                OnAttachedSoundGainChange(new AttachedSoundGainChangeEventArgs(e.Simulator, change.DataBlock.ObjectID, change.DataBlock.Gain));
             }
         }
 
@@ -252,14 +251,14 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void PreloadSoundHandler(object sender, PacketReceivedEventArgs e)
-        {            
+        {
             if (m_PreloadSound != null)
             {
                 PreloadSoundPacket preload = (PreloadSoundPacket)e.Packet;
 
                 foreach (PreloadSoundPacket.DataBlockBlock data in preload.DataBlock)
                 {
-                    OnPreloadSound(new PreloadSoundEventArgs(e.Simulator, data.SoundID, data.OwnerID, data.ObjectID));                    
+                    OnPreloadSound(new PreloadSoundEventArgs(e.Simulator, data.SoundID, data.OwnerID, data.ObjectID));
                 }
             }
         }
@@ -268,7 +267,7 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void SoundTriggerHandler(object sender, PacketReceivedEventArgs e)
-        {            
+        {
             if (m_SoundTrigger != null)
             {
                 SoundTriggerPacket trigger = (SoundTriggerPacket)e.Packet;
@@ -279,10 +278,10 @@ namespace OpenMetaverse
                         trigger.SoundData.ParentID,
                         trigger.SoundData.Gain,
                         trigger.SoundData.Handle,
-                        trigger.SoundData.Position));                
-            }            
+                        trigger.SoundData.Position));
+            }
         }
-        
+
         #endregion
     }
     #region EventArgs

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -47,7 +45,7 @@ namespace OpenMetaverse.TestClient
             foreach (KeyValuePair<string, OpenMetaverse.Stats.UtilizationStatistics.Stat> kvp in Client.Stats.GetStatistics())
             {
                 if (kvp.Value.Type == OpenMetaverse.Stats.Type.Message)
-                {                              
+                {
                     capsOutput.AppendFormat("{0,-30}|{1,4}|{2,4}|{3,-10}|{4,-10}|" + System.Environment.NewLine, kvp.Key, kvp.Value.TxCount, kvp.Value.RxCount,
                         FormatBytes(kvp.Value.TxBytes), FormatBytes(kvp.Value.RxBytes));
 
@@ -58,7 +56,7 @@ namespace OpenMetaverse.TestClient
                 }
                 else if (kvp.Value.Type == OpenMetaverse.Stats.Type.Packet)
                 {
-                    packetOutput.AppendFormat("{0,-30}|{1,4}|{2,4}|{3,-10}|{4,-10}|" + System.Environment.NewLine, kvp.Key, kvp.Value.TxCount, kvp.Value.RxCount, 
+                    packetOutput.AppendFormat("{0,-30}|{1,4}|{2,4}|{3,-10}|{4,-10}|" + System.Environment.NewLine, kvp.Key, kvp.Value.TxCount, kvp.Value.RxCount,
                         FormatBytes(kvp.Value.TxBytes), FormatBytes(kvp.Value.RxBytes));
 
                     packetsSentCount += kvp.Value.TxCount;
@@ -85,8 +83,8 @@ namespace OpenMetaverse.TestClient
 
             foreach (string order in orders)
             {
-                if ( bytes > max )
-                    return string.Format("{0:##.##} {1}", decimal.Divide( bytes, max ), order);
+                if (bytes > max)
+                    return string.Format("{0:##.##} {1}", decimal.Divide(bytes, max), order);
 
                 max /= scale;
             }

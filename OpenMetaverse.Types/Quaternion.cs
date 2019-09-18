@@ -25,8 +25,8 @@
  */
 
 using System;
-using System.Runtime.InteropServices;
 using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace OpenMetaverse
 {
@@ -107,7 +107,7 @@ namespace OpenMetaverse
         public bool ApproxEquals(Quaternion quat)
         {
             // assume normalized
-            return  Math.Abs(quat.X - X) < 1e-6f &&
+            return Math.Abs(quat.X - X) < 1e-6f &&
                     Math.Abs(quat.Y - Y) < 1e-6f &&
                     Math.Abs(quat.Z - Z) < 1e-6f;
         }
@@ -278,7 +278,7 @@ namespace OpenMetaverse
             pitch = 0f;
             yaw = 0f;
 
-            if(W > 0.999999f)
+            if (W > 0.999999f)
                 return;
 
             float tX = X * X;
@@ -327,7 +327,7 @@ namespace OpenMetaverse
                 angle = 0;
                 return;
             }
-            if(ww < 0.0001f)
+            if (ww < 0.0001f)
             {
                 if (q.W < 0f)
                     axis = new Vector3(-q.X, -q.Y, -q.Z);
@@ -368,7 +368,7 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Quaternion Conjugate(Quaternion quaternion)
         {
-            return new Quaternion( -quaternion.X, -quaternion.Y, -quaternion.Z, quaternion.W);
+            return new Quaternion(-quaternion.X, -quaternion.Y, -quaternion.Z, quaternion.W);
         }
 
         /// <summary>

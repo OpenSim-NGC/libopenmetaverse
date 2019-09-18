@@ -1,17 +1,16 @@
 using System;
 using System.Text;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
     public class RegionInfoCommand : Command
     {
         public RegionInfoCommand(TestClient testClient)
-		{
-			Name = "regioninfo";
-			Description = "Prints out info about all the current region";
+        {
+            Name = "regioninfo";
+            Description = "Prints out info about all the current region";
             Category = CommandCategory.Simulator;
-		}
+        }
 
         public override string Execute(string[] args, UUID fromAgentID)
         {

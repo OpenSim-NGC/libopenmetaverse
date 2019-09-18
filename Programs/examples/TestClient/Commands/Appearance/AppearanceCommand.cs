@@ -1,7 +1,3 @@
-using System;
-using System.Threading;
-using OpenMetaverse;
-
 namespace OpenMetaverse.TestClient
 {
     /// <summary>
@@ -9,7 +5,7 @@ namespace OpenMetaverse.TestClient
     /// </summary>
     public class AppearanceCommand : Command
     {
-		public AppearanceCommand(TestClient testClient)
+        public AppearanceCommand(TestClient testClient)
         {
             Name = "appearance";
             Description = "Set your current appearance to your last saved appearance. Usage: appearance [rebake]";

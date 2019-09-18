@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 
 namespace OpenMetaverse.TestClient.Commands
@@ -21,17 +20,17 @@ namespace OpenMetaverse.TestClient.Commands
                 return "Usage: key2name UUID";
 
             UUID key;
-            if(!UUID.TryParse(args[0].Trim(), out key))
+            if (!UUID.TryParse(args[0].Trim(), out key))
             {
                 return "UUID " + args[0].Trim() + " appears to be invalid";
             }
             result.Remove(0, result.Length);
             waitQuery.Reset();
-            
+
             Client.Avatars.UUIDNameReply += Avatars_OnAvatarNames;
             Client.Groups.GroupProfile += Groups_OnGroupProfile;
-            Client.Avatars.RequestAvatarName(key);            
-            
+            Client.Avatars.RequestAvatarName(key);
+
             Client.Groups.RequestGroupProfile(key);
             if (!waitQuery.WaitOne(10000, false))
             {
@@ -54,6 +53,6 @@ namespace OpenMetaverse.TestClient.Commands
             foreach (KeyValuePair<UUID, string> kvp in e.Names)
                 result.AppendLine("Avatar: " + kvp.Value + " " + kvp.Key);
             waitQuery.Set();
-        }        
+        }
     }
 }

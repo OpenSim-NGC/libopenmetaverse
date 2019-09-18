@@ -24,10 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.Packets;
 using System;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
 {
@@ -473,7 +472,7 @@ namespace OpenMetaverse
             {
                 Client = client;
                 Camera = new AgentCamera();
-                Client.Network.LoginProgress += Network_OnConnected;                
+                Client.Network.LoginProgress += Network_OnConnected;
                 Client.Network.Disconnected += Network_OnDisconnected;
                 updateInterval = Settings.DEFAULT_AGENT_UPDATE_INTERVAL;
             }
@@ -512,7 +511,7 @@ namespace OpenMetaverse
             {
                 Camera.Position = Client.Self.SimPosition;
                 Camera.LookDirection(heading);
-                
+
                 BodyRotation.Z = (float)Math.Sin(heading / 2.0d);
                 BodyRotation.W = (float)Math.Cos(heading / 2.0d);
                 HeadRotation = BodyRotation;
@@ -658,7 +657,8 @@ namespace OpenMetaverse
 
                     Client.Network.SendPacket(update, simulator);
 
-                    if (autoResetControls) {
+                    if (autoResetControls)
+                    {
                         ResetControlFlags();
                     }
                 }

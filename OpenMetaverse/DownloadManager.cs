@@ -23,13 +23,11 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
  * POSSIBILITY OF SUCH DAMAGE.
  */
+using OpenMetaverse.Http;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
-using OpenMetaverse.Http;
 
 namespace OpenMetaverse
 {

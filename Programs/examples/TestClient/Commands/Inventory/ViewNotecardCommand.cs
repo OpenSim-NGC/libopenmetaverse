@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient
@@ -50,7 +46,7 @@ namespace OpenMetaverse.TestClient
 
                 // make request for asset
                 Client.Assets.RequestInventoryAsset(ii, true,
-                    delegate(AssetDownload transfer, Asset asset)
+                    delegate (AssetDownload transfer, Asset asset)
                     {
                         if (transfer.Success)
                         {

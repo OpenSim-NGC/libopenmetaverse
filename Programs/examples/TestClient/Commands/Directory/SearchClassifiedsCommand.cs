@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace OpenMetaverse.TestClient.Commands
 {
     class SearchClassifiedsCommand : Command
     {
-        System.Threading.AutoResetEvent waitQuery = new System.Threading.AutoResetEvent(false);        
+        System.Threading.AutoResetEvent waitQuery = new System.Threading.AutoResetEvent(false);
 
         public SearchClassifiedsCommand(TestClient testClient)
         {
@@ -28,7 +27,7 @@ namespace OpenMetaverse.TestClient.Commands
 
             StringBuilder result = new StringBuilder();
 
-            EventHandler<DirClassifiedsReplyEventArgs> callback = delegate(object sender, DirClassifiedsReplyEventArgs e)
+            EventHandler<DirClassifiedsReplyEventArgs> callback = delegate (object sender, DirClassifiedsReplyEventArgs e)
             {
                 result.AppendFormat("Your search string '{0}' returned {1} classified ads" + System.Environment.NewLine,
                     searchText, e.Classifieds.Count);
@@ -46,7 +45,7 @@ namespace OpenMetaverse.TestClient.Commands
 
             Client.Directory.DirClassifiedsReply += callback;
 
-            UUID searchID = Client.Directory.StartClassifiedSearch(searchText, DirectoryManager.ClassifiedCategories.Any,  DirectoryManager.ClassifiedQueryFlags.Mature | DirectoryManager.ClassifiedQueryFlags.PG);
+            UUID searchID = Client.Directory.StartClassifiedSearch(searchText, DirectoryManager.ClassifiedCategories.Any, DirectoryManager.ClassifiedQueryFlags.Mature | DirectoryManager.ClassifiedQueryFlags.PG);
 
             if (!waitQuery.WaitOne(20000, false) && Client.Network.Connected)
             {
@@ -56,6 +55,6 @@ namespace OpenMetaverse.TestClient.Commands
             Client.Directory.DirClassifiedsReply -= callback;
 
             return result.ToString();
-        }        
+        }
     }
 }

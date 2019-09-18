@@ -1,11 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Reflection;
-using System.Xml;
-using OpenMetaverse;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Utilities;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Threading;
 
 namespace OpenMetaverse.TestClient
 {
@@ -57,7 +55,7 @@ namespace OpenMetaverse.TestClient
             Network.SimChanged += new EventHandler<SimChangedEventArgs>(Network_SimChanged);
             Self.IM += Self_IM;
             Groups.GroupMembersReply += GroupMembersHandler;
-            Inventory.InventoryObjectOffered += Inventory_OnInventoryObjectReceived;            
+            Inventory.InventoryObjectOffered += Inventory_OnInventoryObjectReceived;
 
             Network.RegisterCallback(PacketType.AvatarAppearance, AvatarAppearanceHandler);
             Network.RegisterCallback(PacketType.AlertMessage, AlertMessageHandler);
@@ -105,7 +103,7 @@ namespace OpenMetaverse.TestClient
             if (e.IM.FromAgentID == MasterKey || (GroupCommands && groupIM))
             {
                 // Received an IM from someone that is authenticated
-                Console.WriteLine("<{0} ({1})> {2}: {3} (@{4}:{5})", e.IM.GroupIM ? "GroupIM" : "IM", e.IM.Dialog, e.IM.FromAgentName, e.IM.Message, 
+                Console.WriteLine("<{0} ({1})> {2}: {3} (@{4}:{5})", e.IM.GroupIM ? "GroupIM" : "IM", e.IM.Dialog, e.IM.FromAgentName, e.IM.Message,
                     e.IM.RegionID, e.IM.Position);
 
                 if (e.IM.Dialog == InstantMessageDialog.RequestTeleport)
@@ -174,7 +172,7 @@ namespace OpenMetaverse.TestClient
 
         public void ReloadGroupsCache()
         {
-            Groups.CurrentGroups += Groups_CurrentGroups;            
+            Groups.CurrentGroups += Groups_CurrentGroups;
             Groups.RequestCurrentGroups();
             GroupsEvent.WaitOne(10000, false);
             Groups.CurrentGroups -= Groups_CurrentGroups;
@@ -193,22 +191,25 @@ namespace OpenMetaverse.TestClient
         public UUID GroupName2UUID(String groupName)
         {
             UUID tryUUID;
-            if (UUID.TryParse(groupName,out tryUUID))
-                    return tryUUID;
-            if (null == GroupsCache) {
-                    ReloadGroupsCache();
+            if (UUID.TryParse(groupName, out tryUUID))
+                return tryUUID;
+            if (null == GroupsCache)
+            {
+                ReloadGroupsCache();
                 if (null == GroupsCache)
                     return UUID.Zero;
             }
-            lock(GroupsCache) {
-                if (GroupsCache.Count > 0) {
+            lock (GroupsCache)
+            {
+                if (GroupsCache.Count > 0)
+                {
                     foreach (Group currentGroup in GroupsCache.Values)
                         if (currentGroup.Name.ToLower() == groupName.ToLower())
                             return currentGroup.ID;
                 }
             }
             return UUID.Zero;
-        }      
+        }
 
         private void updateTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
@@ -223,7 +224,7 @@ namespace OpenMetaverse.TestClient
             if (p.AgentData.AgentID == e.Simulator.Client.Self.AgentID && p.AgentData.ActiveGroupID != UUID.Zero)
             {
                 GroupID = p.AgentData.ActiveGroupID;
-                
+
                 GroupMembersRequestID = e.Simulator.Client.Groups.RequestGroupMembers(GroupID);
             }
         }
@@ -238,7 +239,7 @@ namespace OpenMetaverse.TestClient
         private void AvatarAppearanceHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-            
+
             AvatarAppearancePacket appearance = (AvatarAppearancePacket)packet;
 
             lock (Appearances) Appearances[appearance.Sender.ID] = appearance;
@@ -247,12 +248,12 @@ namespace OpenMetaverse.TestClient
         private void AlertMessageHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-            
+
             AlertMessagePacket message = (AlertMessagePacket)packet;
 
             Logger.Log("[AlertMessage] " + Utils.BytesToString(message.AlertData.Message), Helpers.LogLevel.Info, this);
         }
-       
+
         private void Inventory_OnInventoryObjectReceived(object sender, InventoryObjectOfferedEventArgs e)
         {
             if (MasterKey != UUID.Zero)

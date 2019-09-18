@@ -24,12 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Net;
-using System.Collections.Generic;
-using System.Threading;
-using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
+using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace OpenMetaverse
@@ -447,7 +444,7 @@ namespace OpenMetaverse
             OSDMap Avi = (OSDMap)base.GetOSD();
 
             OSDArray grp = new OSDArray();
-            Groups.ForEach(delegate(UUID u) { grp.Add(OSD.FromUUID(u)); });
+            Groups.ForEach(delegate (UUID u) { grp.Add(OSD.FromUUID(u)); });
 
             OSDArray vp = new OSDArray();
 
@@ -476,7 +473,7 @@ namespace OpenMetaverse
             OSDMap tex = (OSDMap)O;
 
             Avatar A = new Avatar();
-            
+
             Primitive P = Primitive.FromOSD(O);
 
             Type Prim = typeof(Primitive);
@@ -485,9 +482,9 @@ namespace OpenMetaverse
 
             for (int x = 0; x < Fields.Length; x++)
             {
-                Logger.Log("Field Matched in FromOSD: "+Fields[x].Name, Helpers.LogLevel.Debug);
+                Logger.Log("Field Matched in FromOSD: " + Fields[x].Name, Helpers.LogLevel.Debug);
                 Fields[x].SetValue(A, Fields[x].GetValue(P));
-            }            
+            }
 
             A.Groups = new List<UUID>();
 

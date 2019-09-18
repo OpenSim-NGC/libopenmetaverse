@@ -30,22 +30,20 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.IO;
-using System.Net;
-using System.Xml;
-using System.Text;
-using System.Threading;
-using System.Net.Sockets;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
+using Nwc.XmlRpc;
 using OpenMetaverse;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
-using log4net;
-using Nwc.XmlRpc;
-using Logger = Nwc.XmlRpc.Logger;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Xml;
 
 namespace GridProxy
 {
@@ -186,7 +184,7 @@ namespace GridProxy
     {
         public ProxyConfig proxyConfig;
         private string loginURI;
-        
+
         static List<string> BinaryResponseCaps = new List<string>()
         {
             "GetTexture",
@@ -634,7 +632,7 @@ namespace GridProxy
             lock (this)
             {
                 string capuri = Regex.Replace(uri, @"/?\?.*$", string.Empty);
-               
+
                 if (KnownCaps.ContainsKey(capuri))
                 {
                     cap = KnownCaps[capuri];
@@ -711,7 +709,7 @@ namespace GridProxy
 
                             if (range.Length == 2)
                             {
-                                if(!int.TryParse(range[0], out from))
+                                if (!int.TryParse(range[0], out from))
                                     from = 0;
                                 if (int.TryParse(range[1], out to))
                                     req.AddRange(parts[0], from, to);
@@ -835,14 +833,14 @@ namespace GridProxy
                         string key = resp.Headers.Keys[i];
                         string val = resp.Headers[i];
                         string lkey = key.ToLower();
-//                        if (lkey != "content-length" && lkey != "transfer-encoding" && lkey != "connection")
+                        //                        if (lkey != "content-length" && lkey != "transfer-encoding" && lkey != "connection")
                         if (lkey != "content-length" && lkey != "transfer-encoding")
                         {
                             consoleMsg += key + ": " + val + "\n";
                             byte[] wr = Encoding.UTF8.GetBytes(key + ": " + val + "\r\n");
                             netStream.Write(wr, 0, wr.Length);
                         }
-                        if(lkey == "content-range")
+                        if (lkey == "content-range")
                         {
                             resprange = true;
                         }
@@ -856,7 +854,7 @@ namespace GridProxy
                 }
             }
 
-            if(reqrange && !resprange)
+            if (reqrange && !resprange)
             {
 
             }
@@ -1225,7 +1223,7 @@ namespace GridProxy
                 CapsClient loginRequest = new CapsClient(proxyConfig.remoteLoginUri);
                 OSD response = null;
                 loginRequest.OnComplete += new CapsClient.CompleteCallback(
-                    delegate(CapsClient client, OSD result, Exception error)
+                    delegate (CapsClient client, OSD result, Exception error)
                     {
                         if (error == null)
                         {
@@ -1915,7 +1913,7 @@ namespace GridProxy
                 if (packet.Header.AppendedAcks)
                 {
                     int ackCount = packet.Header.AckList.Length;
-                    for (int i = 0; i < ackCount; )
+                    for (int i = 0; i < ackCount;)
                     {
                         uint ackID = packet.Header.AckList[i]; // FIXME FIXME FIXME
 
@@ -2146,7 +2144,8 @@ namespace GridProxy
 
         public CapInfo(string URI, IPEndPoint Sim, string CapType)
             :
-            this(URI, Sim, CapType, CapsDataFormat.OSD, CapsDataFormat.OSD) { }
+            this(URI, Sim, CapType, CapsDataFormat.OSD, CapsDataFormat.OSD)
+        { }
         public CapInfo(string URI, IPEndPoint Sim, string CapType, CapsDataFormat ReqFmt, CapsDataFormat RespFmt)
         {
             uri = URI; sim = Sim; type = CapType; reqFmt = ReqFmt; respFmt = RespFmt;

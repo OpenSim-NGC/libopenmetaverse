@@ -24,12 +24,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.Packets;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Net;
-using System.Net.Sockets;
-using OpenMetaverse.Packets;
+using System.Threading;
 
 namespace OpenMetaverse
 {
@@ -145,7 +144,7 @@ namespace OpenMetaverse
     }
 
     #endregion Enums
-    
+
     /// <summary>
     /// 
     /// </summary>
@@ -363,13 +362,13 @@ namespace OpenMetaverse
         /// Flags indicating which protocols this region supports
         /// </summary>
         public RegionProtocols Protocols;
-       
+
 
         /// <summary>The current sequence number for packets sent to this
         /// simulator. Must be Interlocked before modifying. Only
         /// useful for applications manipulating sequence numbers</summary>
         public int Sequence;
-        
+
         /// <summary>
         /// A thread-safe dictionary containing avatars in a simulator        
         /// </summary>
@@ -524,7 +523,7 @@ namespace OpenMetaverse
         public Simulator(GridClient client, IPEndPoint address, ulong handle)
             : base(address)
         {
-            Client = client;            
+            Client = client;
             if (Client.Settings.POOL_PARCEL_DATA || Client.Settings.CACHE_PRIMITIVES)
             {
                 SimulatorDataPool.SimulatorAdd(this);
@@ -628,7 +627,8 @@ namespace OpenMetaverse
                     Logger.Log("Giving up on waiting for RegionHandshake for " + this.ToString(),
                         Helpers.LogLevel.Warning, Client);
                     //Remove the simulator from the list, not useful if we haven't recieved the RegionHandshake
-                    lock (Client.Network.Simulators) {
+                    lock (Client.Network.Simulators)
+                    {
                         Client.Network.Simulators.Remove(this);
                     }
                 }
@@ -665,10 +665,10 @@ namespace OpenMetaverse
             {
                 GotUseCircuitCodeAck.Reset();
             }
-            
+
             // Send the initial packet out
             SendPacket(use);
-            
+
             if (waitForAck)
             {
                 if (!GotUseCircuitCodeAck.WaitOne(Client.Settings.LOGIN_TIMEOUT, false))
@@ -1137,12 +1137,12 @@ namespace OpenMetaverse
                     if (packet.Header.Resent)
                         Logger.DebugLog(
                             string.Format(
-                                "Received a resend of already processed packet #{0}, type: {1} from {2}", 
+                                "Received a resend of already processed packet #{0}, type: {1} from {2}",
                                 packet.Header.Sequence, packet.Type, Name));
                     else
                         Logger.Log(
                             string.Format(
-                                "Received a duplicate (not marked as resend) of packet #{0}, type: {1} for {2} from {3}", 
+                                "Received a duplicate (not marked as resend) of packet #{0}, type: {1} for {2} from {3}",
                                 packet.Header.Sequence, packet.Type, Client.Self.Name, Name),
                             Helpers.LogLevel.Warning);
 
@@ -1168,17 +1168,17 @@ namespace OpenMetaverse
             }
             #endregion
         }
-        
+
         protected override void PacketSent(UDPPacketBuffer buffer, int bytesSent)
         {
             // Stats tracking
             Interlocked.Add(ref Stats.SentBytes, bytesSent);
             Interlocked.Increment(ref Stats.SentPackets);
-            
+
             Client.Network.RaisePacketSentEvent(buffer.Data, bytesSent, this);
         }
 
-        
+
         /// <summary>
         /// Sends out pending acknowledgements
         /// </summary>

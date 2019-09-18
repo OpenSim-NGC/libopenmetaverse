@@ -25,8 +25,8 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace OpenMetaverse
 {
@@ -80,7 +80,7 @@ namespace OpenMetaverse
         {
             if (Delegates.ContainsKey(action))
             {
-                Delegates[action].Add(callback);   
+                Delegates[action].Add(callback);
             }
             else
             {
@@ -111,10 +111,10 @@ namespace OpenMetaverse
         /// <param name="entry"></param>
         private void FireChangeEvent(DictionaryEventAction action, DictionaryEntry entry)
         {
-            
-            if(Delegates.ContainsKey(action))
+
+            if (Delegates.ContainsKey(action))
             {
-                foreach(DictionaryChangeCallback handler in Delegates[action])
+                foreach (DictionaryChangeCallback handler in Delegates[action])
                 {
                     handler(action, entry);
                 }
@@ -183,7 +183,7 @@ namespace OpenMetaverse
         /// </example>
         public bool TryGetValue(TKey key, out TValue value)
         {
-                return Dictionary.TryGetValue(key, out value);
+            return Dictionary.TryGetValue(key, out value);
         }
 
         /// <summary>
@@ -202,11 +202,11 @@ namespace OpenMetaverse
         /// </example>
         public TValue Find(Predicate<TValue> match)
         {
-                foreach (TValue value in Dictionary.Values)
-                {
-                    if (match(value))
-                        return value;
-                }
+            foreach (TValue value in Dictionary.Values)
+            {
+                if (match(value))
+                    return value;
+            }
             return default(TValue);
         }
 
@@ -228,13 +228,13 @@ namespace OpenMetaverse
         public List<TValue> FindAll(Predicate<TValue> match)
         {
             List<TValue> found = new List<TValue>();
-         
-                foreach (KeyValuePair<TKey, TValue> kvp in Dictionary)
-                {
-                    if (match(kvp.Value))
-                        found.Add(kvp.Value);
-                }
-                     return found;
+
+            foreach (KeyValuePair<TKey, TValue> kvp in Dictionary)
+            {
+                if (match(kvp.Value))
+                    found.Add(kvp.Value);
+            }
+            return found;
         }
 
         /// <summary>Find All items in an <seealso cref="T:ObservableDictionary"/></summary>
@@ -253,13 +253,13 @@ namespace OpenMetaverse
         public List<TKey> FindAll(Predicate<TKey> match)
         {
             List<TKey> found = new List<TKey>();
-         
-                foreach (KeyValuePair<TKey, TValue> kvp in Dictionary)
-                {
-                    if (match(kvp.Key))
-                        found.Add(kvp.Key);
-                }
-         
+
+            foreach (KeyValuePair<TKey, TValue> kvp in Dictionary)
+            {
+                if (match(kvp.Key))
+                    found.Add(kvp.Key);
+            }
+
             return found;
         }
 
@@ -268,7 +268,7 @@ namespace OpenMetaverse
         /// <returns><see langword="true"/> if found, <see langword="false"/> otherwise</returns>
         public bool ContainsKey(TKey key)
         {
-                return Dictionary.ContainsKey(key);
+            return Dictionary.ContainsKey(key);
         }
 
         /// <summary>Check if Value exists in Dictionary</summary>
@@ -276,7 +276,7 @@ namespace OpenMetaverse
         /// <returns><see langword="true"/> if found, <see langword="false"/> otherwise</returns>
         public bool ContainsValue(TValue value)
         {
-                return Dictionary.ContainsValue(value);
+            return Dictionary.ContainsValue(value);
         }
 
         /// <summary>
@@ -310,8 +310,11 @@ namespace OpenMetaverse
         public TValue this[TKey key]
         {
             get { return Dictionary[key]; }
-            set { FireChangeEvent(DictionaryEventAction.Add, new DictionaryEntry(key, value));
-                Dictionary[key] = value; }
+            set
+            {
+                FireChangeEvent(DictionaryEventAction.Add, new DictionaryEntry(key, value));
+                Dictionary[key] = value;
+            }
         }
 
         /// <summary>

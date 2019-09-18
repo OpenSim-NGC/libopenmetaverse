@@ -77,7 +77,7 @@ namespace OpenMetaverse.GUI
         /// TreeView control for the specified client's inventory
         /// </summary>
         /// <param name="client"></param>
-        public InventoryTree(GridClient client) : this ()
+        public InventoryTree(GridClient client) : this()
         {
             InitializeClient(client);
         }
@@ -176,7 +176,7 @@ namespace OpenMetaverse.GUI
 
             InventoryItem item = (InventoryItem)Client.Inventory.Store[_SelectedItemID];
 
-            switch(menuItem.Text)
+            switch (menuItem.Text)
             {
                 case "Wear":
                     {

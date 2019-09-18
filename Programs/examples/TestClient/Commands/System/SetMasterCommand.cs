@@ -1,31 +1,27 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
-    public class SetMasterCommand: Command
+    public class SetMasterCommand : Command
     {
-		public DateTime Created = DateTime.Now;
+        public DateTime Created = DateTime.Now;
         private UUID resolvedMasterKey = UUID.Zero;
         private ManualResetEvent keyResolution = new ManualResetEvent(false);
         private UUID query = UUID.Zero;
 
         public SetMasterCommand(TestClient testClient)
-		{
-			Name = "setmaster";
+        {
+            Name = "setmaster";
             Description = "Sets the user name of the master user. The master user can IM to run commands. Usage: setmaster [name]";
             Category = CommandCategory.TestClient;
-		}
+        }
 
         public override string Execute(string[] args, UUID fromAgentID)
-		{
-			string masterName = String.Empty;
-			for (int ct = 0; ct < args.Length;ct++)
-				masterName = masterName + args[ct] + " ";
+        {
+            string masterName = String.Empty;
+            for (int ct = 0; ct < args.Length; ct++)
+                masterName = masterName + args[ct] + " ";
             masterName = masterName.TrimEnd();
 
             if (masterName.Length == 0)
@@ -48,13 +44,13 @@ namespace OpenMetaverse.TestClient
                 Client.Directory.DirPeopleReply -= callback;
                 return "Unable to obtain UUID for \"" + masterName + "\". Master unchanged.";
             }
-            
+
             // Send an Online-only IM to the new master
             Client.Self.InstantMessage(
                 Client.MasterKey, "You are now my master.  IM me with \"help\" for a command list.");
 
             return String.Format("Master set to {0} ({1})", masterName, Client.MasterKey.ToString());
-		}
+        }
 
         private void KeyResolvHandler(object sender, DirPeopleReplyEventArgs e)
         {

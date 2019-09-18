@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Text;
-using System.Threading;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -28,7 +25,7 @@ namespace OpenMetaverse.TestClient
             {
                 // this request will update the parcels dictionary
                 Client.Parcels.RequestParcelProperties(Client.Network.CurrentSim, parcelID, 0);
-                
+
                 // Use reflection to dynamically get the fields from the Parcel struct
                 Type t = parcel.GetType();
                 System.Reflection.FieldInfo[] fields = t.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);

@@ -24,10 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse.StructuredData;
 using System.IO;
 
 namespace WinGridProxy
@@ -116,7 +115,7 @@ namespace WinGridProxy
             }
 
             if (map.ContainsKey("message_sessions"))
-            {                             
+            {
                 OSDArray messageArray = (OSDArray)map["message_sessions"];
 
                 //MessageSessions = new Dictionary<string, FilterEntryOptions>(messageArray.Count);
@@ -128,7 +127,7 @@ namespace WinGridProxy
                     entry.Checked = sessionsMap["Capture"].AsBoolean();
                     entry.Group = sessionsMap["Group"].AsString();
                     entry.Type = sessionsMap["Type"].AsString();
-                    MessageSessions.Add(sessionsMap["Name"].AsString(), entry);                    
+                    MessageSessions.Add(sessionsMap["Name"].AsString(), entry);
                 }
             }
 

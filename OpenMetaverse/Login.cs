@@ -24,18 +24,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using Nwc.XmlRpc;
+using OpenMetaverse.Http;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
-using System.IO;
 using System.Net;
-using System.Xml;
-using System.Security.Cryptography.X509Certificates;
-using Nwc.XmlRpc;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Http;
-using OpenMetaverse.Packets;
+using System.Threading;
 
 namespace OpenMetaverse
 {
@@ -1225,7 +1222,7 @@ namespace OpenMetaverse
                     var cc = CurrentContext;
                     // Start the request
                     Thread requestThread = new Thread(
-                        delegate()
+                        delegate ()
                         {
                             try
                             {

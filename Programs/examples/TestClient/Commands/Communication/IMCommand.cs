@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -20,7 +18,7 @@ namespace OpenMetaverse.TestClient
             Description = "Instant message someone. Usage: im [firstname] [lastname] [message]";
             Category = CommandCategory.Communication;
         }
-        
+
         public override string Execute(string[] args, UUID fromAgentID)
         {
             if (args.Length < 3)

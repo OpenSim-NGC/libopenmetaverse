@@ -24,9 +24,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Text;
 using OpenMetaverse.StructuredData;
 
 
@@ -39,5 +36,5 @@ namespace OpenMetaverse.Interfaces
     {
         OSDMap Serialize();
         void Deserialize(OSDMap map);
-    }    
+    }
 }

@@ -25,22 +25,19 @@
  */
 
 
-using System;
-using System.Text;
-using System.Threading;
 using System.Collections.Generic;
-using OpenMetaverse.Packets;
+using System.Threading;
 
 namespace OpenMetaverse.Stats
 {
     public enum Type
-        {
-            Packet,
-            Message
-        }
+    {
+        Packet,
+        Message
+    }
     public class UtilizationStatistics
     {
-        
+
         public class Stat
         {
             public Type Type;
@@ -58,7 +55,7 @@ namespace OpenMetaverse.Stats
                 this.RxBytes = rxBytes;
             }
         }
-                
+
         private Dictionary<string, Stat> m_StatsCollection;
 
         public UtilizationStatistics()
@@ -67,16 +64,16 @@ namespace OpenMetaverse.Stats
         }
 
         internal void Update(string key, Type Type, long txBytes, long rxBytes)
-        {            
+        {
             lock (m_StatsCollection)
             {
-                if(m_StatsCollection.ContainsKey(key))
+                if (m_StatsCollection.ContainsKey(key))
                 {
                     Stat stat = m_StatsCollection[key];
                     if (rxBytes > 0)
                     {
                         Interlocked.Increment(ref stat.RxCount);
-                        Interlocked.Add(ref stat.RxBytes, rxBytes);    
+                        Interlocked.Add(ref stat.RxBytes, rxBytes);
                     }
 
                     if (txBytes > 0)
@@ -84,8 +81,10 @@ namespace OpenMetaverse.Stats
                         Interlocked.Increment(ref stat.TxCount);
                         Interlocked.Add(ref stat.TxBytes, txBytes);
                     }
-                                                                           
-                } else {
+
+                }
+                else
+                {
                     Stat stat;
                     if (txBytes > 0)
                         stat = new Stat(Type, 1, 0, txBytes, 0);
@@ -99,7 +98,7 @@ namespace OpenMetaverse.Stats
 
         public Dictionary<string, Stat> GetStatistics()
         {
-            lock(m_StatsCollection)
+            lock (m_StatsCollection)
             {
                 return new Dictionary<string, Stat>(m_StatsCollection);
             }

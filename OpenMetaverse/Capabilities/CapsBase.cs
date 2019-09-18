@@ -25,12 +25,11 @@
  */
 
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Security;
-using System.IO;
-using System.Text;
-using System.Threading;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 
 namespace OpenMetaverse.Http
 {
@@ -149,7 +148,7 @@ namespace OpenMetaverse.Http
             {
                 Logger.Log(
                     string.Format(
-                        "In CapsBase.SetupRequest() setting conn limit for {0}:{1} to {2}", 
+                        "In CapsBase.SetupRequest() setting conn limit for {0}:{1} to {2}",
                         address.Host, address.Port, Settings.MAX_HTTP_CONNECTIONS), Helpers.LogLevel.Debug);
                 request.ServicePoint.ConnectionLimit = Settings.MAX_HTTP_CONNECTIONS;
             }

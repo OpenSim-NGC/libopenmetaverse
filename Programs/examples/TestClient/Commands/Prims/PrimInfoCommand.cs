@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -23,7 +22,7 @@ namespace OpenMetaverse.TestClient
             if (UUID.TryParse(args[0], out primID))
             {
                 Primitive target = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                    delegate(Primitive prim) { return prim.ID == primID; }
+                    delegate (Primitive prim) { return prim.ID == primID; }
                 );
 
                 if (target != null)
@@ -32,7 +31,7 @@ namespace OpenMetaverse.TestClient
                     {
                         Logger.Log("Text: " + target.Text, Helpers.LogLevel.Info, Client);
                     }
-                    if(target.Light != null)
+                    if (target.Light != null)
                         Logger.Log("Light: " + target.Light.ToString(), Helpers.LogLevel.Info, Client);
 
                     if (target.ParticleSys.CRC != 0)
@@ -62,11 +61,11 @@ namespace OpenMetaverse.TestClient
 
                     AutoResetEvent propsEvent = new AutoResetEvent(false);
                     EventHandler<ObjectPropertiesEventArgs> propsCallback =
-                        delegate(object sender, ObjectPropertiesEventArgs e)
+                        delegate (object sender, ObjectPropertiesEventArgs e)
                         {
                             Logger.Log(String.Format(
                                 "Category: {0}\nFolderID: {1}\nFromTaskID: {2}\nInventorySerial: {3}\nItemID: {4}\nCreationDate: {5}",
-                                e.Properties.Category, e.Properties.FolderID, e.Properties.FromTaskID, e.Properties.InventorySerial, 
+                                e.Properties.Category, e.Properties.FolderID, e.Properties.FromTaskID, e.Properties.InventorySerial,
                                 e.Properties.ItemID, e.Properties.CreationDate), Helpers.LogLevel.Info);
                             propsEvent.Set();
                         };

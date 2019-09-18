@@ -2,7 +2,6 @@
 // http://www.eggheadcafe.com/articles/20060727.asp
 
 using System;
-using System.Threading;
 
 /// <summary>
 /// 

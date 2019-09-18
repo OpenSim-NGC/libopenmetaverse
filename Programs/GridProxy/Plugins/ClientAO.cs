@@ -28,17 +28,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using System.Reflection;
+using GridProxy;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
-using Nwc.XmlRpc;
-using GridProxy;
+using System;
+using System.Collections.Generic;
+using System.Net;
 
 
 public class ClientAO : ProxyPlugin
@@ -106,16 +101,16 @@ public class ClientAO : ProxyPlugin
         };
 
     private Dictionary<UUID, string> animuid2name;
-    
+
     //private Assembly libslAssembly;
 
     #region Packet delegates members
     private PacketDelegate _packetDelegate;
-    private PacketDelegate packetDelegate 
+    private PacketDelegate packetDelegate
     {
         get
         {
-            if (_packetDelegate == null) 
+            if (_packetDelegate == null)
             {
                 _packetDelegate = new PacketDelegate(AnimationPacketHandler);
             }
@@ -149,23 +144,23 @@ public class ClientAO : ProxyPlugin
         }
     }
 
-//     private PacketDelegate _transferInfoDelegate;
-//     private PacketDelegate transferInfoDelegate
-//     {
-//         get
-//         {
-//             if (_transferInfoDelegate == null)
-//             {
-//                 _transferInfoDelegate = new PacketDelegate(TransferInfoHandler);
-//             }
-//             return _transferInfoDelegate;
-//         }
-//     }
+    //     private PacketDelegate _transferInfoDelegate;
+    //     private PacketDelegate transferInfoDelegate
+    //     {
+    //         get
+    //         {
+    //             if (_transferInfoDelegate == null)
+    //             {
+    //                 _transferInfoDelegate = new PacketDelegate(TransferInfoHandler);
+    //             }
+    //             return _transferInfoDelegate;
+    //         }
+    //     }
     #endregion
 
 
     //map of built in SL animations and their overrides
-    private Dictionary<UUID,UUID> overrides = new Dictionary<UUID,UUID>();
+    private Dictionary<UUID, UUID> overrides = new Dictionary<UUID, UUID>();
 
     //list of animations currently running
     private Dictionary<UUID, int> SignaledAnimations = new Dictionary<UUID, int>();
@@ -182,7 +177,7 @@ public class ClientAO : ProxyPlugin
     // Number of directory descendents received
     int nbdescendantsreceived;
     //List of items in the current folder
-    Dictionary<string,InventoryItem> currentFolderItems;
+    Dictionary<string, InventoryItem> currentFolderItems;
     //Asset download request ID
     UUID assetdownloadID;
     //Downloaded bytes so far
@@ -194,7 +189,7 @@ public class ClientAO : ProxyPlugin
 
 
     public ClientAO(ProxyFrame frame)
-    {        
+    {
         this.frame = frame;
         this.proxy = frame.proxy;
     }
@@ -206,7 +201,7 @@ public class ClientAO : ProxyPlugin
         //if (libslAssembly == null) throw new Exception("Assembly load exception");
 
         // build the table of /command delegates
-        InitializeCommandDelegates();                         
+        InitializeCommandDelegates();
 
         SayToUser("ClientAO loaded");
     }
@@ -219,8 +214,9 @@ public class ClientAO : ProxyPlugin
     }
 
     //Process commands from the user
-    private void CmdAO(string[] words) {
-        if (words.Length < 2) 
+    private void CmdAO(string[] words)
+    {
+        if (words.Length < 2)
         {
             SayToUser("Usage: /ao on/off/notecard path");
         }
@@ -246,9 +242,9 @@ public class ClientAO : ProxyPlugin
             for (int i = 1; i < words.Length; i++)
             {
                 tmp[i - 1] = words[i];
-            }            
+            }
             // add a delegate to monitor inventory infos
-            proxy.AddDelegate(PacketType.InventoryDescendents, Direction.Incoming, this.inventoryPacketDelegate);            
+            proxy.AddDelegate(PacketType.InventoryDescendents, Direction.Incoming, this.inventoryPacketDelegate);
             RequestFindObjectByPath(frame.InventoryRoot, String.Join(" ", tmp));
         }
     }
@@ -285,8 +281,8 @@ public class ClientAO : ProxyPlugin
 
         // Start the search
         RequestFolderContents(baseFolder,
-            true, 
-            (searchPath.Length == 1) ? true : false, 
+            true,
+            (searchPath.Length == 1) ? true : false,
             InventorySortOrder.ByName);
     }
 
@@ -319,12 +315,12 @@ public class ClientAO : ProxyPlugin
         bool intercept = false;
         InventoryDescendentsPacket reply = (InventoryDescendentsPacket)packet;
 
-        if (reply.AgentData.Descendents > 0 
+        if (reply.AgentData.Descendents > 0
             && reply.AgentData.FolderID == currentFolder)
-        {            
+        {
             //SayToUser("nb descendents: " + reply.AgentData.Descendents);
             //this packet concerns the folder we asked for            
-            if (reply.FolderData[0].FolderID != UUID.Zero 
+            if (reply.FolderData[0].FolderID != UUID.Zero
                 && searchLevel < searchPath.Length - 1)
             {
                 nbdescendantsreceived += reply.FolderData.Length;
@@ -334,20 +330,21 @@ public class ClientAO : ProxyPlugin
                 for (int i = 0; i < reply.FolderData.Length; i++)
                 {
                     //SayToUser("Folder: " + Utils.BytesToString(reply.FolderData[i].Name));
-                    if (searchPath[searchLevel] == Utils.BytesToString(reply.FolderData[i].Name)) {
+                    if (searchPath[searchLevel] == Utils.BytesToString(reply.FolderData[i].Name))
+                    {
                         //We found the next folder in the path                        
-                        currentFolder = reply.FolderData[i].FolderID;                       
-                        if (searchLevel < searchPath.Length - 1)                        
+                        currentFolder = reply.FolderData[i].FolderID;
+                        if (searchLevel < searchPath.Length - 1)
                         {
                             // ask for next item in path
                             searchLevel++;
                             RequestFolderContents(currentFolder,
                                 true,
-                                (searchLevel < searchPath.Length - 1) ? false : true, 
+                                (searchLevel < searchPath.Length - 1) ? false : true,
                                 InventorySortOrder.ByName);
                             //Jump to end
                             goto End;
-                        }                        
+                        }
                     }
                 }
                 if (nbdescendantsreceived >= reply.AgentData.Descendents)
@@ -412,7 +409,7 @@ public class ClientAO : ProxyPlugin
                         //SayToUser("item in folder: " + item.Name);
 
                         //Add the item to the name -> item hash
-                        currentFolderItems.Add(item.Name, item);                        
+                        currentFolderItems.Add(item.Name, item);
                     }
                 }
                 if (nbdescendantsreceived >= reply.AgentData.Descendents)
@@ -452,7 +449,7 @@ public class ClientAO : ProxyPlugin
             //to confuse the actual SL client
             intercept = true;
         }
-        End:
+    End:
         if (intercept)
         {
             //stop packet
@@ -518,7 +515,7 @@ public class ClientAO : ProxyPlugin
         //the total size of the download is yet unknown
         downloadsize = 0;
         //A 100K buffer should be enough for everyone
-        buffer =  new byte[1024 * 100];
+        buffer = new byte[1024 * 100];
         //Return the transfer ID
         return transferID;
     }
@@ -558,13 +555,14 @@ public class ClientAO : ProxyPlugin
     }
 
     //return the name of an animation by its UUID
-//     private string animname(UUID arg)
-//     {
-//         return animuid2name[arg];
-//     }
+    //     private string animname(UUID arg)
+    //     {
+    //         return animuid2name[arg];
+    //     }
 
     //handle animation packets from simulator
-    private Packet AnimationPacketHandler(Packet packet, IPEndPoint sim) {        
+    private Packet AnimationPacketHandler(Packet packet, IPEndPoint sim)
+    {
         AvatarAnimationPacket animation = (AvatarAnimationPacket)packet;
 
         if (animation.Sender.ID == frame.AgentID)
@@ -588,17 +586,17 @@ public class ClientAO : ProxyPlugin
 
             //we now have a list of currently running animations
             //Start override animations if necessary
-            foreach (UUID key in overrides.Keys) 
-            {                
+            foreach (UUID key in overrides.Keys)
+            {
                 //For each overriden animation key, test if its override is running
-                if (SignaledAnimations.ContainsKey(key) && (!overrideanimationisplaying[key] ))
+                if (SignaledAnimations.ContainsKey(key) && (!overrideanimationisplaying[key]))
                 {
                     //An overriden animation is present and its override animation
                     //isnt currently playing                    
                     //Start the override animation
                     //SayToUser("animation " + animname(key) + " started, will override with " + animname(overrides[key]));
                     overrideanimationisplaying[key] = true;
-                    Animate(overrides[key], true);                    
+                    Animate(overrides[key], true);
                 }
                 else if ((!SignaledAnimations.ContainsKey(key)) && overrideanimationisplaying[key])
                 {
@@ -609,43 +607,44 @@ public class ClientAO : ProxyPlugin
                     overrideanimationisplaying[key] = false;
                     Animate(overrides[key], false);
                 }
-            }            
+            }
         }
         //Let the packet go to the client
         return packet;
     }
 
     //handle packets that contain info about the notecard data transfer
-//     private Packet TransferInfoHandler(Packet packet, IPEndPoint simulator)
-//     {
-//         TransferInfoPacket info = (TransferInfoPacket)packet;
-//         
-//         if (info.TransferInfo.TransferID == assetdownloadID)
-//         {
-//             //this is our requested tranfer, handle it
-//             downloadsize = info.TransferInfo.Size;
-// 
-//             if ((StatusCode)info.TransferInfo.Status != StatusCode.OK)
-//             {
-//                 SayToUser("Failed to read notecard");
-//             }
-//             if (downloadedbytes >= downloadsize)
-//             {
-//                 //Download already completed!
-//                 downloadCompleted();
-//             }
-//             //intercept packet
-//             return null;
-//         }
-//         return packet;
-//     }
+    //     private Packet TransferInfoHandler(Packet packet, IPEndPoint simulator)
+    //     {
+    //         TransferInfoPacket info = (TransferInfoPacket)packet;
+    //         
+    //         if (info.TransferInfo.TransferID == assetdownloadID)
+    //         {
+    //             //this is our requested tranfer, handle it
+    //             downloadsize = info.TransferInfo.Size;
+    // 
+    //             if ((StatusCode)info.TransferInfo.Status != StatusCode.OK)
+    //             {
+    //                 SayToUser("Failed to read notecard");
+    //             }
+    //             if (downloadedbytes >= downloadsize)
+    //             {
+    //                 //Download already completed!
+    //                 downloadCompleted();
+    //             }
+    //             //intercept packet
+    //             return null;
+    //         }
+    //         return packet;
+    //     }
 
     //handle packets which contain the notecard data
     private Packet TransferPacketHandler(Packet packet, IPEndPoint simulator)
     {
-        TransferPacketPacket asset = (TransferPacketPacket)packet;      
+        TransferPacketPacket asset = (TransferPacketPacket)packet;
 
-        if (asset.TransferData.TransferID == assetdownloadID) {                    
+        if (asset.TransferData.TransferID == assetdownloadID)
+        {
             Buffer.BlockCopy(asset.TransferData.Data, 0, buffer, 1000 * asset.TransferData.Packet,
                 asset.TransferData.Data.Length);
             downloadedbytes += asset.TransferData.Data.Length;
@@ -669,8 +668,8 @@ public class ClientAO : ProxyPlugin
         //crop the buffer size
         byte[] tmp = new byte[downloadedbytes];
         Buffer.BlockCopy(buffer, 0, tmp, 0, downloadedbytes);
-        buffer = tmp;       
-        String notecardtext = getNotecardText(Utils.BytesToString(buffer));        
+        buffer = tmp;
+        String notecardtext = getNotecardText(Utils.BytesToString(buffer));
 
         //Load config, wetikon format
         loadWetIkon(notecardtext);
@@ -679,14 +678,14 @@ public class ClientAO : ProxyPlugin
     private void loadWetIkon(string config)
     {
         //Reinitialise override table
-        overrides = new Dictionary<UUID,UUID>();
+        overrides = new Dictionary<UUID, UUID>();
         overrideanimationisplaying = new Dictionary<UUID, bool>();
 
-        animuid2name = new Dictionary<UUID,string>();
-        foreach (UUID key in wetikonanims )
+        animuid2name = new Dictionary<UUID, string>();
+        foreach (UUID key in wetikonanims)
         {
-            animuid2name[key] = wetikonanimnames[Array.IndexOf(wetikonanims, key)];            
-        }        
+            animuid2name[key] = wetikonanimnames[Array.IndexOf(wetikonanims, key)];
+        }
 
         //list of animations in wetikon                
 
@@ -695,7 +694,8 @@ public class ClientAO : ProxyPlugin
         string[] lines = config.Split(sep);
         int length = lines.Length;
         int i = 1;
-        while (i < length) {
+        while (i < length)
+        {
             //Read animation name and look it up
             string animname = lines[i].Trim();
             //SayToUser("anim: " + animname);
@@ -706,7 +706,7 @@ public class ClientAO : ProxyPlugin
                     UUID over = currentFolderItems[animname].AssetUUID;
                     UUID orig = wetikonanims[((i + 1) / 2) - 1];
                     //put it in overrides
-                    animuid2name[over] = animname;                    
+                    animuid2name[over] = animname;
                     overrides[orig] = over;
                     overrideanimationisplaying[orig] = false;
                     //SayToUser(wetikonanimnames[((i + 1) / 2) - 1] + " overriden by " + animname + " ( " + over + ")");
@@ -801,11 +801,11 @@ public class ClientAO : ProxyPlugin
 
         i++;
         while (i < length)
-        {            
+        {
             result += lines[i] + "\n";
             i++;
         }
-        result = result.Substring(0, result.Length - 3);        
+        result = result.Substring(0, result.Length - 3);
         return result;
     }
 }

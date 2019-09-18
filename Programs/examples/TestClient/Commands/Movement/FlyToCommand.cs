@@ -101,7 +101,7 @@ namespace OpenMetaverse.TestClient.Commands.Movement
             if (diff >= 10.0)
             {
                 Client.Self.Movement.AtPos = true;
-                
+
                 res = true;
             }
             else if (diff >= 2 && vel < 5)

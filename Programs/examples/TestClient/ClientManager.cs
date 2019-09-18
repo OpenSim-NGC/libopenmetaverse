@@ -1,10 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Xml;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -129,7 +125,7 @@ namespace OpenMetaverse.TestClient
 
             TestClient client = new TestClient(this);
             client.Network.LoginProgress +=
-                delegate(object sender, LoginProgressEventArgs e)
+                delegate (object sender, LoginProgressEventArgs e)
                 {
                     Logger.Log(String.Format("Login {0}: {1}", e.Status, e.Message), Helpers.LogLevel.Info, client);
 
@@ -141,7 +137,7 @@ namespace OpenMetaverse.TestClient
                         {
                             UUID query = UUID.Zero;
                             EventHandler<DirPeopleReplyEventArgs> peopleDirCallback =
-                                delegate(object sender2, DirPeopleReplyEventArgs dpe)
+                                delegate (object sender2, DirPeopleReplyEventArgs dpe)
                                 {
                                     if (dpe.QueryID == query)
                                     {
@@ -179,7 +175,7 @@ namespace OpenMetaverse.TestClient
             client.Throttle.Task = 1000000;
 
             client.GroupCommands = account.GroupCommands;
-			client.MasterName = account.MasterName;
+            client.MasterName = account.MasterName;
             client.MasterKey = account.MasterKey;
             client.AllowObjectMaster = client.MasterKey != UUID.Zero; // Require UUID for object master.
 
@@ -208,7 +204,8 @@ namespace OpenMetaverse.TestClient
                     Thread.Sleep(2 * 1000);
                 }
             }
-            else {
+            else
+            {
                 Console.WriteLine("Type quit to exit.  Type help for a command list.");
 
                 while (Running)
@@ -249,7 +246,7 @@ namespace OpenMetaverse.TestClient
             string[] tokens = cmd.Trim().Split(new char[] { ' ', '\t' });
             if (tokens.Length == 0)
                 return;
-            
+
             string firstToken = tokens[0].ToLower();
             if (String.IsNullOrEmpty(firstToken))
                 return;
@@ -258,28 +255,37 @@ namespace OpenMetaverse.TestClient
             if (firstToken[0] == ';' || firstToken[0] == '#')
                 return;
 
-            if ('@' == firstToken[0]) {
+            if ('@' == firstToken[0])
+            {
                 onlyAvatar = String.Empty;
-                if (tokens.Length == 3) {
+                if (tokens.Length == 3)
+                {
                     bool found = false;
-                    onlyAvatar = tokens[1]+" "+tokens[2];
-                    foreach (TestClient client in Clients.Values) {
-                        if ((client.ToString() == onlyAvatar) && (client.Network.Connected)) {
+                    onlyAvatar = tokens[1] + " " + tokens[2];
+                    foreach (TestClient client in Clients.Values)
+                    {
+                        if ((client.ToString() == onlyAvatar) && (client.Network.Connected))
+                        {
                             found = true;
                             break;
                         }
                     }
-                    if (found) {
-                        Logger.Log("Commanding only "+onlyAvatar+" now", Helpers.LogLevel.Info);
-                    } else {
-                        Logger.Log("Commanding nobody now. Avatar "+onlyAvatar+" is offline", Helpers.LogLevel.Info);
+                    if (found)
+                    {
+                        Logger.Log("Commanding only " + onlyAvatar + " now", Helpers.LogLevel.Info);
                     }
-                } else {
+                    else
+                    {
+                        Logger.Log("Commanding nobody now. Avatar " + onlyAvatar + " is offline", Helpers.LogLevel.Info);
+                    }
+                }
+                else
+                {
                     Logger.Log("Commanding all avatars now", Helpers.LogLevel.Info);
                 }
                 return;
             }
-            
+
             string[] args = new string[tokens.Length - 1];
             if (args.Length > 0)
                 Array.Copy(tokens, 1, args, 0, args.Length);
@@ -337,21 +343,27 @@ namespace OpenMetaverse.TestClient
                 foreach (TestClient client in clientsCopy.Values)
                 {
                     ThreadPool.QueueUserWorkItem((WaitCallback)
-                        delegate(object state)
+                        delegate (object state)
                         {
                             TestClient testClient = (TestClient)state;
-                            if ((String.Empty == onlyAvatar) || (testClient.ToString() == onlyAvatar)) {
-                                if (testClient.Commands.ContainsKey(firstToken)) {
+                            if ((String.Empty == onlyAvatar) || (testClient.ToString() == onlyAvatar))
+                            {
+                                if (testClient.Commands.ContainsKey(firstToken))
+                                {
                                     string result;
-                                    try {
+                                    try
+                                    {
                                         result = testClient.Commands[firstToken].Execute(args, fromAgentID);
                                         Logger.Log(result, Helpers.LogLevel.Info, testClient);
-                                    } catch(Exception e) {
+                                    }
+                                    catch (Exception e)
+                                    {
                                         Logger.Log(String.Format("{0} raised exception {1}", firstToken, e),
                                                    Helpers.LogLevel.Error,
                                                    testClient);
                                     }
-                                } else
+                                }
+                                else
                                     Logger.Log("Unknown command " + firstToken, Helpers.LogLevel.Warning);
                             }
 

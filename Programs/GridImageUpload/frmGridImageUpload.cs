@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
-using System.Windows.Forms;
-using System.Threading;
 using OpenMetaverse;
-using OpenMetaverse.Http;
 using OpenMetaverse.Imaging;
+using System;
+using System.Drawing;
+using System.Threading;
+using System.Windows.Forms;
 
 namespace GridImageUpload
 {
@@ -235,7 +230,7 @@ namespace GridImageUpload
             if (InvokeRequired)
             {
                 BeginInvoke(new MethodInvoker(
-                    delegate()
+                    delegate ()
                     {
                         Network_OnLogin(sender, e);
                     }
@@ -297,7 +292,7 @@ namespace GridImageUpload
                 bool lookupSuccess = false;
 
                 EventHandler<DirPeopleReplyEventArgs> callback =
-                    delegate(object s, DirPeopleReplyEventArgs ep)
+                    delegate (object s, DirPeopleReplyEventArgs ep)
                     {
                         if (ep.QueryID == thisQueryID)
                         {
@@ -344,7 +339,7 @@ namespace GridImageUpload
 
                 Client.Inventory.RequestCreateItemFromAsset(UploadData, name, "Uploaded with SL Image Upload", AssetType.Texture,
                     InventoryType.Texture, Client.Inventory.FindFolderForType(AssetType.Texture), perms,
-                    delegate(bool success, string status, UUID itemID, UUID assetID)
+                    delegate (bool success, string status, UUID itemID, UUID assetID)
                     {
                         if (this.InvokeRequired)
                             BeginInvoke(new MethodInvoker(EnableControls));
@@ -360,7 +355,7 @@ namespace GridImageUpload
                             InventoryItem item = (InventoryItem)Client.Inventory.Store[itemID];
 
                             Transferred = UploadData.Length;
-                            BeginInvoke((MethodInvoker)delegate() { SetProgress(); });
+                            BeginInvoke((MethodInvoker)delegate () { SetProgress(); });
                         }
                         else
                         {

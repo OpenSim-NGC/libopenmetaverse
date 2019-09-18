@@ -29,18 +29,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using GridProxy;
+using OpenMetaverse;
+using OpenMetaverse.Packets;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Reflection;
-using Nwc.XmlRpc;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using GridProxy;
+using System.Text.RegularExpressions;
 
 
 public class Analyst : ProxyPlugin
@@ -52,11 +50,11 @@ public class Analyst : ProxyPlugin
     private Dictionary<PacketType, Dictionary<BlockField, object>> modifiedPackets = new Dictionary<PacketType, Dictionary<BlockField, object>>();
     private Assembly openmvAssembly;
     private StreamWriter output;
-    
+
     //private PacketDecoder DecodePacket = new PacketDecoder();
-    
+
     public Analyst(ProxyFrame frame)
-    {        
+    {
         this.frame = frame;
         this.proxy = frame.proxy;
     }
@@ -765,7 +763,7 @@ public class Analyst : ProxyPlugin
                 try
                 {
                     pType = packetTypeFromName(line);
-                    string[] noLogStr = new string[] {"/-log", line};
+                    string[] noLogStr = new string[] { "/-log", line };
                     CmdNoLog(noLogStr);
                     ++count;
                 }
@@ -829,7 +827,7 @@ public class Analyst : ProxyPlugin
     // LogPacket: dump a packet to the console
     private void LogPacket(Packet packet, IPEndPoint endPoint, Direction direction)
     {
-        
+
         //string packetText = DecodePacket.PacketToString(packet);
         string packetText = PacketDecoder.PacketToString(packet);
         if (logGrep == null || (logGrep != null && Regex.IsMatch(packetText, logGrep)))

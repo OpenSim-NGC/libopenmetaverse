@@ -44,29 +44,29 @@
 * 
 * 
 */
-using System;
 namespace CSJ2K.j2k.quantization
 {
-	
-	/// <summary> This interface defines the IDs of the possible quantization types. JPEG
-	/// 2000 part I support only the scalar quantization with dead zone. However
-	/// other quantization type may be defined in JPEG 2000 extensions (for
-	/// instance Trellis Coded Quantization).
-	/// 
-	/// <P>This interface defines the constants only. In order to use the
-	/// constants in any other class you can either use the fully qualified
-	/// name (e.g., <tt>QuantizationType.Q_TYPE_SCALAR_DZ</tt>) or declare
-	/// this interface in the implements clause of the class and then
-	/// access the identifier directly.
-	/// 
-	/// </summary>
-	public struct QuantizationType_Fields{
-		/// <summary>The ID of the scalar deadzone dequantizer </summary>
-		public readonly static int Q_TYPE_SCALAR_DZ = 0;
-	}
-	public interface QuantizationType
-	{
-		//UPGRADE_NOTE: Members of interface 'QuantizationType' were extracted into structure 'QuantizationType_Fields'. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1045'"
-		
-	}
+
+    /// <summary> This interface defines the IDs of the possible quantization types. JPEG
+    /// 2000 part I support only the scalar quantization with dead zone. However
+    /// other quantization type may be defined in JPEG 2000 extensions (for
+    /// instance Trellis Coded Quantization).
+    /// 
+    /// <P>This interface defines the constants only. In order to use the
+    /// constants in any other class you can either use the fully qualified
+    /// name (e.g., <tt>QuantizationType.Q_TYPE_SCALAR_DZ</tt>) or declare
+    /// this interface in the implements clause of the class and then
+    /// access the identifier directly.
+    /// 
+    /// </summary>
+    public struct QuantizationType_Fields
+    {
+        /// <summary>The ID of the scalar deadzone dequantizer </summary>
+        public readonly static int Q_TYPE_SCALAR_DZ = 0;
+    }
+    public interface QuantizationType
+    {
+        //UPGRADE_NOTE: Members of interface 'QuantizationType' were extracted into structure 'QuantizationType_Fields'. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1045'"
+
+    }
 }

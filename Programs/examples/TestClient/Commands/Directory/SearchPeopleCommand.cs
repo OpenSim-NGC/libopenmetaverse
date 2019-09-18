@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace OpenMetaverse.TestClient.Commands
 {
@@ -29,12 +27,12 @@ namespace OpenMetaverse.TestClient.Commands
 
             waitQuery.Reset();
 
-            
+
             Client.Directory.DirPeopleReply += Directory_DirPeople;
 
             // send the request to the directory manager
             Client.Directory.StartPeopleSearch(searchText, 0);
-            
+
             string result;
             if (waitQuery.WaitOne(20000, false) && Client.Network.Connected)
             {
@@ -56,7 +54,7 @@ namespace OpenMetaverse.TestClient.Commands
             {
                 foreach (DirectoryManager.AgentSearchData agent in e.MatchedPeople)
                 {
-                    Console.WriteLine("{0} {1} ({2})", agent.FirstName, agent.LastName, agent.AgentID);                   
+                    Console.WriteLine("{0} {1} ({2})", agent.FirstName, agent.LastName, agent.AgentID);
                 }
             }
             else

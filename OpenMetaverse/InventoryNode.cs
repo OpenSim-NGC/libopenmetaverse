@@ -25,8 +25,6 @@
  */
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Runtime.Serialization;
 
 namespace OpenMetaverse
@@ -154,14 +152,14 @@ namespace OpenMetaverse
         /// </summary>
         public void GetObjectData(SerializationInfo info, StreamingContext ctxt)
         {
-            if(parent!=null)
+            if (parent != null)
                 info.AddValue("Parent", parent.Data.UUID, typeof(UUID)); //We need to track the parent UUID for de-serialization
             else
                 info.AddValue("Parent", UUID.Zero, typeof(UUID));
 
             info.AddValue("Type", data.GetType(), typeof(Type));
 
-            data.GetObjectData(info, ctxt);  
+            data.GetObjectData(info, ctxt);
         }
 
         /// <summary>
@@ -171,10 +169,10 @@ namespace OpenMetaverse
         {
             parentID = (UUID)info.GetValue("Parent", typeof(UUID));
             Type type = (Type)info.GetValue("Type", typeof(Type));
-         
-	    // Construct a new inventory object based on the Type stored in Type
-            System.Reflection.ConstructorInfo ctr = type.GetConstructor(new Type[] {typeof(SerializationInfo),typeof(StreamingContext)});
-            data = (InventoryBase) ctr.Invoke(new Object[] { info, ctxt });
+
+            // Construct a new inventory object based on the Type stored in Type
+            System.Reflection.ConstructorInfo ctr = type.GetConstructor(new Type[] { typeof(SerializationInfo), typeof(StreamingContext) });
+            data = (InventoryBase)ctr.Invoke(new Object[] { info, ctxt });
         }
 
         /// <summary>

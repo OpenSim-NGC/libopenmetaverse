@@ -24,15 +24,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Threading;
-using System.Reflection;
-using System.Collections.Generic;
 using OpenMetaverse.Http;
-using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
-using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Threading;
 
 namespace OpenMetaverse
 {
@@ -640,7 +640,7 @@ namespace OpenMetaverse
                 req.SnapshotID = this.SnapshotID;
                 req.UserLocation = this.UserLocation;
                 req.UserLookAt = this.UserLookAt;
-               
+
                 OSDMap body = req.Serialize();
 
                 CapsClient capsPost = new CapsClient(url);
@@ -678,7 +678,7 @@ namespace OpenMetaverse
             }
 
             UpdateOtherCleanTime(simulator);
-            
+
         }
 
         /// <summary>
@@ -761,7 +761,7 @@ namespace OpenMetaverse
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_DwellReplyLock = new object();
-        
+
         /// <summary>Raised when the simulator responds to a <see cref="RequestDwell"/> request</summary>
         public event EventHandler<ParcelDwellReplyEventArgs> ParcelDwellReply
         {
@@ -966,7 +966,7 @@ namespace OpenMetaverse
         public ParcelManager(GridClient client)
         {
             Client = client;
-            
+
             // Setup the callbacks
             Client.Network.RegisterCallback(PacketType.ParcelInfoReply, ParcelInfoReplyHandler);
             Client.Network.RegisterEventCallback("ParcelObjectOwnersReply", new Caps.EventQueueCallback(ParcelObjectOwnersReplyHandler));
@@ -1100,12 +1100,12 @@ namespace OpenMetaverse
 
             if (refresh)
             {
-                    for (int y = 0; y < 64; y++)
-                        for (int x = 0; x < 64; x++)
-                            simulator.ParcelMap[y, x] = 0;
+                for (int y = 0; y < 64; y++)
+                    for (int x = 0; x < 64; x++)
+                        simulator.ParcelMap[y, x] = 0;
             }
 
-            Thread th = new Thread(delegate()
+            Thread th = new Thread(delegate ()
             {
                 int count = 0, timeouts = 0, y, x;
 
@@ -1336,7 +1336,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log(String.Format("ParcelMap returned an default/invalid value for location {0}/{1} Did you use RequestAllSimParcels() to populate the dictionaries?", (byte)position.Y / 4, (byte)position.X / 4 ), Helpers.LogLevel.Warning);
+                Logger.Log(String.Format("ParcelMap returned an default/invalid value for location {0}/{1} Did you use RequestAllSimParcels() to populate the dictionaries?", (byte)position.Y / 4, (byte)position.X / 4), Helpers.LogLevel.Warning);
                 return 0;
             }
         }
@@ -1571,7 +1571,7 @@ namespace OpenMetaverse
                     Logger.Log("Failed to fetch remote parcel ID", Helpers.LogLevel.Debug, Client);
                 }
             }
-            
+
             return UUID.Zero;
 
         }
@@ -1589,7 +1589,7 @@ namespace OpenMetaverse
                 Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("LandResources");
                 CapsClient request = new CapsClient(url);
 
-                request.OnComplete += delegate(CapsClient client, OSD result, Exception error)
+                request.OnComplete += delegate (CapsClient client, OSD result, Exception error)
                 {
                     try
                     {
@@ -1642,7 +1642,7 @@ namespace OpenMetaverse
         /// <param name="e">The EventArgs object containing the packet data</param>
         /// <remarks>Raises the <see cref="ParcelDwellReply"/> event</remarks>
         protected void ParcelDwellReplyHandler(object sender, PacketReceivedEventArgs e)
-        {            
+        {
             if (m_DwellReply != null || Client.Settings.ALWAYS_REQUEST_PARCEL_DWELL == true)
             {
                 Packet packet = e.Packet;
@@ -1672,7 +1672,7 @@ namespace OpenMetaverse
         /// <param name="e">The EventArgs object containing the packet data</param>
         /// <remarks>Raises the <see cref="ParcelInfoReply"/> event</remarks>
         protected void ParcelInfoReplyHandler(object sender, PacketReceivedEventArgs e)
-        {            
+        {
             if (m_ParcelInfo != null)
             {
                 Packet packet = e.Packet;
@@ -1696,16 +1696,16 @@ namespace OpenMetaverse
                 parcelInfo.SimName = Utils.BytesToString(info.Data.SimName);
                 parcelInfo.SnapshotID = info.Data.SnapshotID;
 
-                OnParcelInfoReply(new ParcelInfoReplyEventArgs(parcelInfo));                
+                OnParcelInfoReply(new ParcelInfoReplyEventArgs(parcelInfo));
             }
         }
 
         protected void ParcelPropertiesReplyHandler(string capsKey, IMessage message, Simulator simulator)
-        {                        
+        {
             if (m_ParcelProperties != null || Client.Settings.PARCEL_TRACKING == true)
             {
                 ParcelPropertiesMessage msg = (ParcelPropertiesMessage)message;
-                
+
                 Parcel parcel = new Parcel(msg.LocalID);
 
                 parcel.AABBMax = msg.AABBMax;
@@ -1808,7 +1808,7 @@ namespace OpenMetaverse
                 // Fire the callback for parcel properties being received
                 if (m_ParcelProperties != null)
                 {
-                    OnParcelProperties(new ParcelPropertiesEventArgs(simulator, parcel, result, selectedPrims, sequenceID, snapSelection));                    
+                    OnParcelProperties(new ParcelPropertiesEventArgs(simulator, parcel, result, selectedPrims, sequenceID, snapSelection));
                 }
 
                 // Check if all of the simulator parcels have been retrieved, if so fire another callback
@@ -1833,40 +1833,40 @@ namespace OpenMetaverse
                 ParcelAccessListReplyPacket reply = (ParcelAccessListReplyPacket)packet;
 
                 List<ParcelAccessEntry> accessList = new List<ParcelAccessEntry>(reply.List.Length);
-                   
-                    for (int i = 0; i < reply.List.Length; i++)
+
+                for (int i = 0; i < reply.List.Length; i++)
+                {
+                    ParcelAccessEntry pae = new ParcelAccessEntry();
+                    pae.AgentID = reply.List[i].ID;
+                    pae.Time = Utils.UnixTimeToDateTime((uint)reply.List[i].Time);
+                    pae.Flags = (AccessList)reply.List[i].Flags;
+
+                    accessList.Add(pae);
+                }
+
+                lock (simulator.Parcels.Dictionary)
+                {
+                    if (simulator.Parcels.Dictionary.ContainsKey(reply.Data.LocalID))
                     {
-                        ParcelAccessEntry pae = new ParcelAccessEntry();
-                        pae.AgentID = reply.List[i].ID;
-                        pae.Time = Utils.UnixTimeToDateTime((uint)reply.List[i].Time);
-                        pae.Flags = (AccessList)reply.List[i].Flags;
+                        Parcel parcel = simulator.Parcels.Dictionary[reply.Data.LocalID];
+                        if ((AccessList)reply.Data.Flags == AccessList.Ban)
+                            parcel.AccessBlackList = accessList;
+                        else
+                            parcel.AccessWhiteList = accessList;
 
-                        accessList.Add(pae);
+                        simulator.Parcels.Dictionary[reply.Data.LocalID] = parcel;
                     }
+                }
 
-                    lock (simulator.Parcels.Dictionary)
-                    {
-                        if (simulator.Parcels.Dictionary.ContainsKey(reply.Data.LocalID))
-                        {
-                            Parcel parcel = simulator.Parcels.Dictionary[reply.Data.LocalID];
-                            if ((AccessList)reply.Data.Flags == AccessList.Ban)
-                                parcel.AccessBlackList = accessList;
-                            else
-                                parcel.AccessWhiteList = accessList;
-
-                            simulator.Parcels.Dictionary[reply.Data.LocalID] = parcel;
-                        }
-                    }
-                
 
                 if (m_ParcelACL != null)
                 {
-                    OnParcelAccessListReply(new ParcelAccessListReplyEventArgs(simulator, reply.Data.SequenceID, reply.Data.LocalID, 
-                        reply.Data.Flags, accessList));                    
+                    OnParcelAccessListReply(new ParcelAccessListReplyEventArgs(simulator, reply.Data.SequenceID, reply.Data.LocalID,
+                        reply.Data.Flags, accessList));
                 }
             }
         }
-        
+
         protected void ParcelObjectOwnersReplyHandler(string capsKey, IMessage message, Simulator simulator)
         {
             if (m_ParcelObjectOwnersReply != null)
@@ -1874,7 +1874,7 @@ namespace OpenMetaverse
                 List<ParcelPrimOwners> primOwners = new List<ParcelPrimOwners>();
 
                 ParcelObjectOwnersReplyMessage msg = (ParcelObjectOwnersReplyMessage)message;
-                
+
                 for (int i = 0; i < msg.PrimOwnersBlock.Length; i++)
                 {
                     ParcelPrimOwners primOwner = new ParcelPrimOwners();
@@ -1888,7 +1888,7 @@ namespace OpenMetaverse
                 }
 
                 OnParcelObjectOwnersReply(new ParcelObjectOwnersReplyEventArgs(simulator, primOwners));
-            }                
+            }
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -1987,15 +1987,15 @@ namespace OpenMetaverse
                 ParcelMediaCommandMessagePacket pmc = (ParcelMediaCommandMessagePacket)packet;
                 ParcelMediaCommandMessagePacket.CommandBlockBlock block = pmc.CommandBlock;
 
-                OnParcelMediaCommand(new ParcelMediaCommandEventArgs(simulator, pmc.Header.Sequence, (ParcelFlags)block.Flags, 
-                    (ParcelMediaCommand)block.Command, block.Time));                
+                OnParcelMediaCommand(new ParcelMediaCommandEventArgs(simulator, pmc.Header.Sequence, (ParcelFlags)block.Flags,
+                    (ParcelMediaCommand)block.Command, block.Time));
             }
         }
 
         #endregion Packet Handlers
     }
     #region EventArgs classes
-    
+
     /// <summary>Contains a parcels dwell data returned from the simulator in response to an <see cref="RequestParcelDwell"/></summary>
     public class ParcelDwellReplyEventArgs : EventArgs
     {
@@ -2027,7 +2027,7 @@ namespace OpenMetaverse
     /// <summary>Contains basic parcel information data returned from the 
     /// simulator in response to an <see cref="RequestParcelInfo"/> request</summary>
     public class ParcelInfoReplyEventArgs : EventArgs
-    {        
+    {
         private readonly ParcelInfo m_Parcel;
 
         /// <summary>Get the <see cref="ParcelInfo"/> object containing basic parcel info</summary>
@@ -2091,7 +2091,7 @@ namespace OpenMetaverse
             this.m_SnapSelection = snapSelection;
         }
     }
-    
+
     /// <summary>Contains blacklist and whitelist data returned from the simulator in response to an <see cref="RequestParcelAccesslist"/> request</summary>
     public class ParcelAccessListReplyEventArgs : EventArgs
     {
@@ -2131,7 +2131,7 @@ namespace OpenMetaverse
             this.m_AccessList = accessEntries;
         }
     }
-    
+
     /// <summary>Contains blacklist and whitelist data returned from the 
     /// simulator in response to an <see cref="RequestParcelAccesslist"/> request</summary>
     public class ParcelObjectOwnersReplyEventArgs : EventArgs
@@ -2185,7 +2185,7 @@ namespace OpenMetaverse
             this.m_ParcelMap = parcelMap;
         }
     }
-    
+
     /// <summary>Contains the data returned when a <see cref="RequestForceSelectObjects"/> request</summary>
     public class ForceSelectObjectsReplyEventArgs : EventArgs
     {
@@ -2215,7 +2215,7 @@ namespace OpenMetaverse
             this.m_ResetList = resetList;
         }
     }
-   
+
     /// <summary>Contains data when the media data for a parcel the avatar is on changes</summary>
     public class ParcelMediaUpdateReplyEventArgs : EventArgs
     {
@@ -2226,7 +2226,7 @@ namespace OpenMetaverse
         public Simulator Simulator { get { return m_Simulator; } }
         /// <summary>Get the updated media information</summary>
         public ParcelMedia Media { get { return m_ParcelMedia; } }
-        
+
         /// <summary>
         /// Construct a new instance of the ParcelMediaUpdateReplyEventArgs class
         /// </summary>

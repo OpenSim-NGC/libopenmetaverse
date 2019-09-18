@@ -24,8 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
 using OpenMetaverse.Packets;
+using System;
 
 namespace OpenMetaverse
 {

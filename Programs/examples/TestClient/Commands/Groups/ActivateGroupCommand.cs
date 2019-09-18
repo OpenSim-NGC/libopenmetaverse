@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using OpenMetaverse;
 using OpenMetaverse.Packets;
-using System.Text;
+using System;
+using System.Threading;
 
 namespace OpenMetaverse.TestClient
 {
@@ -34,7 +31,8 @@ namespace OpenMetaverse.TestClient
             groupName = groupName.Trim();
 
             UUID groupUUID = Client.GroupName2UUID(groupName);
-            if (UUID.Zero != groupUUID) {
+            if (UUID.Zero != groupUUID)
+            {
                 EventHandler<PacketReceivedEventArgs> pcallback = AgentDataUpdateHandler;
                 Client.Network.RegisterCallback(PacketType.AgentDataUpdate, pcallback);
 

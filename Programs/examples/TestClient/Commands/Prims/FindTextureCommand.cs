@@ -1,5 +1,4 @@
 using System;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -25,7 +24,7 @@ namespace OpenMetaverse.TestClient
                 UUID.TryParse(args[1], out textureID))
             {
                 Client.Network.CurrentSim.ObjectsPrimitives.ForEach(
-                    delegate(Primitive prim)
+                    delegate (Primitive prim)
                     {
                         if (prim.Textures != null && prim.Textures.FaceTextures[faceIndex] != null)
                         {

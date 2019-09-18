@@ -1,10 +1,9 @@
+using OpenMetaverse.Assets;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -77,7 +76,7 @@ namespace OpenMetaverse.TestClient
             Client.Inventory.RequestCreateItem(Client.Inventory.FindFolderForType(AssetType.Notecard),
                 filename, filename + " created by OpenMetaverse TestClient " + DateTime.Now, AssetType.Notecard,
                 UUID.Random(), InventoryType.Notecard, PermissionMask.All,
-                delegate(bool createSuccess, InventoryItem item)
+                delegate (bool createSuccess, InventoryItem item)
                 {
                     if (createSuccess)
                     {
@@ -89,7 +88,7 @@ namespace OpenMetaverse.TestClient
                         empty.Encode();
 
                         Client.Inventory.RequestUploadNotecardAsset(empty.AssetData, item.UUID,
-                            delegate(bool uploadSuccess, string status, UUID itemID, UUID assetID)
+                            delegate (bool uploadSuccess, string status, UUID itemID, UUID assetID)
                             {
                                 notecardItemID = itemID;
                                 notecardAssetID = assetID;
@@ -106,7 +105,7 @@ namespace OpenMetaverse.TestClient
                         {
                             // Upload the actual notecard asset
                             Client.Inventory.RequestUploadNotecardAsset(notecard.AssetData, item.UUID,
-                                delegate(bool uploadSuccess, string status, UUID itemID, UUID assetID)
+                                delegate (bool uploadSuccess, string status, UUID itemID, UUID assetID)
                                 {
                                     notecardItemID = itemID;
                                     notecardAssetID = assetID;
@@ -145,7 +144,7 @@ namespace OpenMetaverse.TestClient
             AutoResetEvent fetchItemEvent = new AutoResetEvent(false);
 
             EventHandler<ItemReceivedEventArgs> itemReceivedCallback =
-                delegate(object sender, ItemReceivedEventArgs e)
+                delegate (object sender, ItemReceivedEventArgs e)
                 {
                     if (e.Item.UUID == itemID)
                     {
@@ -172,7 +171,7 @@ namespace OpenMetaverse.TestClient
             string error = "Timeout";
 
             Client.Assets.RequestInventoryAsset(assetID, itemID, UUID.Zero, Client.Self.AgentID, AssetType.Notecard, true,
-                                delegate(AssetDownload transfer, Asset asset)
+                                delegate (AssetDownload transfer, Asset asset)
                                 {
                                     if (transfer.Success)
                                         notecardData = transfer.AssetData;

@@ -27,9 +27,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Xml;
 using System.Xml.Schema;
-using System.Text;
 
 namespace OpenMetaverse.StructuredData
 {
@@ -50,13 +50,13 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(byte[] xmlData)
         {
-            using(XmlTextReader xrd =  new XmlTextReader(new MemoryStream(xmlData, false)))
+            using (XmlTextReader xrd = new XmlTextReader(new MemoryStream(xmlData, false)))
                 return DeserializeLLSDXml(xrd);
         }
 
         public static OSD DeserializeLLSDXml(Stream xmlStream)
         {
-            using(XmlTextReader xrd = new XmlTextReader(xmlStream))
+            using (XmlTextReader xrd = new XmlTextReader(xmlStream))
                 return DeserializeLLSDXml(xrd);
         }
 
@@ -68,7 +68,7 @@ namespace OpenMetaverse.StructuredData
         public static OSD DeserializeLLSDXml(string xmlData)
         {
             byte[] bytes = Utils.StringToBytes(xmlData);
-            using(XmlTextReader xrd = new XmlTextReader(new MemoryStream(bytes, false)))
+            using (XmlTextReader xrd = new XmlTextReader(new MemoryStream(bytes, false)))
                 return DeserializeLLSDXml(xrd);
         }
 
@@ -113,13 +113,26 @@ namespace OpenMetaverse.StructuredData
         public static string SerializeLLSDXmlString(OSD data)
         {
             StringWriter sw = new StringWriter();
-            using(XmlTextWriter writer = new XmlTextWriter(sw))
+            using (XmlTextWriter writer = new XmlTextWriter(sw))
             {
                 writer.Formatting = Formatting.None;
 
                 writer.WriteStartElement(String.Empty, "llsd", String.Empty);
                 SerializeLLSDXmlElement(writer, data);
                 writer.WriteEndElement();
+
+                return sw.ToString();
+            }
+        }
+
+        public static string SerializeLLSDInnerXmlString(OSD data)
+        {
+            StringWriter sw = new StringWriter();
+            using (XmlTextWriter writer = new XmlTextWriter(sw))
+            {
+                writer.Formatting = Formatting.None;
+
+                SerializeLLSDXmlElement(writer, data);
 
                 return sw.ToString();
             }
@@ -175,9 +188,9 @@ namespace OpenMetaverse.StructuredData
                     break;
                 case OSDType.Binary:
                     writer.WriteStartElement(String.Empty, "binary", String.Empty);
-                        writer.WriteStartAttribute(String.Empty, "encoding", String.Empty);
-                        writer.WriteString("base64");
-                        writer.WriteEndAttribute();
+                    writer.WriteStartAttribute(String.Empty, "encoding", String.Empty);
+                    writer.WriteString("base64");
+                    writer.WriteEndAttribute();
                     writer.WriteString(data.AsString());
                     writer.WriteEndElement();
                     break;
@@ -231,7 +244,7 @@ namespace OpenMetaverse.StructuredData
                 readerSettings.Schemas.Add(XmlSchema);
                 readerSettings.ValidationEventHandler += new ValidationEventHandler(LLSDXmlSchemaValidationHandler);
 
-                using(XmlReader reader = XmlReader.Create(xmlData, readerSettings))
+                using (XmlReader reader = XmlReader.Create(xmlData, readerSettings))
                 {
 
                     try
@@ -529,7 +542,7 @@ namespace OpenMetaverse.StructuredData
             }
 
             return array;
-        }        
+        }
 
         private static void SkipWhitespace(XmlTextReader reader)
         {

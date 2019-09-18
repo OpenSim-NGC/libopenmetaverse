@@ -1,7 +1,6 @@
+using OpenMetaverse.Packets;
 using System;
 using System.IO;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -38,7 +37,7 @@ namespace OpenMetaverse.TestClient
             {
                 if (m_isLogging)
                     return string.Format(
-                        "Still waiting to finish logging {0} packets for {1}", 
+                        "Still waiting to finish logging {0} packets for {1}",
                         m_packetsToLogRemaining, m_client.Self.Name);
 
                 try
@@ -68,13 +67,13 @@ namespace OpenMetaverse.TestClient
         /// <param name="args">Arguments.</param>
         private void HandlePacket(object sender, PacketReceivedEventArgs args)
         {
-//            Console.WriteLine(
-//                "Received packet {0} from {1} for {2}", args.Packet.Type, args.Simulator.Name, m_client.Self.Name);
+            //            Console.WriteLine(
+            //                "Received packet {0} from {1} for {2}", args.Packet.Type, args.Simulator.Name, m_client.Self.Name);
 
             lock (this)
             {
                 if (!m_isLogging)
-                    return;               
+                    return;
 
                 m_logStreamWriter.WriteLine("Received: {0}", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss.fff"));
 

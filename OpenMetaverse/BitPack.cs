@@ -69,7 +69,7 @@ namespace OpenMetaverse
             Data = data;
             bytePos = pos;
             bitPos = bitp;
-            if(bitp != 0)
+            if (bitp != 0)
                 Data[pos] &= (byte)~(0xff >> bitPos);
         }
 
@@ -152,18 +152,18 @@ namespace OpenMetaverse
                 throw new Exception("Can't use fixed point packing for " + totalBits);
 
             int v;
-            if(data <= 1e-6f)
+            if (data <= 1e-6f)
                 v = 0;
             else
             {
-                if(data > max)
+                if (data > max)
                     data = max;
                 data *= 1 << fracBits;
                 v = (int)data;
             }
 
             PackBitsFromByte((byte)v);
-            if(totalBits > 8)
+            if (totalBits > 8)
             {
                 PackBitsFromByte((byte)(v >> 8));
                 if (totalBits > 16)
@@ -310,7 +310,7 @@ namespace OpenMetaverse
                 }
             }
 
-            if(intVal == 0)
+            if (intVal == 0)
                 return 0f;
 
             float fixedVal = intVal;
@@ -342,20 +342,20 @@ namespace OpenMetaverse
         private void PackBitArray(byte[] data, int totalCount)
         {
             int count = 0;
-            while(totalCount > 8)
+            while (totalCount > 8)
             {
                 PackBitsFromByte(data[count]);
                 ++count;
                 totalCount -= 8;
             }
-            if(totalCount > 0)
+            if (totalCount > 0)
                 PackBitsFromByte(data[count], totalCount);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void PackBitsFromByte(byte inbyte)
         {
-            if(bitPos == 0)
+            if (bitPos == 0)
             {
                 Data[bytePos++] = inbyte;
                 if (bytePos < Data.Length)

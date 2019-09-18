@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -14,12 +12,12 @@ namespace OpenMetaverse.TestClient
         {
             Name = "bots";
             Description = "detects avatars that appear to be bots.";
-            Category = CommandCategory.Other;        
+            Category = CommandCategory.Other;
             testClient.Avatars.ViewerEffect += new EventHandler<ViewerEffectEventArgs>(Avatars_ViewerEffect);
             testClient.Avatars.ViewerEffectLookAt += new EventHandler<ViewerEffectLookAtEventArgs>(Avatars_ViewerEffectLookAt);
             testClient.Avatars.ViewerEffectPointAt += new EventHandler<ViewerEffectPointAtEventArgs>(Avatars_ViewerEffectPointAt);
         }
-        
+
         private void Avatars_ViewerEffectPointAt(object sender, ViewerEffectPointAtEventArgs e)
         {
             lock (m_AgentList)
@@ -52,7 +50,7 @@ namespace OpenMetaverse.TestClient
                     m_AgentList.Add(e.SourceID, true);
             }
         }
-        
+
         public override string Execute(string[] args, UUID fromAgentID)
         {
             StringBuilder result = new StringBuilder();
@@ -62,7 +60,7 @@ namespace OpenMetaverse.TestClient
                 for (int i = 0; i < Client.Network.Simulators.Count; i++)
                 {
                     Client.Network.Simulators[i].ObjectsAvatars.ForEach(
-                        delegate(Avatar av)
+                        delegate (Avatar av)
                         {
                             lock (m_AgentList)
                             {

@@ -24,17 +24,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Net;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Reflection;
 using GridProxy;
 using Nwc.XmlRpc;
+using OpenMetaverse;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
-using OpenMetaverse;
+using System;
+using System.Net;
+using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace WinGridProxy
 {
@@ -102,7 +100,7 @@ namespace WinGridProxy
             ProxyConfig pc = new ProxyConfig("WinGridProxy", "Jim Radford", args, false);
 
             Proxy = new ProxyFrame(args, pc);
-            
+
             Proxy.proxy.AddLoginRequestDelegate(new XmlRpcRequestDelegate(LoginRequest));
             Proxy.proxy.AddLoginResponseDelegate(new XmlRpcResponseDelegate(LoginResponse));
 
@@ -127,7 +125,7 @@ namespace WinGridProxy
             if (OnCapabilityAdded != null)
                 OnCapabilityAdded((CapInfo)de.Value);
         }
-        
+
         private void LoginRequest(object sender, XmlRpcRequestEventArgs e)
         {
             if (OnLoginResponse != null)
@@ -351,7 +349,7 @@ namespace WinGridProxy
 
                 Proxy.proxy.InjectPacket(packet, direction);
 
-                OpenMetaverse.Logger.Log("Injected " + name, OpenMetaverse.Helpers.LogLevel.Info);                
+                OpenMetaverse.Logger.Log("Injected " + name, OpenMetaverse.Helpers.LogLevel.Info);
             }
             catch (Exception e)
             {

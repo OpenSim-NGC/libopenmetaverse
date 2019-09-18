@@ -40,73 +40,69 @@
 * 
 * Copyright (c) 1999/2000 JJ2000 Partners.
 *  */
-using System;
 using CSJ2K.j2k.image.invcomptransf;
-using CSJ2K.j2k.wavelet;
-using CSJ2K.j2k.util;
-using CSJ2K.j2k;
 namespace CSJ2K.j2k.image
 {
-	
-	/// <summary> This class extends the ModuleSpec class in order to hold tile
-	/// specifications for multiple component transformation
-	/// 
-	/// </summary>
-	/// <seealso cref="ModuleSpec">
-	/// 
-	/// </seealso>
-	public class CompTransfSpec:ModuleSpec
-	{
-		/// <summary> Check if component transformation is used in any of the tiles. This
-		/// method must not be used by the encoder.
-		/// 
-		/// </summary>
-		/// <returns> True if a component transformation is used in at least on
-		/// tile.
-		/// 
-		/// </returns>
-		virtual public bool CompTransfUsed
-		{
-			get
-			{
-				if (((System.Int32) def) != InvCompTransf.NONE)
-				{
-					return true;
-				}
-				
-				if (tileDef != null)
-				{
-					for (int t = nTiles - 1; t >= 0; t--)
-					{
-						if (tileDef[t] != null && (((System.Int32) tileDef[t]) != InvCompTransf.NONE))
-						{
-							return true;
-						}
-					}
-				}
-				return false;
-			}
-			
-		}
-		
-		/// <summary> Constructs an empty 'CompTransfSpec' with the specified number of tiles
-		/// and components. This constructor is called by the decoder. Note: The
-		/// number of component is here for symmetry purpose. It is useless since
-		/// only tile specifications are meaningful.
-		/// 
-		/// </summary>
-		/// <param name="nt">Number of tiles
-		/// 
-		/// </param>
-		/// <param name="nc">Number of components
-		/// 
-		/// </param>
-		/// <param name="type">the type of the specification module i.e. tile specific,
-		/// component specific or both.
-		/// 
-		/// </param>
-		public CompTransfSpec(int nt, int nc, byte type):base(nt, nc, type)
-		{
-		}
-	}
+
+    /// <summary> This class extends the ModuleSpec class in order to hold tile
+    /// specifications for multiple component transformation
+    /// 
+    /// </summary>
+    /// <seealso cref="ModuleSpec">
+    /// 
+    /// </seealso>
+    public class CompTransfSpec : ModuleSpec
+    {
+        /// <summary> Check if component transformation is used in any of the tiles. This
+        /// method must not be used by the encoder.
+        /// 
+        /// </summary>
+        /// <returns> True if a component transformation is used in at least on
+        /// tile.
+        /// 
+        /// </returns>
+        virtual public bool CompTransfUsed
+        {
+            get
+            {
+                if (((System.Int32)def) != InvCompTransf.NONE)
+                {
+                    return true;
+                }
+
+                if (tileDef != null)
+                {
+                    for (int t = nTiles - 1; t >= 0; t--)
+                    {
+                        if (tileDef[t] != null && (((System.Int32)tileDef[t]) != InvCompTransf.NONE))
+                        {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+        }
+
+        /// <summary> Constructs an empty 'CompTransfSpec' with the specified number of tiles
+        /// and components. This constructor is called by the decoder. Note: The
+        /// number of component is here for symmetry purpose. It is useless since
+        /// only tile specifications are meaningful.
+        /// 
+        /// </summary>
+        /// <param name="nt">Number of tiles
+        /// 
+        /// </param>
+        /// <param name="nc">Number of components
+        /// 
+        /// </param>
+        /// <param name="type">the type of the specification module i.e. tile specific,
+        /// component specific or both.
+        /// 
+        /// </param>
+        public CompTransfSpec(int nt, int nc, byte type) : base(nt, nc, type)
+        {
+        }
+    }
 }

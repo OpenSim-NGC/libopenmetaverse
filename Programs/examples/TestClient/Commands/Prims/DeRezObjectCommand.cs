@@ -1,7 +1,4 @@
-﻿using System;
-using OpenMetaverse;
-
-namespace OpenMetaverse.TestClient
+﻿namespace OpenMetaverse.TestClient
 {
     public class DeRezCommand : Command
     {
@@ -22,7 +19,7 @@ namespace OpenMetaverse.TestClient
             if (UUID.TryParse(args[0], out primID))
             {
                 Primitive target = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                    delegate(Primitive prim) { return prim.ID == primID; }
+                    delegate (Primitive prim) { return prim.ID == primID; }
                 );
 
                 if (target != null)

@@ -24,12 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Net;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 using NUnit.Framework;
+using System;
 
 namespace OpenMetaverse.Tests
 {

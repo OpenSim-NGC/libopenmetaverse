@@ -1,19 +1,17 @@
+using ICSharpCode.SharpZipLib.Zip;
+using OpenMetaverse;
+using OpenMetaverse.Assets;
+using OpenMetaverse.Imaging;
+using OpenMetaverse.Rendering;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.Windows.Forms;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 using Tao.OpenGl;
-using Tao.Platform.Windows;
-using ICSharpCode.SharpZipLib.Zip;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Imaging;
-using OpenMetaverse.Rendering;
-using OpenMetaverse.Assets;
 
 namespace PrimWorkshop
 {
@@ -96,7 +94,7 @@ namespace PrimWorkshop
             // Setup a timer for updating the progress bar
             ProgressTimer = new System.Timers.Timer(250);
             ProgressTimer.Elapsed +=
-                delegate(object sender, System.Timers.ElapsedEventArgs e)
+                delegate (object sender, System.Timers.ElapsedEventArgs e)
                 {
                     UpdatePrimProgress();
                 };
@@ -199,7 +197,7 @@ namespace PrimWorkshop
             TotalPrims = 0;
 
             e.Parcels.ForEach(
-                delegate(Parcel parcel)
+                delegate (Parcel parcel)
                 {
                     TotalPrims += parcel.TotalPrims;
                 });
@@ -207,7 +205,7 @@ namespace PrimWorkshop
             UpdatePrimProgress(); TotalPrims = 0;
 
             e.Parcels.ForEach(
-                delegate(Parcel parcel)
+                delegate (Parcel parcel)
                 {
                     TotalPrims += parcel.TotalPrims;
                 });
@@ -265,7 +263,7 @@ namespace PrimWorkshop
         {
             if (this.InvokeRequired)
             {
-                BeginInvoke((MethodInvoker)delegate() { UpdatePrimProgress(); });
+                BeginInvoke((MethodInvoker)delegate () { UpdatePrimProgress(); });
             }
             else
             {
@@ -595,7 +593,7 @@ namespace PrimWorkshop
             if (dialog.ShowDialog() == DialogResult.OK)
             {
                 BackgroundWorker worker = new BackgroundWorker();
-                worker.DoWork += delegate(object obj, DoWorkEventArgs args)
+                worker.DoWork += delegate (object obj, DoWorkEventArgs args)
                 {
                     byte red, green, blue, alpha1, alpha2, alpha3, alpha4, alpha5, alpha6, alpha7, alpha8, alpha9, alpha10;
 
@@ -668,11 +666,11 @@ namespace PrimWorkshop
                         binStream.Close();
                         s.Close();
 
-                        BeginInvoke((MethodInvoker)delegate() { System.Windows.Forms.MessageBox.Show("Exported heightmap"); });
+                        BeginInvoke((MethodInvoker)delegate () { System.Windows.Forms.MessageBox.Show("Exported heightmap"); });
                     }
                     catch (Exception ex)
                     {
-                        BeginInvoke((MethodInvoker)delegate() { System.Windows.Forms.MessageBox.Show("Error exporting heightmap: " + ex.Message); });
+                        BeginInvoke((MethodInvoker)delegate () { System.Windows.Forms.MessageBox.Show("Error exporting heightmap: " + ex.Message); });
                     }
                 };
 
@@ -758,7 +756,7 @@ namespace PrimWorkshop
                     // Start the import process in the background
                     BackgroundWorker worker = new BackgroundWorker();
 
-                    worker.DoWork += delegate(object s, DoWorkEventArgs ea)
+                    worker.DoWork += delegate (object s, DoWorkEventArgs ea)
                     {
                         // Set the spot choosing state
 
@@ -788,7 +786,7 @@ namespace PrimWorkshop
                             // Set any additional properties. If this is the root prim, do not apply rotation
 
                             // Update the progress bar
-                            BeginInvoke((MethodInvoker)delegate() { prog.Value = i; });
+                            BeginInvoke((MethodInvoker)delegate () { prog.Value = i; });
                         }
 
                         // Link all of the prims together
@@ -796,10 +794,10 @@ namespace PrimWorkshop
                         // Apply root prim rotation
                     };
 
-                    worker.RunWorkerCompleted += delegate(object s, RunWorkerCompletedEventArgs ea)
+                    worker.RunWorkerCompleted += delegate (object s, RunWorkerCompletedEventArgs ea)
                     {
                         BeginInvoke(
-                        (MethodInvoker)delegate()
+                        (MethodInvoker)delegate ()
                         {
                             lstDownloads.Items.Remove(item);
                             lstDownloads.Invalidate();
@@ -1036,7 +1034,7 @@ namespace PrimWorkshop
             else if (e.Status == LoginStatus.Failed)
             {
                 BeginInvoke(
-                    (MethodInvoker)delegate()
+                    (MethodInvoker)delegate ()
                     {
                         MessageBox.Show(this, String.Format("Error logging in ({0}): {1}",
                             Client.Network.LoginErrorKey, Client.Network.LoginMessage));
@@ -1049,7 +1047,7 @@ namespace PrimWorkshop
         private void Network_OnDisconnected(object sender, DisconnectedEventArgs e)
         {
             BeginInvoke(
-                (MethodInvoker)delegate()
+                (MethodInvoker)delegate ()
                 {
                     cmdTeleport.Enabled = false;
                     DoLogout();
@@ -1060,20 +1058,20 @@ namespace PrimWorkshop
         {
             Console.WriteLine("CurrentSim set to " + Client.Network.CurrentSim + ", downloading parcel information");
 
-            BeginInvoke((MethodInvoker)delegate() { txtSim.Text = Client.Network.CurrentSim.Name; });
+            BeginInvoke((MethodInvoker)delegate () { txtSim.Text = Client.Network.CurrentSim.Name; });
 
             //InitHeightmap();
             InitLists();
 
             // Disable teleports until the new event queue comes online
             if (!Client.Network.CurrentSim.Caps.IsEventQueueRunning)
-                BeginInvoke((MethodInvoker)delegate() { cmdTeleport.Enabled = false; });
+                BeginInvoke((MethodInvoker)delegate () { cmdTeleport.Enabled = false; });
         }
 
         private void Network_OnEventQueueRunning(object sender, EventQueueRunningEventArgs e)
         {
             if (e.Simulator == Client.Network.CurrentSim)
-                BeginInvoke((MethodInvoker)delegate() { cmdTeleport.Enabled = true; });
+                BeginInvoke((MethodInvoker)delegate () { cmdTeleport.Enabled = true; });
 
             // Now seems like a good time to start requesting parcel information
             Client.Parcels.RequestAllSimParcels(Client.Network.CurrentSim, false, 100);
@@ -1132,35 +1130,35 @@ namespace PrimWorkshop
         static readonly Vector3[] SkyboxVerts = new Vector3[]
         {
 	        // Right side
-	        new Vector3(	 10.0f,		10.0f,		-10.0f	), //Top left
-	        new Vector3(	 10.0f,		10.0f,		10.0f	), //Top right
-	        new Vector3(	 10.0f,		-10.0f,		10.0f	), //Bottom right
-	        new Vector3(	 10.0f,		-10.0f,		-10.0f	), //Bottom left
+	        new Vector3(    10.0f,     10.0f,      -10.0f  ), //Top left
+	        new Vector3(     10.0f,     10.0f,      10.0f   ), //Top right
+	        new Vector3(     10.0f,     -10.0f,     10.0f   ), //Bottom right
+	        new Vector3(     10.0f,     -10.0f,     -10.0f  ), //Bottom left
 	        // Left side
-	        new Vector3(	-10.0f,		10.0f,		10.0f	), //Top left
-	        new Vector3(	-10.0f,		10.0f,		-10.0f	), //Top right
-	        new Vector3(	-10.0f,		-10.0f,		-10.0f	), //Bottom right
-	        new Vector3(	-10.0f,		-10.0f,		10.0f	), //Bottom left
+	        new Vector3(   -10.0f,     10.0f,      10.0f   ), //Top left
+	        new Vector3(    -10.0f,     10.0f,      -10.0f  ), //Top right
+	        new Vector3(    -10.0f,     -10.0f,     -10.0f  ), //Bottom right
+	        new Vector3(    -10.0f,     -10.0f,     10.0f   ), //Bottom left
 	        // Top side
-	        new Vector3(	-10.0f,		10.0f,		10.0f	), //Top left
-	        new Vector3(	 10.0f,		10.0f,		10.0f	), //Top right
-	        new Vector3(	 10.0f,		10.0f,		-10.0f	), //Bottom right
-	        new Vector3(	-10.0f,		10.0f,		-10.0f	), //Bottom left
+	        new Vector3(   -10.0f,     10.0f,      10.0f   ), //Top left
+	        new Vector3(     10.0f,     10.0f,      10.0f   ), //Top right
+	        new Vector3(     10.0f,     10.0f,      -10.0f  ), //Bottom right
+	        new Vector3(    -10.0f,     10.0f,      -10.0f  ), //Bottom left
 	        // Bottom side
-	        new Vector3(	-10.0f,		-10.0f,		-10.0f	), //Top left
-	        new Vector3(	 10.0f,		-10.0f,		-10.0f	), //Top right
-	        new Vector3(	 10.0f,		-10.0f,		10.0f	), //Bottom right
-	        new Vector3(	-10.0f,		-10.0f,		10.0f	), //Bottom left
+	        new Vector3(   -10.0f,     -10.0f,     -10.0f  ), //Top left
+	        new Vector3(     10.0f,     -10.0f,     -10.0f  ), //Top right
+	        new Vector3(     10.0f,     -10.0f,     10.0f   ), //Bottom right
+	        new Vector3(    -10.0f,     -10.0f,     10.0f   ), //Bottom left
 	        // Front side
-	        new Vector3(	-10.0f,		10.0f,		-10.0f	), //Top left
-	        new Vector3(	 10.0f,		10.0f,		-10.0f	), //Top right
-	        new Vector3(	 10.0f,		-10.0f,		-10.0f	), //Bottom right
-	        new Vector3(	-10.0f,		-10.0f,		-10.0f	), //Bottom left
+	        new Vector3(   -10.0f,     10.0f,      -10.0f  ), //Top left
+	        new Vector3(     10.0f,     10.0f,      -10.0f  ), //Top right
+	        new Vector3(     10.0f,     -10.0f,     -10.0f  ), //Bottom right
+	        new Vector3(    -10.0f,     -10.0f,     -10.0f  ), //Bottom left
 	        // Back side
-	        new Vector3(	10.0f,		10.0f,		10.0f	), //Top left
-	        new Vector3(	-10.0f,		10.0f,		10.0f	), //Top right
-	        new Vector3(	-10.0f,		-10.0f,		10.0f	), //Bottom right
-	        new Vector3(	 10.0f,		-10.0f,		10.0f	), //Bottom left
+	        new Vector3(   10.0f,      10.0f,      10.0f   ), //Top left
+	        new Vector3(    -10.0f,     10.0f,      10.0f   ), //Top right
+	        new Vector3(    -10.0f,     -10.0f,     10.0f   ), //Bottom right
+	        new Vector3(     10.0f,     -10.0f,     10.0f   ), //Bottom left
         };
 
         private void RenderSkybox()
@@ -1387,7 +1385,7 @@ namespace PrimWorkshop
                 Gl.glColor3f(0f, 1f, 0f);
 
                 Client.Network.CurrentSim.ObjectsAvatars.ForEach(
-                    delegate(Avatar avatar)
+                    delegate (Avatar avatar)
                     {
                         Gl.glPushMatrix();
                         Gl.glTranslatef(avatar.Position.X, avatar.Position.Y, avatar.Position.Z);
@@ -1438,7 +1436,7 @@ namespace PrimWorkshop
 
                 // Make sure the OpenGL commands run on the main thread
                 BeginInvoke(
-                       (MethodInvoker)delegate()
+                       (MethodInvoker)delegate ()
                        {
                            if (success)
                            {
@@ -1508,7 +1506,7 @@ namespace PrimWorkshop
                 {
                     // Update an existing item
                     BeginInvoke(
-                        (MethodInvoker)delegate()
+                        (MethodInvoker)delegate ()
                         {
                             ProgressBar prog = (ProgressBar)item.SubItems[1].Control;
                             if (e.Total >= e.Received)
@@ -1534,7 +1532,7 @@ namespace PrimWorkshop
                     DownloadList[e.ImageID] = item;
 
                     BeginInvoke(
-                        (MethodInvoker)delegate()
+                        (MethodInvoker)delegate ()
                         {
                             lstDownloads.Items.Add(item);
                             lstDownloads.Invalidate();
@@ -1793,11 +1791,11 @@ namespace PrimWorkshop
                         bool success = false;
 
                         BackgroundWorker worker = new BackgroundWorker();
-                        worker.DoWork += delegate(object s, DoWorkEventArgs ea) { success = Client.Self.Teleport(simName, position); };
-                        worker.RunWorkerCompleted += delegate(object s, RunWorkerCompletedEventArgs ea)
+                        worker.DoWork += delegate (object s, DoWorkEventArgs ea) { success = Client.Self.Teleport(simName, position); };
+                        worker.RunWorkerCompleted += delegate (object s, RunWorkerCompletedEventArgs ea)
                         {
                             BeginInvoke((MethodInvoker)
-                            delegate()
+                            delegate ()
                             {
                                 if (!success)
                                     System.Windows.Forms.MessageBox.Show("Teleport failed");

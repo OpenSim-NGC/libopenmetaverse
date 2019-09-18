@@ -1,9 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 using System.Text;
+using System.Threading;
 
 namespace OpenMetaverse.TestClient
 {
@@ -29,7 +26,7 @@ namespace OpenMetaverse.TestClient
 
             StringBuilder sb = new StringBuilder();
 
-            EventHandler<FriendFoundReplyEventArgs> del = delegate(object sender, FriendFoundReplyEventArgs e)
+            EventHandler<FriendFoundReplyEventArgs> del = delegate (object sender, FriendFoundReplyEventArgs e)
             {
                 if (!e.RegionHandle.Equals(0))
                     sb.AppendFormat("Found Friend {0} in {1} at {2}/{3}", e.AgentID, e.RegionHandle, e.Location.X, e.Location.Y);

@@ -38,25 +38,24 @@
 * 
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
-using System;
 namespace CSJ2K.j2k.util
 {
-	
-	public interface ProgressWatch
-	{
-		/// <summary> Initialize the progress watching process 
-		/// 
-		/// </summary>
-		void  initProgressWatch(int min, int max, System.String info);
-		
-		/// <summary> Update the progress watching process to the specified value
-		/// 
-		/// </summary>
-		void  updateProgressWatch(int val, System.String info);
-		
-		/// <summary> Terminate the progress watch process
-		/// 
-		/// </summary>
-		void  terminateProgressWatch();
-	}
+
+    public interface ProgressWatch
+    {
+        /// <summary> Initialize the progress watching process 
+        /// 
+        /// </summary>
+        void initProgressWatch(int min, int max, System.String info);
+
+        /// <summary> Update the progress watching process to the specified value
+        /// 
+        /// </summary>
+        void updateProgressWatch(int val, System.String info);
+
+        /// <summary> Terminate the progress watch process
+        /// 
+        /// </summary>
+        void terminateProgressWatch();
+    }
 }

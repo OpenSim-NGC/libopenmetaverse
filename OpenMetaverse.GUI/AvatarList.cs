@@ -24,9 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
@@ -159,7 +157,7 @@ namespace OpenMetaverse.GUI
             _Client.Network.SimChanged += Network_OnCurrentSimChanged;
             _Client.Objects.AvatarUpdate += Objects_OnNewAvatar;
             _Client.Objects.TerseObjectUpdate += Objects_OnObjectUpdated;
-            
+
         }
 
         void Avatars_UUIDNameReply(object sender, UUIDNameReplyEventArgs e)
@@ -306,7 +304,7 @@ namespace OpenMetaverse.GUI
 
                     lock (_TrackedAvatars) _TrackedAvatars.Add(avatar.LocalID, avatar.ID, trackedAvatar);
                     _UntrackedAvatars.Remove(avatar.ID);
-                }                
+                }
 
                 lock (_TrackedAvatars)
                     found = _TrackedAvatars.TryGetValue(avatar.ID, out trackedAvatar);
@@ -439,8 +437,8 @@ namespace OpenMetaverse.GUI
                 }
             }
         }
-            
-    
+
+
 
         void Network_OnCurrentSimChanged(object sender, SimChangedEventArgs e)
         {

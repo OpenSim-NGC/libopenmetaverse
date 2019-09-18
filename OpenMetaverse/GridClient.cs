@@ -132,7 +132,7 @@ namespace OpenMetaverse
             Terrain = new TerrainManager(this);
             Sound = new SoundManager(this);
             Throttle = new AgentThrottle(this);
-            Stats = new OpenMetaverse.Stats.UtilizationStatistics();            
+            Stats = new OpenMetaverse.Stats.UtilizationStatistics();
         }
 
         /// <summary>

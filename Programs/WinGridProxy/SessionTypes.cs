@@ -24,16 +24,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using GridProxy;
+using OpenMetaverse;
+using OpenMetaverse.Interfaces;
+using OpenMetaverse.Messages;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Net;
 using System.Text;
-using System.Reflection;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Messages;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Interfaces;
-using GridProxy;
 
 namespace WinGridProxy
 {
@@ -53,7 +52,7 @@ namespace WinGridProxy
         public DateTime TimeStamp { get; set; }
 
         // listview specific stuff, not serialized or deserialized
-        public bool Selected { get; set; }        
+        public bool Selected { get; set; }
         public System.Drawing.Color BackColor { get; set; }
 
         public Session()
@@ -415,7 +414,7 @@ namespace WinGridProxy
             {
                 // unable to decode as notation format
                 return base.ToStringNotation(this.Direction);
-            }            
+            }
         }
 
         // Sanity check the bytes are infact an XML
@@ -447,7 +446,7 @@ namespace WinGridProxy
                 rMap[key] = OSD.FromString(this.RequestHeaders[key]);
                 requestHeadersArray.Add(rMap);
             }
-            if(requestHeadersArray.Count > 0)
+            if (requestHeadersArray.Count > 0)
                 map["RequestHeaders"] = requestHeadersArray;
 
             OSDArray responseHeadersArray = new OSDArray();
@@ -457,7 +456,7 @@ namespace WinGridProxy
                 rMap[key] = OSD.FromString(this.ResponseHeaders[key]);
                 responseHeadersArray.Add(rMap);
             }
-            if(responseHeadersArray.Count > 0)
+            if (responseHeadersArray.Count > 0)
                 map["ResponseHeaders"] = responseHeadersArray;
 
             return OpenMetaverse.Utils.StringToBytes(map.ToString());
@@ -626,7 +625,7 @@ namespace WinGridProxy
             this.ContentType = responseHeaders.Get("Content-Type");
             var ContentLength = responseHeaders.Get("Content-Length");
             if (ContentLength != null)
-                this.Length = Int32.Parse (ContentLength);
+                this.Length = Int32.Parse(ContentLength);
             else
                 this.Length = 0;
         }

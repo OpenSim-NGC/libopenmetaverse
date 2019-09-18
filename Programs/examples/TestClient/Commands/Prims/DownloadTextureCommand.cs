@@ -1,8 +1,7 @@
+using OpenMetaverse.Assets;
 using System;
 using System.IO;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -65,7 +64,7 @@ namespace OpenMetaverse.TestClient
                     }
                     else
                     {
-                        return "Download failed for texture " + TextureID + " " +  resultState;
+                        return "Download failed for texture " + TextureID + " " + resultState;
                     }
                 }
                 else

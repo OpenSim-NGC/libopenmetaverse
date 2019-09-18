@@ -89,7 +89,7 @@ namespace OpenMetaverse
         public AssetCache(GridClient client)
         {
             Client = client;
-            Client.Network.LoginProgress += delegate(object sender, LoginProgressEventArgs e)
+            Client.Network.LoginProgress += delegate (object sender, LoginProgressEventArgs e)
             {
                 if (e.Status == LoginStatus.Success)
                 {
@@ -97,7 +97,7 @@ namespace OpenMetaverse
                 }
             };
 
-            Client.Network.Disconnected += delegate(object sender, DisconnectedEventArgs e) { DestroyTimer(); };
+            Client.Network.Disconnected += delegate (object sender, DisconnectedEventArgs e) { DestroyTimer(); };
         }
 
 
@@ -283,9 +283,9 @@ namespace OpenMetaverse
                 return false;
             else
                 if (File.Exists(FileName(assetID)))
-                    return true;
-                else
-                    return File.Exists(StaticFileName(assetID));
+                return true;
+            else
+                return File.Exists(StaticFileName(assetID));
 
         }
 

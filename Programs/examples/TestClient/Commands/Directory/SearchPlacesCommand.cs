@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace OpenMetaverse.TestClient.Commands
@@ -27,8 +26,8 @@ namespace OpenMetaverse.TestClient.Commands
             waitQuery.Reset();
 
             StringBuilder result = new StringBuilder();
-         
-            EventHandler<PlacesReplyEventArgs> callback = delegate(object sender, PlacesReplyEventArgs e)
+
+            EventHandler<PlacesReplyEventArgs> callback = delegate (object sender, PlacesReplyEventArgs e)
             {
                 result.AppendFormat("Your search string '{0}' returned {1} results" + System.Environment.NewLine,
                     searchText, e.MatchedPlaces.Count);
@@ -41,7 +40,7 @@ namespace OpenMetaverse.TestClient.Commands
             };
 
             Client.Directory.PlacesReply += callback;
-            Client.Directory.StartPlacesSearch(searchText);            
+            Client.Directory.StartPlacesSearch(searchText);
 
             if (!waitQuery.WaitOne(20000, false) && Client.Network.Connected)
             {
@@ -51,6 +50,6 @@ namespace OpenMetaverse.TestClient.Commands
             Client.Directory.PlacesReply -= callback;
 
             return result.ToString();
-        }        
+        }
     }
 }

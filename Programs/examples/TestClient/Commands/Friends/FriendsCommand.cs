@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 using System.Text;
 
 // the Namespace used for all TestClient commands
@@ -12,7 +7,7 @@ namespace OpenMetaverse.TestClient
     /// Shows a list of friends
     /// </summary>
     public class FriendsCommand : Command
-    {        
+    {
         /// <summary>
         /// Constructor for FriendsCommand class
         /// </summary>
@@ -44,7 +39,7 @@ namespace OpenMetaverse.TestClient
                 // iterate over the InternalDictionary using a delegate to populate
                 // our StringBuilder output string
                 sb.AppendFormat("has {0} friends:", Client.Friends.FriendList.Count).AppendLine();
-                Client.Friends.FriendList.ForEach(delegate(FriendInfo friend)
+                Client.Friends.FriendList.ForEach(delegate (FriendInfo friend)
                 {
                     // append the name of the friend to our output
                     sb.AppendFormat("{0}, {1}", friend.UUID, friend.Name).AppendLine();
@@ -53,7 +48,7 @@ namespace OpenMetaverse.TestClient
             else
             {
                 // we have no friends :(
-                sb.AppendLine("No Friends");   
+                sb.AppendLine("No Friends");
             }
 
             // return the result

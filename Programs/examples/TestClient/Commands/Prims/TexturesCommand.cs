@@ -1,7 +1,6 @@
+using OpenMetaverse.Assets;
 using System;
 using System.Collections.Generic;
-using OpenMetaverse;
-using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient
 {
@@ -17,8 +16,8 @@ namespace OpenMetaverse.TestClient
             Name = "textures";
             Description = "Turns automatic texture downloading on or off. Usage: textures [on/off]";
             Category = CommandCategory.Objects;
-            
-            testClient.Objects.ObjectUpdate += new EventHandler<PrimEventArgs>(Objects_OnNewPrim);            
+
+            testClient.Objects.ObjectUpdate += new EventHandler<PrimEventArgs>(Objects_OnNewPrim);
             testClient.Objects.AvatarUpdate += Objects_OnNewAvatar;
         }
 

@@ -1,22 +1,19 @@
-using System;
 using System.Collections.Generic;
 using System.Text;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
-    public class HelpCommand: Command
+    public class HelpCommand : Command
     {
         public HelpCommand(TestClient testClient)
-		{
-			Name = "help";
-			Description = "Lists available commands. usage: help [command] to display information on commands";
+        {
+            Name = "help";
+            Description = "Lists available commands. usage: help [command] to display information on commands";
             Category = CommandCategory.TestClient;
-		}
+        }
 
         public override string Execute(string[] args, UUID fromAgentID)
-		{
+        {
             if (args.Length > 0)
             {
                 if (Client.Commands.ContainsKey(args[0]))
@@ -24,12 +21,12 @@ namespace OpenMetaverse.TestClient
                 else
                     return "Command " + args[0] + " Does not exist. \"help\" to display all available commands.";
             }
-			StringBuilder result = new StringBuilder();
+            StringBuilder result = new StringBuilder();
             SortedDictionary<CommandCategory, List<Command>> CommandTree = new SortedDictionary<CommandCategory, List<Command>>();
 
             CommandCategory cc;
-			foreach (Command c in Client.Commands.Values)
-			{
+            foreach (Command c in Client.Commands.Values)
+            {
                 if (c.Category.Equals(null))
                     cc = CommandCategory.Unknown;
                 else
@@ -43,7 +40,7 @@ namespace OpenMetaverse.TestClient
                     l.Add(c);
                     CommandTree.Add(cc, l);
                 }
-			}
+            }
 
             foreach (KeyValuePair<CommandCategory, List<Command>> kvp in CommandTree)
             {
@@ -63,8 +60,8 @@ namespace OpenMetaverse.TestClient
                 result.AppendLine();
             }
             result.AppendLine(System.Environment.NewLine + "Help [command] for usage/information");
-            
+
             return result.ToString();
-		}
+        }
     }
 }

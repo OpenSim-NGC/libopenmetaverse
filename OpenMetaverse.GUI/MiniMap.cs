@@ -24,12 +24,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
+using OpenMetaverse.Assets;
+using OpenMetaverse.Imaging;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using OpenMetaverse.Imaging;
-using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.GUI
 {
@@ -68,7 +67,7 @@ namespace OpenMetaverse.GUI
         /// <summary>
         /// PictureBox control for the specified client's mini-map
         /// </summary>
-        public MiniMap(GridClient client) : this ()
+        public MiniMap(GridClient client) : this()
         {
             InitializeClient(client);
 
@@ -133,7 +132,7 @@ namespace OpenMetaverse.GUI
                 int i = 0;
 
                 _Client.Network.CurrentSim.AvatarPositions.ForEach(
-                    delegate(KeyValuePair<UUID, Vector3> coarse)
+                    delegate (KeyValuePair<UUID, Vector3> coarse)
                     {
                         int x = (int)coarse.Value.X;
                         int y = 255 - (int)coarse.Value.Y;
@@ -147,7 +146,7 @@ namespace OpenMetaverse.GUI
                             Pen penColor;
                             Brush brushColor;
 
-                            if (Client.Network.CurrentSim.ObjectsAvatars.Find(delegate(Avatar av) { return av.ID == coarse.Key; }) != null)
+                            if (Client.Network.CurrentSim.ObjectsAvatars.Find(delegate (Avatar av) { return av.ID == coarse.Key; }) != null)
                             {
                                 brushColor = Brushes.PaleGreen;
                                 penColor = Pens.Green;
@@ -213,14 +212,14 @@ namespace OpenMetaverse.GUI
                 _MapImageID = region.MapImageID;
                 ManagedImage nullImage;
 
-                Client.Assets.RequestImage(_MapImageID, ImageType.Baked, 
-                    delegate(TextureRequestState state, AssetTexture asset)
+                Client.Assets.RequestImage(_MapImageID, ImageType.Baked,
+                    delegate (TextureRequestState state, AssetTexture asset)
                         {
-                            if(state == TextureRequestState.Finished)
+                            if (state == TextureRequestState.Finished)
                                 OpenJPEG.DecodeToImage(asset.AssetData, out nullImage, out _MapLayer);
                         });
             }
-        }       
+        }
 
     }
 }

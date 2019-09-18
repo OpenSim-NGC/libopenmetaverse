@@ -24,10 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
 using OpenMetaverse.Rendering;
 using OpenMetaverse.StructuredData;
+using System;
+using System.Collections.Generic;
 
 namespace OpenMetaverse.ImportExport
 {

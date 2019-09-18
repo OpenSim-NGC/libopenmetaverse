@@ -1,9 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
 using OpenMetaverse;
 using OpenMetaverse.Rendering;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
 
 namespace PrimWorkshop
 {

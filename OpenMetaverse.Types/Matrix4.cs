@@ -305,7 +305,7 @@ namespace OpenMetaverse
 
             rotation = Quaternion.CreateFromRotationMatrix(m1);
             return true;
-        }	
+        }
 
         #endregion Public Methods
 
@@ -630,14 +630,14 @@ namespace OpenMetaverse
             matrix.M42 = position.Y;
             matrix.M43 = position.Z;
             matrix.M44 = 1f;
-            
+
             return matrix;
         }
 
         public static Matrix4 CreateWorld(Vector3 position, Vector3 forward, Vector3 up)
         {
             Matrix4 result;
-            
+
             // Normalize forward vector
             forward.Normalize();
 
@@ -936,7 +936,7 @@ namespace OpenMetaverse
             for (int i = 0; i < 4; i++)
             {
                 for (int j = 0; j < 4; j++)
-                    adjointMatrix[i,j] = (float)(Math.Pow(-1, i + j) * (Minor(matrix, i, j).Determinant3x3()));
+                    adjointMatrix[i, j] = (float)(Math.Pow(-1, i + j) * (Minor(matrix, i, j).Determinant3x3()));
             }
 
             adjointMatrix = Transpose(adjointMatrix);
@@ -957,7 +957,7 @@ namespace OpenMetaverse
             for (int i = 0; i < 4; i++)
             {
                 for (int j = 0; j < 4; j++)
-                    adjointMatrix[i,j] = (float)(Math.Pow(-1, i + j) * ((Minor(matrix, i, j)).Determinant3x3()));
+                    adjointMatrix[i, j] = (float)(Math.Pow(-1, i + j) * ((Minor(matrix, i, j)).Determinant3x3()));
             }
 
             adjointMatrix = Transpose(adjointMatrix);
@@ -978,7 +978,7 @@ namespace OpenMetaverse
                 {
                     if (j == col)
                         continue;
-                    minor[m,n] = matrix[i,j];
+                    minor[m, n] = matrix[i, j];
                     n++;
                 }
                 m++;
@@ -986,7 +986,7 @@ namespace OpenMetaverse
 
             return minor;
         }
-        
+
         #endregion Static Methods
 
         #region Overrides

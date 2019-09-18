@@ -1,12 +1,7 @@
+using OpenMetaverse;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace groupmanager
 {
@@ -29,7 +24,7 @@ namespace groupmanager
             Client.Network.LoginProgress += Network_OnLogin;
             Client.Network.EventQueueRunning += Network_OnEventQueueRunning;
             Client.Groups.CurrentGroups += Groups_CurrentGroups;
-            
+
             InitializeComponent();
         }
 
@@ -44,13 +39,13 @@ namespace groupmanager
         {
             lock (lstGroups)
             {
-                Invoke((MethodInvoker)delegate() { lstGroups.Items.Clear(); });
+                Invoke((MethodInvoker)delegate () { lstGroups.Items.Clear(); });
 
                 foreach (Group group in Groups.Values)
                 {
                     Logger.Log(String.Format("Adding group {0} ({1})", group.Name, group.ID), Helpers.LogLevel.Info, Client);
 
-                    Invoke((MethodInvoker)delegate() { lstGroups.Items.Add(group); });
+                    Invoke((MethodInvoker)delegate () { lstGroups.Items.Add(group); });
                 }
             }
         }
@@ -79,14 +74,14 @@ namespace groupmanager
                 loginParams.URI = comboGrid.Text;
                 Client.Network.BeginLogin(loginParams);
             }
-			else
-			{
-				Client.Network.Logout();
-				cmdConnect.Text = "Connect";
-				txtFirstName.Enabled = txtLastName.Enabled = txtPassword.Enabled = true;
+            else
+            {
+                Client.Network.Logout();
+                cmdConnect.Text = "Connect";
+                txtFirstName.Enabled = txtLastName.Enabled = txtPassword.Enabled = true;
                 groupBox.Enabled = false;
                 lstGroups.Items.Clear();
-			}
+            }
         }
 
         private void lstGroups_SelectedIndexChanged(object sender, EventArgs e)
@@ -121,7 +116,7 @@ namespace groupmanager
             if (e.Status == LoginStatus.Success)
             {
                 BeginInvoke(
-                    (MethodInvoker)delegate()
+                    (MethodInvoker)delegate ()
                     {
                         groupBox.Enabled = true;
                     });
@@ -129,7 +124,7 @@ namespace groupmanager
             else if (e.Status == LoginStatus.Failed)
             {
                 BeginInvoke(
-                    (MethodInvoker)delegate()
+                    (MethodInvoker)delegate ()
                     {
                         MessageBox.Show(this, "Error logging in: " + Client.Network.LoginMessage);
                         cmdConnect.Text = "Connect";

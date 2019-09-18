@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-using OpenMetaverse;
-
 
 namespace OpenMetaverse.TestClient
 {
@@ -35,7 +33,7 @@ namespace OpenMetaverse.TestClient
 
             // *** find all objects in radius ***
             List<Primitive> prims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(
-                delegate(Primitive prim)
+                delegate (Primitive prim)
                 {
                     Vector3 pos = prim.Position;
                     return ((prim.ParentID == 0) && (pos != Vector3.Zero) && (Vector3.Distance(pos, location) < radius));

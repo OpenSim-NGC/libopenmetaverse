@@ -1,7 +1,7 @@
+using CommandLine.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using CommandLine.Utility;
 
 namespace OpenMetaverse.TestClient
 {

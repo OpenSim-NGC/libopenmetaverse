@@ -24,10 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Messages
 {

@@ -1,8 +1,6 @@
 using OpenMetaverse;
 using OpenMetaverse.GUI;
 using System;
-using System.Collections.Generic;
-using System.Drawing;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -41,7 +39,7 @@ namespace Dashboard
             loginPanel1.LoginParams = ClientLogin;
 
             ClientLogin.Start = "last";
-            
+
             if (firstName != String.Empty && lastName != String.Empty && password != String.Empty)
                 Client.Network.BeginLogin(ClientLogin);
         }
@@ -116,6 +114,6 @@ namespace Dashboard
         void Network_OnDisconnected(object sender, DisconnectedEventArgs e)
         {
             InitializeClient(!ShuttingDown);
-        }        
+        }
     }
 }

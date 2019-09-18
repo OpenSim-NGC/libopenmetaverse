@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace OpenMetaverse.TestClient.Commands
 {
@@ -30,10 +28,10 @@ namespace OpenMetaverse.TestClient.Commands
             waitQuery.Reset();
 
             Client.Directory.DirGroupsReply += Directory_DirGroups;
-            
+
             // send the request to the directory manager
             Client.Directory.StartGroupSearch(searchText, 0);
-            
+
             string result;
             if (waitQuery.WaitOne(20000, false) && Client.Network.Connected)
             {
@@ -63,6 +61,6 @@ namespace OpenMetaverse.TestClient.Commands
                 Console.WriteLine("Didn't find any groups that matched your query :(");
             }
             waitQuery.Set();
-        }        
+        }
     }
 }

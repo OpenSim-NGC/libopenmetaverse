@@ -227,7 +227,7 @@ namespace OpenMetaverse
             Guid gg;
             try
             {
-                if(Guid.TryParse(val, out gg))
+                if (Guid.TryParse(val, out gg))
                 {
                     result = new UUID(gg);
                     return true;

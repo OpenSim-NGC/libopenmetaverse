@@ -24,11 +24,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.StructuredData;
 using System;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Http
 {

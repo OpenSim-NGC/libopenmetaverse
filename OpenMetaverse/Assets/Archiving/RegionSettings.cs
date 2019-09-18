@@ -195,7 +195,7 @@ namespace OpenMetaverse.Assets
             writer.WriteEndElement();
 
             writer.WriteStartElement(String.Empty, "GroundTextures", String.Empty);
-                
+
             writer.WriteElementString("Texture1", TerrainDetail0.ToString());
             writer.WriteElementString("Texture2", TerrainDetail1.ToString());
             writer.WriteElementString("Texture3", TerrainDetail2.ToString());
@@ -209,7 +209,7 @@ namespace OpenMetaverse.Assets
             writer.WriteElementString("ElevationHighSE", TerrainHeightRange10.ToString());
             writer.WriteElementString("ElevationHighNE", TerrainHeightRange11.ToString());
             writer.WriteEndElement();
-                
+
             writer.WriteStartElement(String.Empty, "Terrain", String.Empty);
 
             writer.WriteElementString("WaterHeight", WaterHeight.ToString());

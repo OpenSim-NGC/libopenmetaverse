@@ -1,20 +1,17 @@
 ﻿using System;
-using System.Text;
-using System.Reflection;
 using System.Collections.Generic;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
+using System.Text;
 
 namespace OpenMetaverse.TestClient
 {
     public class PlayAnimationCommand : Command
-    {        
+    {
         private Dictionary<UUID, string> m_BuiltInAnimations = new Dictionary<UUID, string>(Animations.ToDictionary());
         public PlayAnimationCommand(TestClient testClient)
         {
             Name = "play";
             Description = "Attempts to play an animation";
-            Category = CommandCategory.Appearance;                        
+            Category = CommandCategory.Appearance;
         }
 
         private string Usage()
@@ -28,7 +25,7 @@ namespace OpenMetaverse.TestClient
         }
 
         public override string Execute(string[] args, UUID fromAgentID)
-        {            
+        {
             StringBuilder result = new StringBuilder();
             if (args.Length != 1)
                 return Usage();
@@ -49,7 +46,8 @@ namespace OpenMetaverse.TestClient
             }
             else if (arg.ToLower().Equals("show"))
             {
-                Client.Self.SignaledAnimations.ForEach(delegate(KeyValuePair<UUID, int> kvp) {
+                Client.Self.SignaledAnimations.ForEach(delegate (KeyValuePair<UUID, int> kvp)
+                {
                     if (m_BuiltInAnimations.ContainsKey(kvp.Key))
                     {
                         result.AppendFormat("The {0} System Animation is being played, sequence is {1}", m_BuiltInAnimations[kvp.Key], kvp.Value);
@@ -58,7 +56,7 @@ namespace OpenMetaverse.TestClient
                     {
                         result.AppendFormat("The {0} Asset Animation is being played, sequence is {0}", kvp.Key, kvp.Value);
                     }
-                });                                
+                });
             }
             else if (m_BuiltInAnimations.ContainsValue(args[0].Trim().ToUpper()))
             {

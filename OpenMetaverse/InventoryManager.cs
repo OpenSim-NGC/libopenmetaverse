@@ -24,17 +24,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.Http;
+using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Text;
 using System.Runtime.Serialization;
-using OpenMetaverse.Http;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Packets;
+using System.Threading;
 
 namespace OpenMetaverse
 {
@@ -445,7 +443,7 @@ namespace OpenMetaverse
             sale["sale_price"] = SalePrice;
             sale["sale_type"] = (int)SaleType;
             map["sale_info"] = sale;
-            
+
             return map;
         }
     }
@@ -1383,7 +1381,7 @@ namespace OpenMetaverse
             InventoryItem fetchedItem = null;
 
             EventHandler<ItemReceivedEventArgs> callback =
-                delegate(object sender, ItemReceivedEventArgs e)
+                delegate (object sender, ItemReceivedEventArgs e)
                 {
                     if (e.Item.UUID == itemID)
                     {
@@ -1465,7 +1463,7 @@ namespace OpenMetaverse
             {
                 Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("FetchInventory2");
                 CapsClient request = new CapsClient(url);
-                
+
                 request.OnComplete += (client, result, error) =>
                 {
                     if (error == null)
@@ -1527,7 +1525,7 @@ namespace OpenMetaverse
             AutoResetEvent fetchEvent = new AutoResetEvent(false);
 
             EventHandler<FolderUpdatedEventArgs> callback =
-                delegate(object sender, FolderUpdatedEventArgs e)
+                delegate (object sender, FolderUpdatedEventArgs e)
                 {
                     if (e.FolderID == folder
                         && _Store[folder] is InventoryFolder)
@@ -1827,7 +1825,7 @@ namespace OpenMetaverse
             UUID foundItem = UUID.Zero;
 
             EventHandler<FindObjectByPathReplyEventArgs> callback =
-                delegate(object sender, FindObjectByPathReplyEventArgs e)
+                delegate (object sender, FindObjectByPathReplyEventArgs e)
                 {
                     if (e.Path == path)
                     {
@@ -3183,7 +3181,7 @@ namespace OpenMetaverse
             List<InventoryItem> folderContents = new List<InventoryItem>();
 
             Client.Inventory.FolderContents(folderID, Client.Self.AgentID, false, true, InventorySortOrder.ByDate, 1000 * 15).ForEach(
-                delegate(InventoryBase ib)
+                delegate (InventoryBase ib)
                 {
                     folderContents.Add(Client.Inventory.FetchItem(ib.UUID, Client.Self.AgentID, 1000 * 10));
                 });
@@ -3299,7 +3297,7 @@ namespace OpenMetaverse
             AutoResetEvent taskReplyEvent = new AutoResetEvent(false);
 
             EventHandler<TaskInventoryReplyEventArgs> callback =
-                delegate(object sender, TaskInventoryReplyEventArgs e)
+                delegate (object sender, TaskInventoryReplyEventArgs e)
                 {
                     if (e.ItemID == objectID)
                     {
@@ -3323,7 +3321,7 @@ namespace OpenMetaverse
                     AutoResetEvent taskDownloadEvent = new AutoResetEvent(false);
 
                     EventHandler<XferReceivedEventArgs> xferCallback =
-                        delegate(object sender, XferReceivedEventArgs e)
+                        delegate (object sender, XferReceivedEventArgs e)
                         {
                             if (e.Xfer.XferID == xferID)
                             {

@@ -1,14 +1,10 @@
+using OpenMetaverse;
+using OpenMetaverse.Assets;
+using OpenMetaverse.Imaging;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
-using System.IO;
-using OpenMetaverse;
-using OpenMetaverse.Imaging;
-using OpenMetaverse.Assets;
 
 namespace groupmanager
 {
@@ -17,15 +13,15 @@ namespace groupmanager
         Group Group;
         GridClient Client;
         Group Profile = new Group();
-        Dictionary<UUID, GroupMember> Members = new Dictionary<UUID,GroupMember>();
-        Dictionary<UUID, GroupTitle> Titles = new Dictionary<UUID,GroupTitle>();
+        Dictionary<UUID, GroupMember> Members = new Dictionary<UUID, GroupMember>();
+        Dictionary<UUID, GroupTitle> Titles = new Dictionary<UUID, GroupTitle>();
         Dictionary<UUID, GroupMemberData> MemberData = new Dictionary<UUID, GroupMemberData>();
         Dictionary<UUID, string> Names = new Dictionary<UUID, string>();
         EventHandler<GroupProfileEventArgs> GroupProfileCallback;
         EventHandler<GroupMembersReplyEventArgs> GroupMembersCallback;
         EventHandler<GroupTitlesReplyEventArgs> GroupTitlesCallback;
         EventHandler<UUIDNameReplyEventArgs> AvatarNamesCallback;
-        
+
         public frmGroupInfo(Group group, GridClient client)
         {
             InitializeComponent();
@@ -44,7 +40,7 @@ namespace groupmanager
 
             Group = group;
             Client = client;
-            
+
             // Register the callbacks for this form
             Client.Groups.GroupProfile += GroupProfileCallback;
             Client.Groups.GroupMembersReply += GroupMembersCallback;
@@ -72,7 +68,7 @@ namespace groupmanager
 
             if (Group.InsigniaID != UUID.Zero)
                 Client.Assets.RequestImage(Group.InsigniaID, ImageType.Normal,
-                    delegate(TextureRequestState state, AssetTexture assetTexture)
+                    delegate (TextureRequestState state, AssetTexture assetTexture)
                         {
                             ManagedImage imgData;
                             Image bitmap;
@@ -97,11 +93,11 @@ namespace groupmanager
         {
             if (this.InvokeRequired)
             {
-                this.BeginInvoke(new MethodInvoker(delegate()
+                this.BeginInvoke(new MethodInvoker(delegate ()
                 {
                     UpdateInsigniaProgressText(resultText);
                 }));
-            }   
+            }
             else
                 labelInsigniaProgress.Text = resultText;
         }

@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.TestClient
 {
@@ -53,7 +49,7 @@ namespace OpenMetaverse.TestClient
             byte[] data = null;
 
             EventHandler<XferReceivedEventArgs> xferCallback =
-                delegate(object sender, XferReceivedEventArgs e)
+                delegate (object sender, XferReceivedEventArgs e)
                 {
                     if (e.Xfer.XferID == xferID)
                     {

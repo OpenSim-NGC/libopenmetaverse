@@ -47,34 +47,34 @@
 using System;
 namespace CSJ2K.j2k
 {
-	
-	/// <summary> This exception is thrown whenever a next???? method is called and
-	/// there is no next element to return.
-	/// 
-	/// </summary>
-	[Serializable]
-	public class NoNextElementException:System.SystemException
-	{
-		
-		/// <summary> Constructs a new <tt>NoNextElementException</tt> exception with no
-		/// detail message.
-		/// 
-		/// 
-		/// </summary>
-		public NoNextElementException():base()
-		{
-		}
-		
-		/// <summary> Constructs a new <tt>NoNextElementException</tt> exception with
-		/// the specified detail message.
-		/// 
-		/// </summary>
-		/// <param name="s">The detail message.
-		/// 
-		/// 
-		/// </param>
-		public NoNextElementException(System.String s):base(s)
-		{
-		}
-	}
+
+    /// <summary> This exception is thrown whenever a next???? method is called and
+    /// there is no next element to return.
+    /// 
+    /// </summary>
+    [Serializable]
+    public class NoNextElementException : System.SystemException
+    {
+
+        /// <summary> Constructs a new <tt>NoNextElementException</tt> exception with no
+        /// detail message.
+        /// 
+        /// 
+        /// </summary>
+        public NoNextElementException() : base()
+        {
+        }
+
+        /// <summary> Constructs a new <tt>NoNextElementException</tt> exception with
+        /// the specified detail message.
+        /// 
+        /// </summary>
+        /// <param name="s">The detail message.
+        /// 
+        /// 
+        /// </param>
+        public NoNextElementException(System.String s) : base(s)
+        {
+        }
+    }
 }

@@ -24,11 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse.StructuredData;
 using System;
 using System.IO;
 using System.IO.Compression;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Assets
 {
@@ -77,7 +76,7 @@ namespace OpenMetaverse.Assets
                     MeshData["asset_header"] = header;
                     long start = data.Position;
 
-                    foreach(string partName in header.Keys)
+                    foreach (string partName in header.Keys)
                     {
                         if (header[partName].Type != OSDType.Map)
                         {

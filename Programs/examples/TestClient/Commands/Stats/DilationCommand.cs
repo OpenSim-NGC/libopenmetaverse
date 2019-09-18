@@ -1,14 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-
 namespace OpenMetaverse.TestClient
 {
     public class DilationCommand : Command
     {
-		public DilationCommand(TestClient testClient)
+        public DilationCommand(TestClient testClient)
         {
             Name = "dilation";
             Description = "Shows time dilation for current sim.";

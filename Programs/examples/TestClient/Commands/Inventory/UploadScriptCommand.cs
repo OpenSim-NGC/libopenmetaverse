@@ -1,6 +1,6 @@
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 
 namespace OpenMetaverse.TestClient
 {
@@ -49,11 +49,11 @@ namespace OpenMetaverse.TestClient
                     string desc = String.Format("{0} created by OpenMetaverse TestClient {1}", file, DateTime.Now);
                     // create the asset
                     Client.Inventory.RequestCreateItem(Client.Inventory.FindFolderForType(AssetType.LSLText), file, desc, AssetType.LSLText, UUID.Random(), InventoryType.LSL, PermissionMask.All,
-                    delegate(bool success, InventoryItem item)
+                    delegate (bool success, InventoryItem item)
                     {
                         if (success)
                             // upload the asset
-                            Client.Inventory.RequestUpdateScriptAgentInventory(EncodeScript(body), item.UUID, true, new InventoryManager.ScriptUpdatedCallback(delegate(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string> compileMessages, UUID itemid, UUID assetid)
+                            Client.Inventory.RequestUpdateScriptAgentInventory(EncodeScript(body), item.UUID, true, new InventoryManager.ScriptUpdatedCallback(delegate (bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string> compileMessages, UUID itemid, UUID assetid)
                             {
                                 if (uploadSuccess)
                                     ret += String.Format(" Script successfully uploaded, ItemID {0} AssetID {1}", itemid, assetid);

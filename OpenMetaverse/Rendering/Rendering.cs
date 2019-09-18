@@ -24,13 +24,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using OpenMetaverse.Assets;
 using OpenMetaverse.StructuredData;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
 // The common elements shared between rendering plugins are defined here
 
@@ -305,11 +305,11 @@ namespace OpenMetaverse.Rendering
                     {
                         OSDMap subMeshMap = (OSDMap)subMeshOsd;
 
-                    // As per http://wiki.secondlife.com/wiki/Mesh/Mesh_Asset_Format, some Mesh Level
-                    // of Detail Blocks (maps) contain just a NoGeometry key to signal there is no
-                    // geometry for this submesh.
-                    if (subMeshMap.ContainsKey("NoGeometry") && ((OSDBoolean)subMeshMap["NoGeometry"]))
-                        continue;
+                        // As per http://wiki.secondlife.com/wiki/Mesh/Mesh_Asset_Format, some Mesh Level
+                        // of Detail Blocks (maps) contain just a NoGeometry key to signal there is no
+                        // geometry for this submesh.
+                        if (subMeshMap.ContainsKey("NoGeometry") && ((OSDBoolean)subMeshMap["NoGeometry"]))
+                            continue;
 
                         Face oface = new Face();
                         oface.ID = faceNr;

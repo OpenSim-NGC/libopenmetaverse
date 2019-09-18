@@ -1,6 +1,5 @@
-using System;
-using OpenMetaverse;
 using OpenMetaverse.Packets;
+using System;
 
 namespace OpenMetaverse.TestClient
 {
