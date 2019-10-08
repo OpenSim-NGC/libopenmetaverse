@@ -397,7 +397,7 @@ namespace OpenMetaverse
                 {
                     byte o = m_material;
                     if ((m_attributes & TextureAttributes.Material) == 0)
-                        o = DefaultTexture.m_material;
+                        m_material = DefaultTexture.m_material;
 
                     byte tb = (m_material &= 0xE0);
                     tb |= (byte)value;
@@ -423,7 +423,7 @@ namespace OpenMetaverse
                 {
                     byte o = m_material;
                     if ((m_attributes & TextureAttributes.Material) == 0)
-                        o = DefaultTexture.m_material;
+                        m_material = DefaultTexture.m_material;
 
                     // Clear out the old shiny value
                     byte tb = (m_material &= 0x3F);
@@ -450,7 +450,7 @@ namespace OpenMetaverse
                 {
                     byte o = m_material;
                     if ((m_attributes & TextureAttributes.Material) == 0)
-                        o = DefaultTexture.m_material;
+                        m_material = DefaultTexture.m_material;
 
                     // Clear out the old fullbright value
                     byte tb = (m_material &= 0xDF);
@@ -480,7 +480,7 @@ namespace OpenMetaverse
                 {
                     byte o = m_media;
                     if ((m_attributes & TextureAttributes.Media) == 0)
-                        o = DefaultTexture.m_media;
+                        m_media = DefaultTexture.m_media;
 
                     // Clear out the old mediaflags value
                     byte tb = (byte)(m_media & 0xFE);
@@ -507,7 +507,7 @@ namespace OpenMetaverse
                 {
                     byte o = m_media;
                     if ((m_attributes & TextureAttributes.Media) == 0)
-                        o = DefaultTexture.m_media;
+                        m_media = DefaultTexture.m_media;
 
                     byte tb = (byte)(m_media & 0xF9);
                     tb |= (byte)value;
