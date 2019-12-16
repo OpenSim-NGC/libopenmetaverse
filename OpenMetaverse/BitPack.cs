@@ -64,13 +64,25 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="data">Byte array to pack bits in to or unpack from</param>
         /// <param name="pos">Starting position in the byte array</param>
-        public BitPack(byte[] data, int pos, int bitp = 0)
+        /// <param name="bitp">Optional bit position to start apendig more bits</param>
+        public BitPack(byte[] data, int pos, int? bitp = null)
         {
             Data = data;
             bytePos = pos;
-            bitPos = bitp;
-            if(bitp != 0)
-                Data[pos] &= (byte)~(0xff >> bitPos);
+            if(bitp.HasValue)
+            {
+                bitPos = bitp.Value;
+                if(bitPos < 0)
+                    bitPos = 0;
+                else if(bitPos > 7)
+                    bitPos = 7; // this is wrong anyway
+                if (bitPos == 0)
+                    Data[pos] = 0;
+                else
+                  Data[pos] &= (byte)~(0xff >> bitPos);
+            }
+            else
+                bitPos = 0;
         }
 
         /// <summary>
