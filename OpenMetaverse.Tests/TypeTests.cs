@@ -314,8 +314,8 @@ namespace OpenMetaverse.Tests
             b = bitpacker.UnpackBits(1);
             Assert.IsTrue(b == 1, "Unpacked " + b + " instead of 1");
 
-            packedBytes = new byte[1];
-            bitpacker = new BitPack(packedBytes, 0);
+            packedBytes = new byte[1]{255};
+            bitpacker = new BitPack(packedBytes, 0, 0); // tell to append
             bitpacker.PackBit(false);
 
             bitpacker = new BitPack(packedBytes, 0);
