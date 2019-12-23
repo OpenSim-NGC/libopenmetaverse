@@ -454,7 +454,41 @@ namespace OpenMetaverse
         /// <summary>Avatar Center</summary>
         [EnumInfo(Text = "Avatar Center")]
         Root,
-    }
+        [EnumInfo(Text = "Avatar Center")]
+        Center = 40,
+        [EnumInfo(Text = "Left Hand Ring 1")]
+        LefHandRing1 = 41,
+        [EnumInfo(Text = "Right Hand Ring 1")]
+        RightHandRing1 = 42,
+        [EnumInfo(Text = "Tail Base")]
+        TailBase = 43,
+        [EnumInfo(Text = "Tail Tip")]
+        TailTip = 44,
+        [EnumInfo(Text = "Left Wing")]
+        LeftWing = 45,
+        [EnumInfo(Text = "Left Wing")]
+        RightWing = 46,
+        [EnumInfo(Text = "Face Jaw")]
+        FaceJaw = 47,
+        [EnumInfo(Text = "Face Left Ear")]
+        FaceLeftEar = 48,
+        [EnumInfo(Text = "Face Right Ear")]
+        FaceRightEar = 49,
+        [EnumInfo(Text = "Face Left Eye")]
+        FaceLeftEye = 50,
+        [EnumInfo(Text = "Face Right Eye")]
+        FaceRightEye = 51,
+        [EnumInfo(Text = "Face Tongue")]
+        FaceTongue = 52,
+        [EnumInfo(Text = "Groin")]
+        Groin = 53,
+        [EnumInfo(Text = "Hind Left Foot")]
+        HIndLeftFoot = 54,
+        [EnumInfo(Text = "Hind Right Foot")]
+        HindRightFoot = 55,
+
+        LastValid = 55
+}
 
     /// <summary>
     /// Tree foliage types

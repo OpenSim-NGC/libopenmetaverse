@@ -16,7 +16,7 @@
     </Reference>
     <Reference Include="Tao.OpenGl">
       <Private>False</Private>
-      <HintPath>../../bin/Tao.OpenGL.dll</HintPath>
+      <HintPath>../../bin/Tao.OpenGl.dll</HintPath>
     </Reference>
     <Reference Include="Tao.Platform.Windows">
       <Private>False</Private>
