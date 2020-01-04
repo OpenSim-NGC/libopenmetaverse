@@ -187,33 +187,35 @@ namespace WinGridProxy
         WebHeaderCollection RequestHeaders { get; set; }
         WebHeaderCollection ResponseHeaders { get; set; }
         string FullUri { get; set; }
+        string Method { get; set; }
 
         public SessionCaps() : base() { /*this.Protocol = "Caps";*/ }
         public SessionCaps(byte[] requestBytes, byte[] responseBytes,
             WebHeaderCollection requestHeaders, WebHeaderCollection responseHeaders,
-            Direction direction, string uri, string capsKey, String proto, string fullUri)
+            Direction direction, string uri, string capsKey, String proto, string fullUri, string meth)
             : base()
         {
             if (requestBytes != null)
-                this.RequestBytes = requestBytes;
+                RequestBytes = requestBytes;
             else
-                this.RequestBytes = OpenMetaverse.Utils.EmptyBytes;
+                RequestBytes = OpenMetaverse.Utils.EmptyBytes;
 
             if (responseBytes != null)
-                this.ResponseBytes = responseBytes;
+                ResponseBytes = responseBytes;
             else
-                this.ResponseBytes = OpenMetaverse.Utils.EmptyBytes;
-            this.RequestHeaders = requestHeaders;
-            this.ResponseHeaders = responseHeaders;
-            this.Protocol = proto;
-            this.FullUri = fullUri;
+                ResponseBytes = OpenMetaverse.Utils.EmptyBytes;
+            RequestHeaders = requestHeaders;
+            ResponseHeaders = responseHeaders;
+            Protocol = proto;
+            FullUri = fullUri;
+            Method = meth;
 
-            this.Name = capsKey;
-            this.Direction = direction;
-            this.Host = uri;
-            this.ContentType = (direction == Direction.Incoming) ? this.ResponseHeaders.Get("Content-Type") : this.RequestHeaders.Get("Content-Type");
-            this.Length = (requestBytes != null) ? requestBytes.Length : 0;
-            this.Length += (responseBytes != null) ? responseBytes.Length : 0;
+            Name = capsKey;
+            Direction = direction;
+            Host = uri;
+            ContentType = (direction == Direction.Incoming) ? this.ResponseHeaders.Get("Content-Type") : this.RequestHeaders.Get("Content-Type");
+            Length = (requestBytes != null) ? requestBytes.Length : 0;
+            Length += (responseBytes != null) ? responseBytes.Length : 0;
         }
 
         public override string ToPrettyString(Direction direction)
@@ -319,7 +321,7 @@ namespace WinGridProxy
                     if (this.RequestBytes != null)
                     {
                         StringBuilder result = new StringBuilder();
-                        result.AppendFormat("Request URI: {0}{1}", FullUri, Environment.NewLine);
+                        result.AppendFormat("{0}: {1}{2}", Method, FullUri, Environment.NewLine);
                         foreach (String key in RequestHeaders.Keys)
                         {
                             result.AppendFormat("{0}: {1}" + Environment.NewLine, key, RequestHeaders[key]);

@@ -305,7 +305,7 @@ namespace WinGridProxy
                     if (found.Group.Header.Equals("Capabilities"))
                     {
                         capsSession = new SessionCaps(req.RawRequest, req.RawResponse, req.RequestHeaders,
-                        req.ResponseHeaders, direction, req.Info.URI, req.Info.CapType, proto, req.FullUri);
+                        req.ResponseHeaders, direction, req.Info.URI, req.Info.CapType, proto, req.FullUri, req.Method);
                     }
                     else
                     {

@@ -699,6 +699,9 @@ namespace OpenMetaverse.Messages.Linden
         /// <summary> true if group members outside can hear any sounds avatars inside play</summary>
         public bool GroupAVSounds;
 
+        public bool RegionAllowEnvironmentOverride;
+        public int ParcelEnvironmentVersion = -1;
+
         /// <summary>
         /// Serialize the object
         /// </summary>
@@ -782,6 +785,13 @@ namespace OpenMetaverse.Messages.Linden
             ageVerificationBlockMap["RegionDenyAgeUnverified"] = OSD.FromBoolean(RegionDenyAgeUnverified);
             ageVerificationBlockArray.Add(ageVerificationBlockMap);
             map["AgeVerificationBlock"] = ageVerificationBlockArray;
+
+            OSDArray enviromentArray = new OSDArray(1);
+            OSDMap enviromentArrayMap = new OSDMap(2);
+            enviromentArrayMap["ParcelEnvironmentVersion"] = OSD.FromInteger(ParcelEnvironmentVersion);
+            enviromentArrayMap["RegionAllowAccessOverride"] = OSD.FromBoolean(RegionAllowEnvironmentOverride);
+            enviromentArray.Add(enviromentArrayMap);
+            map["ParcelEnvironmentBlock"] = enviromentArray;
 
             return map;
         }
@@ -873,6 +883,13 @@ namespace OpenMetaverse.Messages.Linden
 
             OSDMap ageVerificationBlockMap = (OSDMap)((OSDArray)map["AgeVerificationBlock"])[0];
             RegionDenyAgeUnverified = ageVerificationBlockMap["RegionDenyAgeUnverified"].AsBoolean();
+
+            if(map.TryGetValue("ParcelEnvironmentBlock", out OSD oPEB))
+            {
+                OSDMap peb = (OSDMap)((OSDArray)oPEB)[0];
+                ParcelEnvironmentVersion = peb["ParcelEnvironmentVersion"];
+                RegionAllowEnvironmentOverride = peb["RegionAllowEnvironmentOverride"];
+            }
         }
     }
 

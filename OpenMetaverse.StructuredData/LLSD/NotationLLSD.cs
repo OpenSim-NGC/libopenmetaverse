@@ -96,6 +96,16 @@ namespace OpenMetaverse.StructuredData
             return s;
         }
 
+        public static string SerializeLLSDNotationFull(OSD osd)
+        {
+            using(StringWriter writer = new StringWriter())
+            {
+                writer.Write("<?llsd/notation?>");
+                SerializeLLSDNotationElement(writer, osd);
+                return writer.ToString();
+            }
+        }
+
         public static StringWriter SerializeLLSDNotationStream(OSD osd)
         {
             StringWriter writer = new StringWriter();
