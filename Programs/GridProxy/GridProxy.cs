@@ -187,6 +187,7 @@ namespace GridProxy
 
         static List<string> BinaryResponseCaps = new List<string>()
         {
+            "ViewerAsset",
             "GetTexture",
             "GetMesh",
             "GetMesh2"
@@ -578,7 +579,7 @@ namespace GridProxy
             if (contentLength < 8192)
                 OpenMetaverse.Logger.Log(String.Format("[{0}] request length={1}:\n{2}", reqNo, contentLength, Utils.BytesToString(content)), Helpers.LogLevel.Debug);
 
-            if (uri == "/")
+          if (uri == "/")
             {
                 if (contentType == "application/xml+llsd" || contentType == "application/xml")
                 {
@@ -643,6 +644,8 @@ namespace GridProxy
             if (cap != null)
             {
                 capReq = new CapsRequest(cap);
+
+                capReq.Method = meth;
 
                 if (cap.ReqFmt == CapsDataFormat.OSD)
                 {
@@ -742,7 +745,7 @@ namespace GridProxy
                 // without throwing a protocol exception. So force it to post 
                 // incase our parser stupidly set it to GET due to the viewer 
                 // doing something stupid like sending an empty request
-                if (content.Length > 0)
+                if (content.Length > 0 && req.Method.ToLower() == "get")
                     req.Method = "POST";
 
                 req.ContentLength = content.Length;
@@ -971,7 +974,6 @@ namespace GridProxy
         {
             lock (this)
             {
-
                 if (!KnownCapsDelegates.ContainsKey(CapName))
                 {
                     KnownCapsDelegates[CapName] = new List<CapsDelegate>();
@@ -1188,7 +1190,7 @@ namespace GridProxy
                 {
                     CapInfo info = new CapInfo((string)responseData["seed_capability"], activeCircuit, "SeedCapability");
                     info.AddDelegate(new CapsDelegate(FixupSeedCapsResponse));
-
+                    info.AddDelegate(new CapsDelegate(KnownCapDelegate));
                     KnownCaps[(string)responseData["seed_capability"]] = info;
                     responseData["seed_capability"] = loginURI + responseData["seed_capability"];
                 }
@@ -1278,6 +1280,7 @@ namespace GridProxy
 
                 CapInfo info = new CapInfo(seed_capability, activeCircuit, "SeedCapability");
                 info.AddDelegate(new CapsDelegate(FixupSeedCapsResponse));
+                info.AddDelegate(new CapsDelegate(KnownCapDelegate));
 
                 KnownCaps[seed_capability] = info;
                 map["seed_capability"] = OSD.FromString(loginURI + seed_capability);
@@ -2047,6 +2050,8 @@ namespace GridProxy
             {
                 CapInfo info = new CapInfo(simCaps, realSim, "SeedCapability");
                 info.AddDelegate(new CapsDelegate(FixupSeedCapsResponse));
+                info.AddDelegate(new CapsDelegate(KnownCapDelegate));
+
                 lock (this)
                 {
                     KnownCaps[simCaps] = info;
@@ -2150,6 +2155,7 @@ namespace GridProxy
         {
             uri = URI; sim = Sim; type = CapType; reqFmt = ReqFmt; respFmt = RespFmt;
         }
+
         public string URI
         {
             get { return uri; }
@@ -2225,7 +2231,7 @@ namespace GridProxy
         public WebHeaderCollection ResponseHeaders = new WebHeaderCollection();
 
         public string FullUri = string.Empty;
-
+        public string Method = string.Empty;
     }
 
     // XmlRpcRequestDelegate: specifies a delegate to be called for XML-RPC requests

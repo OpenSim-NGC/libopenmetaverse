@@ -103,6 +103,8 @@ namespace OpenMetaverse
         MarketplaceFolder = 26,
         /// <summary>Linden mesh format</summary>
         Mesh = 49,
+
+        Settings = 56
     }
 
     /// <summary>

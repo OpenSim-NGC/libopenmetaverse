@@ -25,10 +25,10 @@
  */
 
 using System;
-using System.IO;
 using System.Net;
-using System.Reflection;
 using System.Text;
+using System.Reflection;
+using System.IO;
 
 namespace OpenMetaverse
 {
@@ -147,6 +147,14 @@ namespace OpenMetaverse
             String.Empty, // 47
             String.Empty, // 48
             "mesh",       // 49
+            String.Empty, // 50
+            String.Empty, // 51
+            String.Empty, // 52
+            String.Empty, // 53
+            String.Empty, // 54
+            String.Empty, // 55
+            "settings",   // 56
+            String.Empty, // 57
         };
 
         private static readonly string[] _FolderTypeNames = new string[]
@@ -176,7 +184,7 @@ namespace OpenMetaverse
             String.Empty, // 22
             "favorite",   // 23
             String.Empty, // 24
-            String.Empty, // 25
+            "settings",   // 25
             "ensemble",   // 26
             "ensemble",   // 27
             "ensemble",   // 28
@@ -232,7 +240,11 @@ namespace OpenMetaverse
             "animation",  // 19
             "gesture",    // 20
             String.Empty, // 21
-            "mesh"        // 22
+            "mesh",       // 22
+            String.Empty, // 23
+            String.Empty, // 24
+            "settings",   // 25
+            String.Empty, // 26
         };
 
         private static readonly string[] _SaleTypeNames = new string[]
