@@ -422,13 +422,17 @@ namespace OpenMetaverse
         {
             if (roll > Utils.TWO_PI || pitch > Utils.TWO_PI || yaw > Utils.TWO_PI)
                 throw new ArgumentException("Euler angles must be in radians");
+            
+            roll *= 0.5f;
+            double atCos = Math.Cos(roll);
+            double atSin = Math.Sin(roll);
+            pitch *= 0.5f;
+            double leftCos = Math.Cos(pitch);
+            double leftSin = Math.Sin(pitch);
+            yaw *= 0.5f;
+            double upCos = Math.Cos(yaw);
+            double upSin = Math.Sin(yaw);
 
-            double atCos = Math.Cos(roll / 2f);
-            double atSin = Math.Sin(roll / 2f);
-            double leftCos = Math.Cos(pitch / 2f);
-            double leftSin = Math.Sin(pitch / 2f);
-            double upCos = Math.Cos(yaw / 2f);
-            double upSin = Math.Sin(yaw / 2f);
             double atLeftCos = atCos * leftCos;
             double atLeftSin = atSin * leftSin;
             return new Quaternion(
@@ -712,7 +716,7 @@ namespace OpenMetaverse
 
         public static bool operator !=(Quaternion quaternion1, Quaternion quaternion2)
         {
-            return !(quaternion1 == quaternion2);
+            return !quaternion1.Equals(quaternion2);
         }
 
         public static Quaternion operator +(Quaternion quaternion1, Quaternion quaternion2)

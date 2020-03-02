@@ -54,7 +54,8 @@ namespace OpenMetaverse
         /// <summary>Sun does not move</summary>
         SunFixed = 1 << 4,
         /// <summary>No object, land, etc. taxes</summary>
-        TaxFree = 1 << 5,
+        TaxFree = 1 << 5, // reused to delete
+        AllowParcelAccessOverride = 1 << 5,
         /// <summary>Disable heightmap alterations (agents can still plant
         /// foliage)</summary>
         BlockTerraform = 1 << 6,
@@ -63,7 +64,8 @@ namespace OpenMetaverse
         /// <summary>All content is wiped nightly</summary>
         Sandbox = 1 << 8,
         /// <summary>Unknown: Related to the availability of an overview world map tile.(Think mainland images when zoomed out.)</summary>
-        NullLayer = 1 << 9,
+        NullLayer = 1 << 9, // reused
+        AllowEnviromentOverride = 1 << 9,
         /// <summary>Unknown: Related to region debug flags. Possibly to skip processing of agent interaction with world. </summary>
         SkipAgentAction = 1 << 10,
         /// <summary>Region does not update agent prim interest lists. Internal debugging option.</summary>
