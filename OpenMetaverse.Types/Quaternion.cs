@@ -25,8 +25,8 @@
  */
 
 using System;
-using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Globalization;
 
 namespace OpenMetaverse
 {
@@ -107,7 +107,7 @@ namespace OpenMetaverse
         public bool ApproxEquals(Quaternion quat)
         {
             // assume normalized
-            return Math.Abs(quat.X - X) < 1e-6f &&
+            return  Math.Abs(quat.X - X) < 1e-6f &&
                     Math.Abs(quat.Y - Y) < 1e-6f &&
                     Math.Abs(quat.Z - Z) < 1e-6f;
         }
@@ -278,7 +278,7 @@ namespace OpenMetaverse
             pitch = 0f;
             yaw = 0f;
 
-            if (W > 0.999999f)
+            if(W > 0.999999f)
                 return;
 
             float tX = X * X;
@@ -327,7 +327,7 @@ namespace OpenMetaverse
                 angle = 0;
                 return;
             }
-            if (ww < 0.0001f)
+            if(ww < 0.0001f)
             {
                 if (q.W < 0f)
                     axis = new Vector3(-q.X, -q.Y, -q.Z);
@@ -368,7 +368,7 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Quaternion Conjugate(Quaternion quaternion)
         {
-            return new Quaternion(-quaternion.X, -quaternion.Y, -quaternion.Z, quaternion.W);
+            return new Quaternion( -quaternion.X, -quaternion.Y, -quaternion.Z, quaternion.W);
         }
 
         /// <summary>
@@ -422,13 +422,17 @@ namespace OpenMetaverse
         {
             if (roll > Utils.TWO_PI || pitch > Utils.TWO_PI || yaw > Utils.TWO_PI)
                 throw new ArgumentException("Euler angles must be in radians");
+            
+            roll *= 0.5f;
+            double atCos = Math.Cos(roll);
+            double atSin = Math.Sin(roll);
+            pitch *= 0.5f;
+            double leftCos = Math.Cos(pitch);
+            double leftSin = Math.Sin(pitch);
+            yaw *= 0.5f;
+            double upCos = Math.Cos(yaw);
+            double upSin = Math.Sin(yaw);
 
-            double atCos = Math.Cos(roll / 2f);
-            double atSin = Math.Sin(roll / 2f);
-            double leftCos = Math.Cos(pitch / 2f);
-            double leftSin = Math.Sin(pitch / 2f);
-            double upCos = Math.Cos(yaw / 2f);
-            double upSin = Math.Sin(yaw / 2f);
             double atLeftCos = atCos * leftCos;
             double atLeftSin = atSin * leftSin;
             return new Quaternion(
@@ -712,7 +716,7 @@ namespace OpenMetaverse
 
         public static bool operator !=(Quaternion quaternion1, Quaternion quaternion2)
         {
-            return !(quaternion1 == quaternion2);
+            return !quaternion1.Equals(quaternion2);
         }
 
         public static Quaternion operator +(Quaternion quaternion1, Quaternion quaternion2)
