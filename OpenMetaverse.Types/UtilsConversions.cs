@@ -34,13 +34,13 @@ namespace OpenMetaverse
 {
     public static partial class Utils
     {
-        //        public static readonly bool NoAlignment = CheckNeedAlignment();
+//        public static readonly bool NoAlignment = CheckNeedAlignment();
         public static readonly bool CanDirectCopyLE = CheckNeedAlignment();
-        //        public static readonly bool CanDirectCopyBE = CheckDirectCopyBE();
+//        public static readonly bool CanDirectCopyBE = CheckDirectCopyBE();
 
         public unsafe static bool CheckNeedAlignment()
         {
-            if (!BitConverter.IsLittleEndian)
+            if(!BitConverter.IsLittleEndian)
                 return false;
 
             byte[] bytes = new byte[4096];
@@ -72,9 +72,17 @@ namespace OpenMetaverse
                         return false;
 
                     fixed (byte* ptr = &bytes[1027 + i])
+                    {
                         l = *(long*)ptr;
-                    if (l != ll)
-                        return false;
+                        if (l != ll)
+                            return false;
+                        float f = *(float*)ptr;
+                        if(Math.Abs(f - 3.51568113E+13) > 1e7)
+                            return false;
+                        double d = *(double*)ptr;
+                        if (Math.Abs(d - 4.6950166211149741E+104) > 1e87)
+                            return false;
+                    }
                 }
                 return true;
             }
@@ -82,17 +90,17 @@ namespace OpenMetaverse
             return false;
 
         }
-        /*
-                static bool CheckDirectCopyLE()
-                {
-                    return BitConverter.IsLittleEndian && NoAlignment;
-                }
+/*
+        static bool CheckDirectCopyLE()
+        {
+            return BitConverter.IsLittleEndian && NoAlignment;
+        }
 
-                static bool CheckDirectCopyBE()
-                {
-                    return !BitConverter.IsLittleEndian && NoAlignment;
-                }
-        */
+        static bool CheckDirectCopyBE()
+        {
+            return !BitConverter.IsLittleEndian && NoAlignment;
+        }
+*/
         #region String Arrays
 
         private static readonly string[] _AssetTypeNames = new string[]
@@ -122,7 +130,7 @@ namespace OpenMetaverse
             "simstate",   // 22
             String.Empty, // 23
             "link",       // 24
-            "link_f", // 25
+            "link_f",     // 25
             String.Empty, // 26
             String.Empty, // 27
             String.Empty, // 28
@@ -325,12 +333,12 @@ namespace OpenMetaverse
         public static bool ApproxEqual(float a, float b, float tolerance, float reltolerance = float.Epsilon)
         {
             float dif = Math.Abs(a - b);
-            if (dif <= tolerance)
+            if(dif <= tolerance)
                 return true;
 
             a = Math.Abs(a);
             b = Math.Abs(b);
-            if (b > a)
+            if(b > a)
                 a = b;
             return dif <= a * reltolerance;
         }
@@ -401,8 +409,8 @@ namespace OpenMetaverse
                     return *(int*)p;
             }
 
-            return bytes[pos] |
-                    (bytes[pos + 1] << 8) |
+            return bytes[pos]              |
+                    (bytes[pos + 1] << 8)  |
                     (bytes[pos + 2] << 16) |
                     (bytes[pos + 3] << 24);
         }
@@ -438,8 +446,8 @@ namespace OpenMetaverse
                     return *(int*)p;
             }
             else
-                return bytes[0] |
-                    (bytes[1] << 8) |
+                return bytes[0]      |
+                    (bytes[1] << 8)  |
                     (bytes[2] << 16) |
                     (bytes[3] << 24);
         }
@@ -461,8 +469,8 @@ namespace OpenMetaverse
             }
             else
                 return
-                    bytes[0] |
-                    ((long)bytes[1] << 8) |
+                    bytes[0]               |
+                    ((long)bytes[1] << 8)  |
                     ((long)bytes[2] << 16) |
                     ((long)bytes[3] << 24) |
                     ((long)bytes[4] << 32) |
@@ -606,8 +614,8 @@ namespace OpenMetaverse
             }
             else
                 return (uint)(
-                    bytes[0] |
-                    (bytes[1] << 8) |
+                    bytes[0]         |
+                    (bytes[1] << 8)  |
                     (bytes[2] << 16) |
                     (bytes[3] << 24));
         }
@@ -677,8 +685,8 @@ namespace OpenMetaverse
             }
             else
                 return (ulong)(
-                    bytes[0] |
-                    ((long)bytes[1] << 8) |
+                    bytes[0]               |
+                    ((long)bytes[1] << 8)  |
                     ((long)bytes[2] << 16) |
                     ((long)bytes[3] << 24) |
                     ((long)bytes[4] << 32) |
@@ -707,8 +715,8 @@ namespace OpenMetaverse
             else
             {
                 int tmp =
-                    bytes[0] |
-                    (bytes[1] << 8) |
+                    bytes[0]         |
+                    (bytes[1] << 8)  |
                     (bytes[2] << 16) |
                     (bytes[3] << 24);
                 return *(float*)&tmp;
@@ -990,7 +998,7 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void UIntToBytesBig(uint value, byte[] dest, int pos)
         {
-            IntToBytesBig((int)value, dest, pos);
+           IntToBytesBig((int)value, dest, pos);
         }
 
         /// <summary>
@@ -1125,7 +1133,7 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void UInt64ToBytesBig(ulong value, byte[] dest, int pos)
         {
-            Int64ToBytesBig((long)value, dest, pos);
+            Int64ToBytesBig((long) value, dest, pos);
         }
 
         /// <summary>
