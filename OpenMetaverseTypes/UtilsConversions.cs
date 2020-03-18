@@ -43,6 +43,13 @@ namespace OpenMetaverse
             if(!BitConverter.IsLittleEndian)
                 return false;
 
+            string arch = System.Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE"); //change on .net4.7.x
+            if(!string.IsNullOrEmpty(arch))
+            {
+                if(arch.ToLower().Contains("arm")) // some of this just blow up bypassing the try catch
+                    return false;
+            }
+
             byte[] bytes = new byte[4096];
             long ll = 0x55AA33EE55FFCCAA;
             long l;
