@@ -72,10 +72,18 @@ namespace OpenMetaverse
                         return false;
 
                     fixed (byte* ptr = &bytes[1027 + i])
+                    {
                         l = *(long*)ptr;
-                    if (l != ll)
-                        return false;
+                        if (l != ll)
+                            return false;
+                        float f = *(float*)ptr;
+                        if(Math.Abs(f - 3.51568113E+13) > 1e7)
+                            return false;
+                        double d = *(double*)ptr;
+                        if (Math.Abs(d - 4.6950166211149741E+104) > 1e87)
+                            return false;
                     }
+                }
                 return true;
             }
             catch { }
