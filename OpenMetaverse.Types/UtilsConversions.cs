@@ -43,13 +43,6 @@ namespace OpenMetaverse
             if(!BitConverter.IsLittleEndian)
                 return false;
 
-            string arch = System.Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE"); //change on .net4.7.x
-            if(!string.IsNullOrEmpty(arch))
-            {
-                if(arch.ToLower().Contains("arm")) // some of this just blow up bypassing the try catch
-                    return false;
-            }
-
             byte[] bytes = new byte[4096];
             long ll = 0x55AA33EE55FFCCAA;
             long l;
@@ -79,17 +72,9 @@ namespace OpenMetaverse
                         return false;
 
                     fixed (byte* ptr = &bytes[1027 + i])
-                    {
                         l = *(long*)ptr;
-                        if (l != ll)
-                            return false;
-                        float f = *(float*)ptr;
-                        if(Math.Abs(f - 3.51568113E+13) > 1e7)
-                            return false;
-                        double d = *(double*)ptr;
-                        if (Math.Abs(d - 4.6950166211149741E+104) > 1e87)
-                            return false;
-                    }
+                    if (l != ll)
+                        return false;
                 }
                 return true;
             }
@@ -714,129 +699,43 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static float BytesToFloat(byte[] bytes)
         {
-            if (CanDirectCopyLE)
-            {
-                fixed (byte* p = bytes)
-                    return *(float*)p;
-            }
-            else
-            {
-                int tmp =
-                    bytes[0]         |
-                    (bytes[1] << 8)  |
-                    (bytes[2] << 16) |
-                    (bytes[3] << 24);
+                int tmp = BytesToInt(bytes);
                 return *(float*)&tmp;
-            }
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static float BytesToFloat(byte[] bytes, int pos)
         {
-            if (CanDirectCopyLE)
-            {
-                if (bytes.Length < pos + 4) return 0;
-                fixed (byte* p = &bytes[pos])
-                    return *(float*)p;
-            }
-            else
-            {
-                int tmp =
-                    bytes[pos] |
-                    (bytes[pos + 1] << 8) |
-                    (bytes[pos + 2] << 16) |
-                    (bytes[pos + 3] << 24);
-                return *(float*)&tmp;
-            }
+            int tmp = BytesToInt(bytes, pos);
+            return *(float*)&tmp;
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static float BytesToFloatSafepos(byte[] bytes, int pos)
         {
-            if (CanDirectCopyLE)
-            {
-                fixed (byte* p = &bytes[pos])
-                    return *(float*)p;
-            }
-            else
-            {
-                int tmp =
-                    bytes[pos] |
-                    (bytes[pos + 1] << 8) |
-                    (bytes[pos + 2] << 16) |
-                    (bytes[pos + 3] << 24);
-                return *(float*)&tmp;
-            }
+            int tmp = BytesToIntSafepos(bytes, pos);
+            return *(float*)&tmp;
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static double BytesToDouble(byte[] bytes)
         {
-            if (CanDirectCopyLE)
-            {
-                fixed (byte* p = bytes)
-                    return *(double*)p;
-            }
-            else
-            {
-                long tmp =
-                    bytes[0] |
-                    ((long)bytes[1] << 8) |
-                    ((long)bytes[2] << 16) |
-                    ((long)bytes[3] << 24) |
-                    ((long)bytes[4] << 32) |
-                    ((long)bytes[5] << 40) |
-                    ((long)bytes[6] << 48) |
-                    ((long)bytes[7] << 56);
-                return *(double*)&tmp;
-            }
+            long tmp = BytesToInt64(bytes);
+            return *(double*)&tmp;
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static double BytesToDouble(byte[] bytes, int pos)
         {
-            if (CanDirectCopyLE)
-            {
-                if (bytes.Length < pos + 8) return 0;
-                fixed (byte* p = &bytes[pos])
-                    return *(double*)p;
-            }
-            else
-            {
-                long tmp =
-                    bytes[pos] |
-                    ((long)bytes[pos + 1] << 8) |
-                    ((long)bytes[pos + 2] << 16) |
-                    ((long)bytes[pos + 3] << 24) |
-                    ((long)bytes[pos + 4] << 32) |
-                    ((long)bytes[pos + 5] << 40) |
-                    ((long)bytes[pos + 6] << 48) |
-                    ((long)bytes[pos + 7] << 56);
-                return *(double*)&tmp;
-            }
+            long tmp = BytesToInt64(bytes, pos);
+            return *(double*)&tmp;
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe static double BytesToDoubleSafepos(byte[] bytes, int pos)
         {
-            if (CanDirectCopyLE)
-            {
-                fixed (byte* p = &bytes[pos])
-                    return *(double*)p;
-            }
-            else
-            {
-                long tmp =
-                    bytes[pos] |
-                    ((long)bytes[pos + 1] << 8) |
-                    ((long)bytes[pos + 2] << 16) |
-                    ((long)bytes[pos + 3] << 24) |
-                    ((long)bytes[pos + 4] << 32) |
-                    ((long)bytes[pos + 5] << 40) |
-                    ((long)bytes[pos + 6] << 48) |
-                    ((long)bytes[pos + 7] << 56);
-                return *(double*)&tmp;
-            }
+            long tmp = BytesToInt64Safepos(bytes, pos);
+            return *(double*)&tmp;
         }
 
         #endregion BytesTo
