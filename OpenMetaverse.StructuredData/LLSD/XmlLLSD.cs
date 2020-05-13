@@ -109,7 +109,7 @@ namespace OpenMetaverse.StructuredData
         {
             StringBuilder sb = new StringBuilder(16384);
             if(formal)
-                sb.Append("<?xml version=\"1.0\" encoding=\"UTF - 8\"?>");
+                sb.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
 
             sb.Append("<llsd>");
             SerializeLLSDXmlElement(sb, data, formal);
