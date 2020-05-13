@@ -95,14 +95,9 @@ namespace OpenMetaverse.StructuredData
             }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
-        public static byte[] SerializeLLSDXmlBytes(OSD data)
+        public static byte[] SerializeLLSDXmlBytes(OSD data, bool formal = false)
         {
-            return Encoding.UTF8.GetBytes(SerializeLLSDXmlString(data));
+            return Encoding.UTF8.GetBytes(SerializeLLSDXmlString(data, formal));
         }
 
         /// <summary>
@@ -110,32 +105,25 @@ namespace OpenMetaverse.StructuredData
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        public static string SerializeLLSDXmlString(OSD data)
+        public static string SerializeLLSDXmlString(OSD data, bool formal = false)
         {
-            StringWriter sw = new StringWriter();
-            using (XmlTextWriter writer = new XmlTextWriter(sw))
-            {
-                writer.Formatting = Formatting.None;
+            StringBuilder sb = new StringBuilder(16384);
+            if(formal)
+                sb.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
 
-                writer.WriteStartElement(String.Empty, "llsd", String.Empty);
-                SerializeLLSDXmlElement(writer, data);
-                writer.WriteEndElement();
+            sb.Append("<llsd>");
+            SerializeLLSDXmlElement(sb, data, formal);
+            sb.Append("</llsd>");
 
-                return sw.ToString();
-            }
+            return sb.ToString();
         }
 
-        public static string SerializeLLSDInnerXmlString(OSD data)
+        public static string SerializeLLSDInnerXmlString(OSD data,bool formal = false)
         {
-            StringWriter sw = new StringWriter();
-            using (XmlTextWriter writer = new XmlTextWriter(sw))
-            {
-                writer.Formatting = Formatting.None;
+            StringBuilder sb = new StringBuilder(16384);
+            SerializeLLSDXmlElement(sb, data, formal);
 
-                SerializeLLSDXmlElement(writer, data);
-
-                return sw.ToString();
-            }
+            return sb.ToString();
         }
 
         /// <summary>
@@ -143,81 +131,80 @@ namespace OpenMetaverse.StructuredData
         /// </summary>
         /// <param name="writer"></param>
         /// <param name="data"></param>
-        public static void SerializeLLSDXmlElement(XmlTextWriter writer, OSD data)
+        public static void SerializeLLSDXmlElement(StringBuilder sb, OSD data, bool formal)
         {
             switch (data.Type)
             {
                 case OSDType.Unknown:
-                    writer.WriteStartElement(String.Empty, "undef", String.Empty);
-                    writer.WriteEndElement();
+                    sb.Append("<undef />");
                     break;
                 case OSDType.Boolean:
-                    writer.WriteStartElement(String.Empty, "boolean", String.Empty);
-                    writer.WriteString(data.AsString());
-                    writer.WriteEndElement();
+                    sb.Append("<boolean>");
+                    sb.Append(data.AsString());
+                    sb.Append("</boolean>");
                     break;
                 case OSDType.Integer:
-                    writer.WriteStartElement(String.Empty, "integer", String.Empty);
-                    writer.WriteString(data.AsString());
-                    writer.WriteEndElement();
+                    sb.Append("<integer>");
+                    sb.Append(data.AsString());
+                    sb.Append("</integer>");
                     break;
                 case OSDType.Real:
-                    writer.WriteStartElement(String.Empty, "real", String.Empty);
-                    writer.WriteString(data.AsString());
-                    writer.WriteEndElement();
+                    sb.Append("<real>");
+                    sb.Append(data.AsString());
+                    sb.Append("</real>");
                     break;
                 case OSDType.String:
-                    writer.WriteStartElement(String.Empty, "string", String.Empty);
-                    writer.WriteString(data.AsString());
-                    writer.WriteEndElement();
+                    sb.Append("<string>");
+                    sb.Append(data.AsString());
+                    sb.Append("</string>");
                     break;
                 case OSDType.UUID:
-                    writer.WriteStartElement(String.Empty, "uuid", String.Empty);
-                    writer.WriteString(data.AsString());
-                    writer.WriteEndElement();
+                    sb.Append("<uuid>");
+                    sb.Append(data.AsString());
+                    sb.Append("</uuid>");
                     break;
                 case OSDType.Date:
-                    writer.WriteStartElement(String.Empty, "date", String.Empty);
-                    writer.WriteString(data.AsString());
-                    writer.WriteEndElement();
+                    sb.Append("<date>");
+                    sb.Append(data.AsString());
+                    sb.Append("</date>");
                     break;
                 case OSDType.URI:
-                    writer.WriteStartElement(String.Empty, "uri", String.Empty);
-                    writer.WriteString(data.AsString());
-                    writer.WriteEndElement();
+                    sb.Append("<uri>");
+                    sb.Append(data.AsString());
+                    sb.Append("</uri>");
                     break;
                 case OSDType.Binary:
-                    writer.WriteStartElement(String.Empty, "binary", String.Empty);
-                    writer.WriteStartAttribute(String.Empty, "encoding", String.Empty);
-                    writer.WriteString("base64");
-                    writer.WriteEndAttribute();
-                    writer.WriteString(data.AsString());
-                    writer.WriteEndElement();
+                    if(formal)
+                        sb.Append("<binary encoding=\"base64\">");
+                    else
+                        sb.Append("<binary>");
+                    sb.Append(data.AsString());
+                    sb.Append("</binary>");
                     break;
                 case OSDType.Map:
                     OSDMap map = (OSDMap)data;
-                    writer.WriteStartElement(String.Empty, "map", String.Empty);
+                    sb.Append("<map>");
                     foreach (KeyValuePair<string, OSD> kvp in map)
                     {
-                        writer.WriteStartElement(String.Empty, "key", String.Empty);
-                        writer.WriteString(kvp.Key);
-                        writer.WriteEndElement();
+                        sb.Append("<key>");
+                        sb.Append(kvp.Key);
+                        sb.Append("</key>");
 
-                        SerializeLLSDXmlElement(writer, kvp.Value);
+                        SerializeLLSDXmlElement(sb, kvp.Value, formal);
                     }
-                    writer.WriteEndElement();
+                    sb.Append("</map>");
                     break;
                 case OSDType.Array:
                     OSDArray array = (OSDArray)data;
-                    writer.WriteStartElement(String.Empty, "array", String.Empty);
+                    sb.Append("<array>");
                     for (int i = 0; i < array.Count; i++)
                     {
-                        SerializeLLSDXmlElement(writer, array[i]);
+                        SerializeLLSDXmlElement(sb, array[i], formal);
                     }
-                    writer.WriteEndElement();
+                    sb.Append("</array>");
                     break;
                 case OSDType.LLSDxml:
-                    writer.WriteRaw(data.AsString());
+                    sb.Append(data.AsString());
                     break;
                 default:
                     break;
