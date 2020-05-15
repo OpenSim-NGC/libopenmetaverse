@@ -178,7 +178,7 @@ namespace OpenMetaverse.StructuredData
                         sb.Append("<binary encoding=\"base64\">");
                     else
                         sb.Append("<binary>");
-                    sb.Append(data.AsString());
+                    base64Encode(data.AsBinary(), sb);
                     sb.Append("</binary>");
                     break;
                 case OSDType.Map:
@@ -208,6 +208,55 @@ namespace OpenMetaverse.StructuredData
                     break;
                 default:
                     break;
+            }
+        }
+
+        static readonly char[] base64Chars = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',
+                                              'P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d',
+                                              'e','f','g','h','i','j','k','l','m','n','o','p','q','r','s',
+                                              't','u','v','w','x','y','z','0','1','2','3','4','5','6','7',
+                                              '8','9','+','/'};
+
+        public static unsafe void base64Encode(byte[] data, StringBuilder sb)
+        {
+            int lenMod3 = data.Length % 3;
+            int len = data.Length - lenMod3;
+
+            fixed (byte* d = data)
+            {
+                fixed (char* b64 = base64Chars)
+                {
+                    int i = 0;
+                    while (i < len)
+                    {
+                        sb.Append(b64[d[i] >> 2]);
+                        sb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                        sb.Append(b64[((d[i + 1] & 0x0f) << 2) | ((d[i + 2] & 0xc0) >> 6)]);
+                        sb.Append(b64[d[i + 2] & 0x3f]);
+                        i += 3;
+                    }
+
+                    switch (lenMod3)
+                    {
+                        case 2:
+                        {
+                            i = len;
+                            sb.Append(b64[d[i] >> 2]);
+                            sb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                            sb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
+                            sb.Append('=');
+                            break;
+                        }
+                        case 1:
+                        {
+                            i = len;
+                            sb.Append(b64[d[i] >> 2]);
+                            sb.Append(b64[(d[i] & 0x03) << 4]);
+                            sb.Append("==");
+                            break;
+                        }
+                    }
+                }
             }
         }
 

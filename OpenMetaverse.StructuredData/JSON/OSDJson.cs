@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.Text;
 using LitJson;
 
 namespace OpenMetaverse.StructuredData
@@ -16,6 +17,11 @@ namespace OpenMetaverse.StructuredData
                 JsonReader reader = new JsonReader(streamReader);
                 return DeserializeJson(JsonMapper.ToObject(reader));
             }
+        }
+
+        public static OSD DeserializeJson(byte[] data)
+        {
+            return DeserializeJson(JsonMapper.ToObject(Encoding.UTF8.GetString(data)));
         }
 
         public static OSD DeserializeJson(string json)
