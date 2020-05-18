@@ -1809,76 +1809,65 @@ namespace OpenMetaverse.StructuredData
 
     public partial class OSDParser
     {
-        const string LLSD_BINARY_HEADER = "<? llsd/binary ?>";
-        const string LLSD_XML_HEADER = "<llsd>";
-        const string LLSD_XML_ALT_HEADER = "<?xml";
-        const string LLSD_XML_ALT2_HEADER = "<? llsd/xml ?>";
+        const string LLSD_BINARY_HEADER   = "<? llsd/binary";
+        const string LLSD_NOTATION_HEADER = "<?llsd/notation";
+        const string LLSD_XML_HEADER      = "<llsd>";
+        const string LLSD_XML_ALT_HEADER  = "<?xml";
+        const string LLSD_XML_ALT2_HEADER = "<? llsd/xml";
 
         public static OSD Deserialize(byte[] data)
         {
-            string header = Encoding.ASCII.GetString(data, 0, data.Length >= 17 ? 17 : data.Length);
+            string header = Encoding.ASCII.GetString(data, 0, data.Length >= 15 ? 15 : data.Length);
 
-            try
-            {
-                string uHeader = Encoding.UTF8.GetString(data, 0, data.Length >= 17 ? 17 : data.Length).TrimStart();
-                if (uHeader.StartsWith(LLSD_XML_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                    uHeader.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                    uHeader.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    return DeserializeLLSDXml(data);
-                }
-            }
-            catch { }
+            if (header.StartsWith(LLSD_XML_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
+                    header.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
+                    header.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.InvariantCultureIgnoreCase))
+                return DeserializeLLSDXml(data);
+
+            if (header.StartsWith(LLSD_NOTATION_HEADER, StringComparison.InvariantCultureIgnoreCase))
+                return DeserializeLLSDNotation(data);
 
             if (header.StartsWith(LLSD_BINARY_HEADER, StringComparison.InvariantCultureIgnoreCase))
-            {
                 return DeserializeLLSDBinary(data);
-            }
-            else if (header.StartsWith(LLSD_XML_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                header.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                header.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.InvariantCultureIgnoreCase))
-            {
-                return DeserializeLLSDXml(data);
-            }
-            else
-            {
-                return DeserializeJson(Encoding.UTF8.GetString(data));
-            }
+
+            return DeserializeJson(data);
         }
 
         public static OSD Deserialize(string data)
         {
-            if (data.StartsWith(LLSD_BINARY_HEADER, StringComparison.InvariantCultureIgnoreCase))
-            {
-                return DeserializeLLSDBinary(Encoding.UTF8.GetBytes(data));
-            }
-            else if (data.StartsWith(LLSD_XML_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                data.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                data.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.InvariantCultureIgnoreCase))
-            {
+            if (data.StartsWith(LLSD_XML_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
+                    data.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
+                    data.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.InvariantCultureIgnoreCase))
                 return DeserializeLLSDXml(data);
-            }
-            else
-            {
-                return DeserializeJson(data);
-            }
+
+            if (data.StartsWith(LLSD_NOTATION_HEADER, StringComparison.InvariantCultureIgnoreCase))
+                return DeserializeLLSDNotation(data);
+
+            if (data.StartsWith(LLSD_BINARY_HEADER, StringComparison.InvariantCultureIgnoreCase))
+                return DeserializeLLSDBinary(Encoding.UTF8.GetBytes(data));
+
+            return DeserializeJson(data);
         }
 
         public static OSD Deserialize(Stream stream)
         {
             if (stream.CanSeek)
             {
-                byte[] headerData = new byte[14];
-                stream.Read(headerData, 0, 14);
+                byte[] headerData = new byte[15];
+                stream.Read(headerData, 0, 15);
                 stream.Seek(0, SeekOrigin.Begin);
                 string header = Encoding.ASCII.GetString(headerData);
 
+                if (header.StartsWith(LLSD_XML_HEADER) || header.StartsWith(LLSD_XML_ALT_HEADER) || header.StartsWith(LLSD_XML_ALT2_HEADER))
+                    return DeserializeLLSDXml(stream);
+
+                if (header.StartsWith(LLSD_NOTATION_HEADER))
+                    return DeserializeLLSDNotation(stream);
+
                 if (header.StartsWith(LLSD_BINARY_HEADER))
                     return DeserializeLLSDBinary(stream);
-                else if (header.StartsWith(LLSD_XML_HEADER) || header.StartsWith(LLSD_XML_ALT_HEADER) || header.StartsWith(LLSD_XML_ALT2_HEADER))
-                    return DeserializeLLSDXml(stream);
-                else
-                    return DeserializeJson(stream);
+
+                return DeserializeJson(stream);
             }
             else
             {

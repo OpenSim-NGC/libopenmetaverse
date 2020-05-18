@@ -3,6 +3,7 @@
     <ProjectType>Local</ProjectType>
     <TargetFramework>net461</TargetFramework>
     <NoWarn>1591,1574,0419,0618</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
