@@ -1442,7 +1442,18 @@ namespace OpenMetaverse
 
             int nbytes = osUTF8GetBytesCount(str);
             byte[] dstarray = new byte[nbytes];
-            osUTF8Getbytes(str, dstarray, nbytes, true);
+            osUTF8Getbytes(str, dstarray, nbytes);
+            return dstarray;
+        }
+
+        public static unsafe byte[] StringToBytesNoTerm(string str)
+        {
+            if (String.IsNullOrEmpty(str))
+                return Utils.EmptyBytes;
+
+            int nbytes = osUTF8GetBytesCount(str, false);
+            byte[] dstarray = new byte[nbytes];
+            osUTF8Getbytes(str, dstarray, nbytes, false);
             return dstarray;
         }
 
