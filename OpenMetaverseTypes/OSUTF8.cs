@@ -92,7 +92,7 @@ namespace OpenMetaverse
             }
         }
 
-        public int Lenght
+        public int Length
         {
             get { return m_len; }
         }
