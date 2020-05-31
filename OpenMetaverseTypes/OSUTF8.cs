@@ -28,11 +28,11 @@
  */
 
 /*
-    More compact Storage and manipulation of utf8 byte chars strings, that .net core may have one day
+    More compact Storage and manipulation of utf8 byte char strings, that .net core may have one day
     Not this is basicly a wrapper around a byte array that is shared
     Will get more things, in time.
     based on some ideas like FastStrings https://github.com/dhasenan/FastString
-    Ubit Umarov 2020
+    Ubit Umarov (Leal Duarte) 2020
 */
 
 using System;
@@ -129,25 +129,114 @@ namespace OpenMetaverse
 
         public bool IsNullOrEmpty { get { return m_len == 0; } }
         public bool IsEmpty { get { return m_len == 0; } }
-        public bool IsNullOrWhitespace
+        public unsafe bool IsNullOrWhitespace
         {
             get
             {
                 if(m_len == 0)
                     return true;
-                for(int i = m_offset; i< m_offset + m_len; ++i)
+                if (m_len < 8)
                 {
-                    if(m_data[i] != (byte)' ')
-                        return false;
+                    for (int i = m_offset; i < m_offset + m_len; ++i)
+                    {
+                        if (m_data[i] != (byte)' ')
+                            return false;
+                    }
+                    return true;
                 }
-                return true;
+
+                fixed (byte* a = &m_data[m_offset])
+                {
+                    for (int i = 0; i < m_len; ++i)
+                    {
+                        if (a[i] != (byte)' ')
+                            return false;
+                    }
+                    return true;
+                }
             }
+        }
+
+        public unsafe override int GetHashCode()
+        {
+            int hash = m_len;
+            if (m_len < 8)
+            {
+                for (int i = m_offset; i < m_offset + m_len; ++i)
+                {
+                    hash += m_data[i];
+                    hash <<= 3;
+                    hash += hash >> 26;
+                }
+            }
+            else
+            {
+                fixed (byte* a = &m_data[m_offset])
+                {
+                    for (int i = 0; i < m_len; ++i)
+                    {
+                        hash += a[i];
+                        hash <<= 5;
+                        hash += hash >> 26;
+                    }
+                }
+            }
+            return hash &0x7fffffff;
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public override string ToString()
         {
             return Encoding.UTF8.GetString(m_data, m_offset, m_len);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if(obj == null)
+                return false;
+            
+            if(obj is osUTF8)
+                return Equals((osUTF8)obj);
+
+            if(obj is string)
+                return Equals((string)obj);
+
+            return false;
+        }
+
+        public unsafe bool Equals(osUTF8 o)
+        {
+            if (m_len != o.m_len)
+                return false;
+
+            byte[] otherdata = o.m_data;
+
+            if(m_len < 8)
+            {
+                for(int i = m_offset, j = o.m_offset; i < m_offset + m_len; ++i, ++j)
+                {
+                    if(m_data[i] != otherdata[j])
+                        return false;
+                }
+                return true;
+            }
+
+            fixed(byte* a = &m_data[m_offset], b = &otherdata[o.m_offset])
+            {
+                for(int i = 0; i < m_len; ++i)
+                {
+                    if(a[i] != b[i])
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        public bool Equals(string s)
+        {
+            osUTF8 o = new osUTF8(s);
+            return Equals(o);
         }
 
         public osUTF8 Clone()
@@ -329,6 +418,20 @@ namespace OpenMetaverse
             }
         }
 
+        public void SelfTrimStart(byte b)
+        {
+            if (m_len == 0)
+                return;
+            int last = m_offset + m_len - 1;
+            while (m_data[m_offset] == b)
+            {
+                ++m_offset;
+                --m_len;
+                if (m_offset == last)
+                    break;
+            }
+        }
+
         public void SelfTrimStart(byte[] b)
         {
             if (m_len == 0)
@@ -357,7 +460,6 @@ namespace OpenMetaverse
             }
         }
 
-        // inplace remove white spaces at start
         public void SelfTrimEnd()
         {
             if (m_len == 0)
@@ -372,12 +474,26 @@ namespace OpenMetaverse
             }
         }
 
+        public void SelfTrimEnd(byte b)
+        {
+            if (m_len == 0)
+                return;
+            int last = m_offset + m_len - 1;
+            while (m_data[last] == b)
+            {
+                --last;
+                --m_len;
+                if (last == m_offset)
+                    break;
+            }
+        }
+
         public void SelfTrimEnd(byte[] b)
         {
             if (m_len == 0)
                 return;
             int last = m_offset + m_len - 1;
-            while (checkAny(m_data[m_offset], b))
+            while (checkAny(m_data[last], b))
             {
                 --last;
                 --m_len;
@@ -391,7 +507,7 @@ namespace OpenMetaverse
             if (m_len == 0)
                 return;
             int last = m_offset + m_len - 1;
-            while (checkAny(m_data[m_offset], b))
+            while (checkAny(m_data[last], b))
             {
                 --last;
                 --m_len;
@@ -404,6 +520,12 @@ namespace OpenMetaverse
         {
             SelfTrimStart();
             SelfTrimEnd();
+        }
+
+        public void SelfTrim(byte b)
+        {
+            SelfTrimStart(b);
+            SelfTrimEnd(b);
         }
 
         public void SelfTrim(byte[] v)
@@ -437,6 +559,28 @@ namespace OpenMetaverse
             osUTF8 ret = new osUTF8(this);
             ret.SelfTrimStart();
             ret.SelfTrimEnd();
+            return ret;
+        }
+
+        public osUTF8 TrimStart(byte b)
+        {
+            osUTF8 ret = new osUTF8(this);
+            ret.SelfTrimStart(b);
+            return ret;
+        }
+
+        public osUTF8 TrimEnd(byte b)
+        {
+            osUTF8 ret = new osUTF8(this);
+            ret.SelfTrimEnd(b);
+            return ret;
+        }
+
+        public osUTF8 Trim(byte b)
+        {
+            osUTF8 ret = new osUTF8(this);
+            ret.SelfTrimStart(b);
+            ret.SelfTrimEnd(b);
             return ret;
         }
 
@@ -484,15 +628,19 @@ namespace OpenMetaverse
             return ret;
         }
 
-        public bool StartsWith(osUTF8 other)
+        public unsafe bool StartsWith(osUTF8 other)
         {
-            if (other.m_len > m_len)
+            int otherlen = other.m_len;
+            if (otherlen > m_len)
                 return false;
-            byte[] otherdata = other.m_data;
-            for (int i = other.m_offset, j = m_offset; i < other.m_offset + other.m_len; ++i, ++j)
+
+            fixed(byte* a = &m_data[m_offset], b = &other.m_data[other.m_offset])
             {
-                if (m_data[j] != otherdata[i])
-                    return false;
+                for(int i = 0; i < otherlen; ++i)
+                {
+                    if(a[i] != b[i])
+                        return false;
+                }
             }
             return true;
         }
@@ -523,17 +671,21 @@ namespace OpenMetaverse
             return m_data[m_offset + m_len - 1] == (byte)b;
         }
 
-        public bool EndsWith(osUTF8 other)
+        public unsafe bool EndsWith(osUTF8 other)
         {
-            if (other.m_len > m_len)
+            int otherlen = other.m_len;
+            if (otherlen > m_len)
                 return false;
-            byte[] otherdata = other.m_data;
-            for (int i = other.m_len - 1, j = m_len - 1; i <= 0; --i, --j)
+
+            fixed (byte* a = &m_data[m_offset], b = &other.m_data[other.m_offset])
             {
-                if (m_data[j] != otherdata[i])
-                    return false;
+                for (int i = otherlen - 1, j = m_len - 1 ; i >= 0; --i, --j)
+                {
+                    if (a[j] != b[i])
+                        return false;
+                }
+                return true;
             }
-            return true;
         }
 
         public bool EndsWith(string s)
@@ -542,11 +694,24 @@ namespace OpenMetaverse
             return EndsWith(other);
         }
 
-        public int IndexOf(byte b)
+        public unsafe int IndexOf(byte b)
         {
+            if(m_len > 8)
+            {
+                fixed(byte* a = &m_data[ m_offset])
+                {
+                    for(int i = 0; i < m_len; ++i)
+                    {
+                        if (a[i] == b)
+                            return i;
+                    }
+                    return -1;
+                }
+            }
+
             for (int i = m_offset; i < m_offset + m_len; ++i)
             {
-                if(m_data[i] == b)
+                if (m_data[i] == b)
                     return i - m_offset;
             }
             return -1;
@@ -560,26 +725,28 @@ namespace OpenMetaverse
             return IndexOf(s);
         }
 
-        public int IndexOf(osUTF8 other)
+        public unsafe int IndexOf(osUTF8 other)
         {
             int otherlen = other.m_len;
             if (otherlen > m_len || otherlen == 0)
                 return -1;
 
             byte[] otherdata = other.m_data;
-            int otherend = otherlen + other.m_offset;
-            for (int i = 0; i < m_len - otherlen; ++i)
+            fixed(byte* a = &m_data[m_offset], b = &otherdata[other.m_offset])
             {
-                int k = other.m_offset;
-                for (int j = m_offset + i; k < otherend; ++k, ++j)
+                for (int i = 0; i < m_len - otherlen; ++i)
                 {
-                    if (m_data[j] != otherdata[k])
-                        return -1;
+                    int k = 0;
+                    for (int j = i; k < otherlen; ++k, ++j)
+                    {
+                        if (a[j] != b[k])
+                            return -1;
+                    }
+                    if (k == otherlen)
+                        return i;
                 }
-                if (k == otherend)
-                    return i;
+                return -1;
             }
-            return -1;
         }
 
         public int IndexOf(string s)
@@ -590,28 +757,48 @@ namespace OpenMetaverse
             return IndexOf(o);
         }
 
-        public int IndexOfAny(byte[] b)
+        public unsafe int IndexOfAny(byte[] b)
         {
-            for (int i = m_offset; i < m_offset + m_len; ++i)
+            if(m_len < 8)
             {
-                byte c = m_data[i];
-                for (int k = 0; k < b.Length; ++k)
-                    if (c == b[k])
+                for (int i = m_offset; i < m_offset + m_len; ++i)
+                {
+                    if (checkAny(m_data[i], b))
                         return i - m_offset;
+                }
+                return -1;
             }
-            return -1;
+            fixed (byte* a = &m_data[m_offset])
+            {
+                for (int i = 0; i < m_len; ++i)
+                {
+                    if (checkAny(a[i], b))
+                        return i;
+                }
+                return -1;
+            }
         }
 
-        public int IndexOfAny(char[] b)
+        public unsafe int IndexOfAny(char[] b)
         {
-            for (int i = m_offset; i < m_offset + m_len; ++i)
+            if(m_len < 8)
             {
-                byte c = m_data[i];
-                for (int k = 0; k < b.Length; ++k)
-                    if (c == (byte)b[k])
+                for (int i = m_offset; i < m_offset + m_len; ++i)
+                {
+                    if (checkAny(m_data[i], b))
                         return i - m_offset;
+                }
+                return -1;
             }
-            return -1;
+            fixed (byte* a = &m_data[m_offset])
+            {
+                for (int i = 0; i < m_len; ++i)
+                {
+                    if (checkAny(a[i], b))
+                        return i;
+                }
+                return -1;
+            }
         }
 
         public bool Contains(osUTF8 other)
@@ -713,7 +900,7 @@ namespace OpenMetaverse
             return new osUTF8[0];
         }
 
-        public bool ReadLine(out osUTF8 line)
+        public unsafe bool ReadLine(out osUTF8 line)
         {
             if (m_len == 0)
             {
@@ -723,15 +910,35 @@ namespace OpenMetaverse
 
             int lineend = -1;
             byte b = 0;
-            for (int i = m_offset; i < m_offset + m_len; ++i)
+            if(m_len < 8)
             {
-                b = m_data[i];
-                if (b == (byte)'\r' || b == (byte)'\n')
+                for (int i = m_offset; i < m_offset + m_len; ++i)
                 {
-                    if (i > 0 && m_data[i - 1] == '\\')
-                        continue;
-                    lineend = i;
-                    break;
+                    b = m_data[i];
+                    if (b == (byte)'\r' || b == (byte)'\n')
+                    {
+                        if (i > 0 && m_data[i - 1] == (byte)'\\')
+                            continue;
+                        lineend = i;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                fixed (byte* a = &m_data[m_offset])
+                {
+                    for (int i = 0; i < m_len; ++i)
+                    {
+                        b = a[i];
+                        if (b == (byte)'\r' || b == (byte)'\n')
+                        {
+                            if (i > 0 && a[i - 1] == (byte)'\\')
+                                continue;
+                            lineend = i + m_offset;
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -778,22 +985,42 @@ namespace OpenMetaverse
             return true;
         }
 
-        public bool SkipLine()
+        public unsafe bool SkipLine()
         {
             if (m_len == 0)
                 return false;
 
             int lineend = -1;
             byte b = 0;
-            for (int i = m_offset; i < m_offset + m_len; ++i)
+            if(m_len < 8)
             {
-                b = m_data[i];
-                if (b == (byte)'\r' || b == (byte)'\n')
+                for (int i = m_offset; i < m_offset + m_len; ++i)
                 {
-                    if (i > 0 && m_data[i - 1] == '\\')
-                        continue;
-                    lineend = i;
-                    break;
+                    b = m_data[i];
+                    if (b == (byte)'\r' || b == (byte)'\n')
+                    {
+                        if (i > 0 && m_data[i - 1] == (byte)'\\')
+                            continue;
+                        lineend = i;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                fixed (byte* a = &m_data[m_offset])
+                {
+                    for (int i = 0; i < m_len; ++i)
+                    {
+                        b = a[i];
+                        if (b == (byte)'\r' || b == (byte)'\n')
+                        {
+                            if (i > 0 && a[i - 1] == (byte)'\\')
+                                continue;
+                            lineend = i + m_offset;
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -880,6 +1107,99 @@ namespace OpenMetaverse
             }
             catch { }
             return false;
+        }
+
+        public static bool TryParseUUID(osUTF8 inp, out UUID res, bool dashs = true)
+        {
+            res = UUID.Zero;
+            osUTF8 t = new osUTF8(inp);
+
+            t.SelfTrim();
+            int len = t.m_len;
+            if (len == 0)
+                return false;
+
+            if (dashs)
+            {
+                if (len < 36)
+                    return false;
+            }
+            else
+            {
+                if (len < 32)
+                    return false;
+            }
+
+            byte[] data = t.m_data;
+            int dataoffset = t.m_offset;
+
+            int _a = 0;
+            if (!Utils.TryHexToInt(data, dataoffset, 8, out _a))
+                return false;
+            dataoffset += 8;
+
+            if (dashs)
+            {
+                if (data[dataoffset] != (byte)'-')
+                    return false;
+                ++dataoffset;
+            }
+
+            int n;
+            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
+                return false;
+            short _b = (short)n;
+            dataoffset += 4;
+
+            if (dashs)
+            {
+                if (data[dataoffset] != (byte)'-')
+                    return false;
+                ++dataoffset;
+            }
+
+            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
+                return false;
+            short _c = (short)n;
+            dataoffset += 4;
+
+            if (dashs)
+            {
+                if (data[dataoffset] != (byte)'-')
+                    return false;
+                ++dataoffset;
+            }
+
+            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
+                return false;
+
+            byte _d = (byte)(n >> 8);
+            byte _e = (byte)n;
+            dataoffset += 4;
+
+            if (dashs)
+            {
+                if (data[dataoffset] != (byte)'-')
+                    return false;
+                ++dataoffset;
+            }
+
+            if (!Utils.TryHexToInt(data, dataoffset, 8, out n))
+                return false;
+            byte _f = (byte)(n >> 24);
+            byte _g = (byte)(n >> 16);
+            byte _h = (byte)(n >> 8);
+            byte _i = (byte)n;
+            dataoffset += 8;
+
+            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
+                return false;
+            byte _j = (byte)(n>>8);
+            byte _k = (byte)n;
+
+            Guid g = new Guid(_a,_b,_c,_d,_e,_f,_g,_h,_i,_j,_k);
+            res = new UUID(g);
+            return true;
         }
     }
 }

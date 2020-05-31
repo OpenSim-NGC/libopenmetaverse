@@ -1724,6 +1724,50 @@ namespace OpenMetaverse
             return false;
         }
 
+        public static int HexNibbleWithChk(Char c)
+        {
+            const int numA = 65;
+            const int numa = 97;
+            const int num0 = 48;
+
+            if (c > numa + 5)
+                return -1;
+            if (c < num0)
+                return -1;
+            if (c < (num0 + 10))
+                return c - num0;
+
+            if (c >= numa)
+                return c - numa + 10;
+
+            if (c >= numA && c < numA + 6)
+                return c - numA + 10;
+
+            return -1;
+        }
+
+        public static int HexNibbleWithChk(byte c)
+        {
+            const int numA = 65;
+            const int numa = 97;
+            const int num0 = 48;
+
+            if (c > numa + 5)
+                return -1;
+            if (c < num0)
+                return -1;
+            if (c < (num0 + 10))
+                return c - num0;
+
+            if (c >= numa)
+                return c - numa + 10;
+
+            if (c >= numA && c < numA + 6)
+                return c - numA + 10;
+
+            return -1;
+        }
+
         public static int HexNibble(Char c)
         {
 
@@ -1739,7 +1783,7 @@ namespace OpenMetaverse
                 return c - num0;
 
             if (c >= numa)
-                return c - numa  + 10;
+                return c - numa + 10;
 
             if (c >= numA && c < numA + 6)
                 return c - numA + 10;
@@ -1747,6 +1791,21 @@ namespace OpenMetaverse
             return 0;
         }
 
+        public static bool TryHexToInt(byte[] data, int start, int len, out int res)
+        {
+            res = 0;
+            int n;
+            if(len > 8)
+                return false;
+            for (int i = start; i < start + len; ++i)
+            {
+                if ((n = HexNibbleWithChk(data[i])) < 0)
+                    return false;
+                res *= 16;
+                res |= n;
+            }
+            return true;
+        }
         /// <summary>
         /// Converts 1 or 2 character string into equivalant byte value
         /// </summary>
