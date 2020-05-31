@@ -88,7 +88,7 @@ namespace OpenMetaverse
                     i= 0;
                 else if(i >= m_data.Length)
                     i= m_data.Length -1;
-                return m_data[i + m_offset];
+                return m_data[i];
             }
         }
 
@@ -176,6 +176,7 @@ namespace OpenMetaverse
             if (start >= m_data.Length)
                 return new osUTF8(m_data, m_data.Length - 1, 0);
 
+
             int last = start + len - 1;
 
             // cut at code points;
@@ -209,8 +210,24 @@ namespace OpenMetaverse
         //returns a segment view of main buffer
         public void osUTF8SubStringSelf(int start, int len)
         {
+            if (m_len == 0)
+                return;
+
             if (start < 0)
                 start = 0;
+            else if(start >= m_len)
+            {
+                m_offset += m_len - 1;
+                m_len = 0;
+                return;
+            }
+
+            if (len == 0)
+            {
+                m_len = 0;
+                return;
+            }
+
             if (len > m_len)
                 len = m_len;
 
@@ -218,8 +235,9 @@ namespace OpenMetaverse
 
             if (start >= m_data.Length)
             {
-                m_offset += m_data.Length - 1;
+                m_offset = m_data.Length - 1;
                 m_len = 0;
+                return;
             }
 
             int last = start + len - 1;
@@ -485,6 +503,26 @@ namespace OpenMetaverse
             return StartsWith(other);
         }
 
+        public bool StartsWith(byte b)
+        {
+            return m_data[m_offset] == b;
+        }
+
+        public bool StartsWith(char b)
+        {
+            return m_data[m_offset] == (byte)b;
+        }
+
+        public bool EndsWith(byte b)
+        {
+            return m_data[m_offset + m_len - 1] == b;
+        }
+
+        public bool EndsWith(char b)
+        {
+            return m_data[m_offset + m_len - 1] == (byte)b;
+        }
+
         public bool EndsWith(osUTF8 other)
         {
             if (other.m_len > m_len)
@@ -684,7 +722,7 @@ namespace OpenMetaverse
             }
 
             int lineend = -1;
-            byte b;
+            byte b = 0;
             for (int i = m_offset; i < m_offset + m_len; ++i)
             {
                 b = m_data[i];
@@ -719,18 +757,23 @@ namespace OpenMetaverse
             m_offset += linelen;
             m_len -= linelen;
 
-            b = m_data[m_offset];
-            if (b == (byte)'\r' || b == (byte)'\n')
+            if (m_len <= 0)
             {
-                ++m_offset;
-                --m_len;
-                if (linelen >= m_len)
+                m_len = 0;
+                return true;
+            }
+
+            if (b == (byte)'\r')
+            {
+                if (m_data[m_offset] == (byte)'\n')
                 {
-                    m_offset = m_offset + m_len - 1;
-                    m_len = 0;
-                    return true;
+                    ++m_offset;
+                    --m_len;
                 }
             }
+
+            if (m_len <= 0)
+                m_len = 0;
 
             return true;
         }
@@ -741,7 +784,7 @@ namespace OpenMetaverse
                 return false;
 
             int lineend = -1;
-            byte b;
+            byte b = 0;
             for (int i = m_offset; i < m_offset + m_len; ++i)
             {
                 b = m_data[i];
@@ -773,22 +816,70 @@ namespace OpenMetaverse
 
             m_offset += linelen;
             m_len -= linelen;
-
-            b = m_data[m_offset];
-            if (b == (byte)'\r' || b == (byte)'\n')
+            if (m_len <= 0)
             {
-                ++m_offset;
-                --m_len;
-                if (linelen >= m_len)
+                m_len = 0;
+                return true;
+            }
+
+            if (b == (byte)'\r')
+            {
+                if (m_data[m_offset] == (byte)'\n')
                 {
-                    m_offset = m_offset + m_len - 1;
-                    m_len = 0;
-                    return true;
+                    ++m_offset;
+                    --m_len;
                 }
             }
+
+            if (m_len <= 0)
+                m_len = 0;
 
             return true;
         }
 
+        public static bool TryParseInt(osUTF8 t, out int res)
+        {
+            res = 0;
+
+            t.SelfTrim();
+            int len = t.m_len;
+            if (len == 0)
+                return false;
+
+            byte[] data = t.m_data;
+
+            int start = t.m_offset;
+            len += start;
+
+            bool neg = false;
+            if (data[start] == (byte)'-')
+            {
+                neg = true;
+                ++start;
+            }
+            else if (data[start] == (byte)'+')
+                ++start;
+
+            int b;
+            try
+            {
+                while (start < len)
+                {
+                    b = data[start];
+                    b -= (byte)'0';
+                    if( b < 0 || b > 9)
+                        break;
+
+                    res *= 10;
+                    res += b;
+                    ++start;
+                }
+                if(neg)
+                    res = -res;
+                return true;
+            }
+            catch { }
+            return false;
+        }
     }
 }
