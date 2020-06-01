@@ -50,7 +50,7 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(byte[] xmlData)
         {
-            using (XmlTextReader xrd = new XmlTextReader(new MemoryStream(xmlData, false)))
+            using(XmlTextReader xrd =  new XmlTextReader(new MemoryStream(xmlData)))
                 return DeserializeLLSDXml(xrd);
         }
 
@@ -67,8 +67,7 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(string xmlData)
         {
-            byte[] bytes = Utils.StringToBytes(xmlData);
-            using (XmlTextReader xrd = new XmlTextReader(new MemoryStream(bytes, false)))
+            using(XmlTextReader xrd = new XmlTextReader(new StringReader(xmlData)))
                 return DeserializeLLSDXml(xrd);
         }
 
@@ -95,6 +94,11 @@ namespace OpenMetaverse.StructuredData
             }
         }
 
+        public static byte[] SerializeLLSDXmlToBytes(OSD data, bool formal = false)
+        {
+            return Encoding.UTF8.GetBytes(SerializeLLSDXmlString(data, formal));
+        }
+
         public static byte[] SerializeLLSDXmlBytes(OSD data, bool formal = false)
         {
             return Encoding.UTF8.GetBytes(SerializeLLSDXmlString(data, formal));
@@ -107,7 +111,7 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static string SerializeLLSDXmlString(OSD data, bool formal = false)
         {
-            StringBuilder sb = new StringBuilder(16384);
+            StringBuilder sb = osStringBuilderCache.Acquire();
             if(formal)
                 sb.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
 
@@ -115,15 +119,15 @@ namespace OpenMetaverse.StructuredData
             SerializeLLSDXmlElement(sb, data, formal);
             sb.Append("</llsd>");
 
-            return sb.ToString();
+            return osStringBuilderCache.GetStringAndRelease(sb);
         }
 
-        public static string SerializeLLSDInnerXmlString(OSD data,bool formal = false)
+        public static string SerializeLLSDInnerXmlString(OSD data, bool formal = false)
         {
-            StringBuilder sb = new StringBuilder(16384);
+            StringBuilder sb = osStringBuilderCache.Acquire();
             SerializeLLSDXmlElement(sb, data, formal);
 
-            return sb.ToString();
+            return osStringBuilderCache.GetStringAndRelease(sb);
         }
 
         /// <summary>

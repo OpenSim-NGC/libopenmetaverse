@@ -187,14 +187,14 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.String:
                     stream.WriteByte(stringBinaryMarker);
                     byte[] rawString = osd.AsBinary();
-                    byte[] stringLengthNetEnd = HostToNetworkIntBytes(rawString.Length);
+                    byte[] stringLengthNetEnd = Utils.IntToBytesBig(rawString.Length);
                     stream.Write(stringLengthNetEnd, 0, int32Length);
                     stream.Write(rawString, 0, rawString.Length);
                     break;
                 case OSDType.Binary:
                     stream.WriteByte(binaryBinaryMarker);
                     byte[] rawBinary = osd.AsBinary();
-                    byte[] binaryLengthNetEnd = HostToNetworkIntBytes(rawBinary.Length);
+                    byte[] binaryLengthNetEnd = Utils.IntToBytesBig(rawBinary.Length);
                     stream.Write(binaryLengthNetEnd, 0, int32Length);
                     stream.Write(rawBinary, 0, rawBinary.Length);
                     break;
@@ -205,7 +205,7 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.URI:
                     stream.WriteByte(uriBinaryMarker);
                     byte[] rawURI = osd.AsBinary();
-                    byte[] uriLengthNetEnd = HostToNetworkIntBytes(rawURI.Length);
+                    byte[] uriLengthNetEnd = Utils.IntToBytesBig(rawURI.Length);
                     stream.Write(uriLengthNetEnd, 0, int32Length);
                     stream.Write(rawURI, 0, rawURI.Length);
                     break;
@@ -224,7 +224,7 @@ namespace OpenMetaverse.StructuredData
         private static void SerializeLLSDBinaryArray(MemoryStream stream, OSDArray osdArray)
         {
             stream.WriteByte(arrayBeginBinaryMarker);
-            byte[] binaryNumElementsHostEnd = HostToNetworkIntBytes(osdArray.Count);
+            byte[] binaryNumElementsHostEnd = Utils.IntToBytesBig(osdArray.Count);
             stream.Write(binaryNumElementsHostEnd, 0, int32Length);
 
             foreach (OSD osd in osdArray)
@@ -237,14 +237,14 @@ namespace OpenMetaverse.StructuredData
         private static void SerializeLLSDBinaryMap(MemoryStream stream, OSDMap osdMap)
         {
             stream.WriteByte(mapBeginBinaryMarker);
-            byte[] binaryNumElementsNetEnd = HostToNetworkIntBytes(osdMap.Count);
+            byte[] binaryNumElementsNetEnd = Utils.IntToBytesBig(osdMap.Count);
             stream.Write(binaryNumElementsNetEnd, 0, int32Length);
 
             foreach (KeyValuePair<string, OSD> kvp in osdMap)
             {
                 stream.WriteByte(keyBinaryMarker);
                 byte[] binaryKey = Encoding.UTF8.GetBytes(kvp.Key);
-                byte[] binaryKeyLength = HostToNetworkIntBytes(binaryKey.Length);
+                byte[] binaryKeyLength = Utils.IntToBytesBig(binaryKey.Length);
                 stream.Write(binaryKeyLength, 0, int32Length);
                 stream.Write(binaryKey, 0, binaryKey.Length);
                 SerializeLLSDBinaryElement(stream, kvp.Value);
@@ -273,27 +273,27 @@ namespace OpenMetaverse.StructuredData
                     osd = OSD.FromBoolean(false);
                     break;
                 case integerBinaryMarker:
-                    int integer = NetworkToHostInt(ConsumeBytes(stream, int32Length));
+                    int integer = Utils.BytesToIntBig(ConsumeBytes(stream, int32Length));
                     osd = OSD.FromInteger(integer);
                     break;
                 case realBinaryMarker:
-                    double dbl = NetworkToHostDouble(ConsumeBytes(stream, doubleLength));
+                    double dbl = Utils.BytesToDoubleBig(ConsumeBytes(stream, doubleLength));
                     osd = OSD.FromReal(dbl);
                     break;
                 case uuidBinaryMarker:
                     osd = OSD.FromUUID(new UUID(ConsumeBytes(stream, 16), 0));
                     break;
                 case binaryBinaryMarker:
-                    int binaryLength = NetworkToHostInt(ConsumeBytes(stream, int32Length));
+                    int binaryLength = Utils.BytesToIntBig(ConsumeBytes(stream, int32Length));
                     osd = OSD.FromBinary(ConsumeBytes(stream, binaryLength));
                     break;
                 case stringBinaryMarker:
-                    int stringLength = NetworkToHostInt(ConsumeBytes(stream, int32Length));
+                    int stringLength = Utils.BytesToIntBig(ConsumeBytes(stream, int32Length));
                     string ss = Encoding.UTF8.GetString(ConsumeBytes(stream, stringLength));
                     osd = OSD.FromString(ss);
                     break;
                 case uriBinaryMarker:
-                    int uriLength = NetworkToHostInt(ConsumeBytes(stream, int32Length));
+                    int uriLength = Utils.BytesToIntBig(ConsumeBytes(stream, int32Length));
                     string sUri = Encoding.UTF8.GetString(ConsumeBytes(stream, uriLength));
                     Uri uri;
                     try
@@ -307,7 +307,7 @@ namespace OpenMetaverse.StructuredData
                     osd = OSD.FromUri(uri);
                     break;
                 case dateBinaryMarker:
-                    double timestamp = Utils.BytesToDouble(ConsumeBytes(stream, doubleLength), 0);
+                    double timestamp = Utils.BytesToDouble(ConsumeBytes(stream, doubleLength));
                     DateTime dateTime = DateTime.SpecifyKind(Utils.Epoch, DateTimeKind.Utc);
                     dateTime = dateTime.AddSeconds(timestamp);
                     osd = OSD.FromDate(dateTime.ToLocalTime());
@@ -327,7 +327,7 @@ namespace OpenMetaverse.StructuredData
 
         private static OSD ParseLLSDBinaryArray(Stream stream)
         {
-            int numElements = NetworkToHostInt(ConsumeBytes(stream, int32Length));
+            int numElements = Utils.BytesToIntBig(ConsumeBytes(stream, int32Length));
             int crrElement = 0;
             OSDArray osdArray = new OSDArray();
             while (crrElement < numElements)
@@ -344,14 +344,14 @@ namespace OpenMetaverse.StructuredData
 
         private static OSD ParseLLSDBinaryMap(Stream stream)
         {
-            int numElements = NetworkToHostInt(ConsumeBytes(stream, int32Length));
+            int numElements = Utils.BytesToIntBig(ConsumeBytes(stream, int32Length));
             int crrElement = 0;
             OSDMap osdMap = new OSDMap();
             while (crrElement < numElements)
             {
                 if (!FindByte(stream, keyBinaryMarker))
                     throw new OSDException("Binary LLSD parsing: Missing key marker in map.");
-                int keyLength = NetworkToHostInt(ConsumeBytes(stream, int32Length));
+                int keyLength = Utils.BytesToIntBig(ConsumeBytes(stream, int32Length));
                 string key = Encoding.UTF8.GetString(ConsumeBytes(stream, keyLength));
                 osdMap[key] = ParseLLSDBinaryElement(stream);
                 crrElement++;
@@ -452,50 +452,6 @@ namespace OpenMetaverse.StructuredData
             if (stream.Read(bytes, 0, consumeBytes) < consumeBytes)
                 throw new OSDException("Binary LLSD parsing: Unexpected end of stream.");
             return bytes;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="binaryNetEnd"></param>
-        /// <returns></returns>
-        public static int NetworkToHostInt(byte[] binaryNetEnd)
-        {
-            if (binaryNetEnd == null)
-                return -1;
-
-            int intNetEnd = BitConverter.ToInt32(binaryNetEnd, 0);
-            int intHostEnd = System.Net.IPAddress.NetworkToHostOrder(intNetEnd);
-            return intHostEnd;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="binaryNetEnd"></param>
-        /// <returns></returns>
-        public static double NetworkToHostDouble(byte[] binaryNetEnd)
-        {
-            if (binaryNetEnd == null)
-                return -1d;
-            long longNetEnd = BitConverter.ToInt64(binaryNetEnd, 0);
-            long longHostEnd = System.Net.IPAddress.NetworkToHostOrder(longNetEnd);
-            byte[] binaryHostEnd = BitConverter.GetBytes(longHostEnd);
-            double doubleHostEnd = BitConverter.ToDouble(binaryHostEnd, 0);
-            return doubleHostEnd;
-
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="intHostEnd"></param>
-        /// <returns></returns>   
-        public static byte[] HostToNetworkIntBytes(int intHostEnd)
-        {
-            int intNetEnd = System.Net.IPAddress.HostToNetworkOrder(intHostEnd);
-            byte[] bytesNetEnd = BitConverter.GetBytes(intNetEnd);
-            return bytesNetEnd;
-
         }
     }
 }
