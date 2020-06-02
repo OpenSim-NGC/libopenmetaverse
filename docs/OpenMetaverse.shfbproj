@@ -30,8 +30,8 @@
       <DocumentationSource sourceFile="..\bin\OpenMetaverse.StructuredData.dll" />
       <DocumentationSource sourceFile="..\bin\OpenMetaverse.StructuredData.xml" />
       <DocumentationSource sourceFile="..\bin\OpenMetaverse.xml" />
-      <DocumentationSource sourceFile="..\bin\OpenMetaverseTypes.dll" />
-      <DocumentationSource sourceFile="..\bin\OpenMetaverseTypes.xml" />
+      <DocumentationSource sourceFile="..\bin\OpenMetaverse.Types.dll" />
+      <DocumentationSource sourceFile="..\bin\OpenMetaverse.Types.xml" />
     </DocumentationSources>
     <FrameworkVersion>.NET Framework 3.5</FrameworkVersion>
     <ApiFilter>

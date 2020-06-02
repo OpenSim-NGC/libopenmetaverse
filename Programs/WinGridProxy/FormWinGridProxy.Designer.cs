@@ -1965,7 +1965,8 @@
             "https://login.agni.lindenlab.com/cgi-bin/login.cgi",
             "https://login.aditi.lindenlab.com/cgi-bin/login.cgi",
             "http://127.0.0.1:8002",
-            "http://hg.osgrid.org:80"});
+            "http://127.0.0.1:9004",
+            "http://login.osgrid.org:80"});
             this.comboBoxLoginURL.Name = "comboBoxLoginURL";
             this.comboBoxLoginURL.Size = new System.Drawing.Size(300, 25);
             this.comboBoxLoginURL.Text = "https://login.agni.lindenlab.com/cgi-bin/login.cgi";
