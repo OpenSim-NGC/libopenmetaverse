@@ -77,7 +77,7 @@ namespace OpenMetaverse.StructuredData
         {
             using (StringReader reader = new StringReader(notationData))
             {
-                OSD osd = DeserializeLLSDNotation(reader);
+                OSD osd = DeserializeLLSDNotationStart(reader);
                 return osd;
             }
         }
@@ -85,21 +85,23 @@ namespace OpenMetaverse.StructuredData
         public static OSD DeserializeLLSDNotation(byte[] xmlData)
         {
             using (StreamReader xrd = new StreamReader(new MemoryStream(xmlData, false)))
-                return DeserializeLLSDNotationElement(xrd);
+            {
+                return DeserializeLLSDNotationStart(xrd);
+            }
         }
 
         public static OSD DeserializeLLSDNotation(Stream sreader)
         {
             using (StreamReader reader = new StreamReader(sreader))
             {
-                OSD osd = DeserializeLLSDNotationElement(reader);
+                OSD osd = DeserializeLLSDNotationStart(reader);
                 return osd;
             }
         }
 
         public static OSD DeserializeLLSDNotation(StringReader reader)
         {
-            OSD osd = DeserializeLLSDNotationElement(reader);
+            OSD osd = DeserializeLLSDNotationStart(reader);
             return osd;
         }
 
@@ -118,7 +120,7 @@ namespace OpenMetaverse.StructuredData
             using (StreamWriter writer = new StreamWriter(ms))
             {
                 if(header)
-                    writer.Write("<?llsd/notation?>");
+                    writer.Write("<? llsd/notation ?>");
                 SerializeLLSDNotationElement(writer, osd);
                 writer.Flush();
                 byte[] b = ms.ToArray();
@@ -130,7 +132,7 @@ namespace OpenMetaverse.StructuredData
         {
             using(StringWriter writer = new StringWriter())
             {
-                writer.Write("<?llsd/notation?>");
+                writer.Write("<? llsd/notation ?>");
                 SerializeLLSDNotationElement(writer, osd);
                 return writer.ToString();
             }
@@ -161,6 +163,16 @@ namespace OpenMetaverse.StructuredData
             return writer;
         }
 
+
+        private static OSD DeserializeLLSDNotationStart(TextReader reader)
+        {
+            int character = PeekAndSkipWhitespace(reader);
+            if (character < 0)
+                return new OSD();
+            if(character == '<')
+                reader.ReadBlock(new char[19], 0, 19);
+            return DeserializeLLSDNotationElement(reader);
+        }
         /// <summary>
         /// 
         /// </summary>
