@@ -566,8 +566,7 @@ namespace OpenMetaverse.StructuredData
             foreach (KeyValuePair<string, OSD> kvp in osdMap)
             {
                 writer.Write(singleQuotesNotationMarker);
-                //writer.Write(EscapeCharacter(kvp.Key, singleQuotesNotationMarker));
-                writer.Write(kvp.Key);
+                writer.Write(EscapeCharacter(kvp.Key, singleQuotesNotationMarker));
                 writer.Write(singleQuotesNotationMarker);
                 writer.Write(keyNotationDelimiter);
                 SerializeLLSDNotationElement(writer, kvp.Value);

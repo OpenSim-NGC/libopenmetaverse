@@ -65,7 +65,7 @@ namespace OpenMetaverse
         Sandbox = 1 << 8,
         /// <summary>Unknown: Related to the availability of an overview world map tile.(Think mainland images when zoomed out.)</summary>
         NullLayer = 1 << 9, // reused
-        AllowEnviromentOverride = 1 << 9,
+        AllowEnvironmentOverride = 1 << 9,
         /// <summary>Unknown: Related to region debug flags. Possibly to skip processing of agent interaction with world. </summary>
         SkipAgentAction = 1 << 10,
         /// <summary>Region does not update agent prim interest lists. Internal debugging option.</summary>
