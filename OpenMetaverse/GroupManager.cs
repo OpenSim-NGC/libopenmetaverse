@@ -403,6 +403,8 @@ namespace OpenMetaverse
         /// <summary>Allowed to hold events on group-owned land</summary>
         HostEvent = 1UL << 41,
 
+        AllowEnvironment = 1UL << 46,
+
         // Parcel access
         /// <summary>Can modify public access settings for group owned parcels</summary>
         LandManageAllowed = 1UL << 29,
@@ -462,6 +464,7 @@ namespace OpenMetaverse
         // Group Banning
         /// <summary>Allows access to ban / un-ban agents from a group</summary>
         GroupBanAccess = 1UL << 51
+
     }
 
     /// <summary>
