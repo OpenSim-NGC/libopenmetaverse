@@ -34,6 +34,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+
 using OMV = OpenMetaverse;
 using OMVR = OpenMetaverse.Rendering;
 
@@ -43,7 +44,7 @@ namespace OpenMetaverse.Rendering
     /// Meshing code based on the Idealist Viewer (20081213).
     /// </summary>
     [RendererName("MeshmerizerR")]
-    public class MeshmerizerR : OMVR.IRendering
+    public class MeshmerizerR : IRendering
     {
         /// <summary>
         /// Generates a basic mesh structure from a primitive
@@ -221,7 +222,7 @@ namespace OpenMetaverse.Rendering
             omvrmesh.Prim = prim;
             omvrmesh.Profile = new OMVR.Profile();
             omvrmesh.Profile.Faces = new List<OMVR.ProfileFace>();
-            omvrmesh.Profile.Positions = new List<OMV.Vector3>();
+            omvrmesh.Profile.Positions = new List<Vector3>();
             omvrmesh.Path = new OMVR.Path();
             omvrmesh.Path.Points = new List<OMVR.PathPoint>();
 

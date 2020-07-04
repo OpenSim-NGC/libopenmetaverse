@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFrameworks>net461;netstandard2.1</TargetFrameworks>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <NoWarn>1591,1574,0419,0618</NoWarn>
   </PropertyGroup>

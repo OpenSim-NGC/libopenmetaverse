@@ -15,6 +15,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\OpenMetaverse.Rendering.Simple\OpenMetaverse.Rendering.Simple.csproj" />
     <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
     <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
     <ProjectReference Include="..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
