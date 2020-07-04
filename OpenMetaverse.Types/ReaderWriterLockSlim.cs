@@ -76,8 +76,8 @@ namespace OpenMetaverse
     //
     // And in Mono's ReaderWriterLock
     //
-    [HostProtectionAttribute(SecurityAction.LinkDemand, MayLeakOnAbort = true)]
-    [HostProtectionAttribute(SecurityAction.LinkDemand, Synchronization = true, ExternalThreading = true)]
+    [HostProtection(SecurityAction.LinkDemand, MayLeakOnAbort = true)]
+    [HostProtection(SecurityAction.LinkDemand, Synchronization = true, ExternalThreading = true)]
     public class ReaderWriterLockSlim : IDisposable
     {
         sealed class LockDetails

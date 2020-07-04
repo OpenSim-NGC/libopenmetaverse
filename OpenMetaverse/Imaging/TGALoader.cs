@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Drawing;
 
 namespace OpenMetaverse.Imaging
 {
@@ -425,11 +426,11 @@ namespace OpenMetaverse.Imaging
             header.Read(br);
             br.Close();
 
-            return new System.Drawing.Size(header.ImageSpec.Width, header.ImageSpec.Height);
+            return new Size(header.ImageSpec.Width, header.ImageSpec.Height);
 
         }
 
-        public static System.Drawing.Bitmap LoadTGA(System.IO.Stream source)
+        public static Bitmap LoadTGA(System.IO.Stream source)
         {
             byte[] buffer = new byte[source.Length];
             source.Read(buffer, 0, buffer.Length);

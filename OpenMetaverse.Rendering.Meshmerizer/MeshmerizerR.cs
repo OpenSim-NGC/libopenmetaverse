@@ -33,6 +33,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using OMV = OpenMetaverse;
 using OMVR = OpenMetaverse.Rendering;
 
@@ -86,7 +87,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="sculptTexture">Sculpt texture</param>
         /// <param name="lod">Level of detail to generate the mesh at</param>
         /// <returns>The generated mesh or null on failure</returns>
-        public OMVR.SimpleMesh GenerateSimpleSculptMesh(OMV.Primitive prim, System.Drawing.Bitmap sculptTexture, OMVR.DetailLevel lod)
+        public OMVR.SimpleMesh GenerateSimpleSculptMesh(OMV.Primitive prim, Bitmap sculptTexture, OMVR.DetailLevel lod)
         {
             OMVR.FacetedMesh faceted = GenerateFacetedSculptMesh(prim, sculptTexture, lod);
 
@@ -171,7 +172,7 @@ namespace OpenMetaverse.Rendering
         /// routine since all the context for finding teh texture is elsewhere.
         /// </summary>
         /// <returns>The faceted mesh or null if can't do it</returns>
-        public OMVR.FacetedMesh GenerateFacetedSculptMesh(OMV.Primitive prim, System.Drawing.Bitmap scupltTexture, OMVR.DetailLevel lod)
+        public OMVR.FacetedMesh GenerateFacetedSculptMesh(OMV.Primitive prim, Bitmap scupltTexture, OMVR.DetailLevel lod)
         {
             PrimMesher.SculptMesh.SculptType smSculptType;
             switch (prim.Sculpt.Type)
