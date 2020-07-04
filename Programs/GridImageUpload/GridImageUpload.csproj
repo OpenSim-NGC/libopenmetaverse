@@ -22,9 +22,7 @@
     <ProjectReference Include="..\..\OpenMetaverse\OpenMetaverse.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="frmGridImageUpload.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Update="frmGridImageUpload.cs" />
     <Compile Update="Properties\Settings.Designer.cs">
       <DependentUpon>Settings.settings</DependentUpon>
       <AutoGen>True</AutoGen>

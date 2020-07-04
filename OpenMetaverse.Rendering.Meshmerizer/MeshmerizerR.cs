@@ -52,7 +52,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="prim">Primitive to generate the mesh from</param>
         /// <param name="lod">Level of detail to generate the mesh at</param>
         /// <returns>The generated mesh or null on failure</returns>
-        public OMVR.SimpleMesh GenerateSimpleMesh(OMV.Primitive prim, OMVR.DetailLevel lod)
+        public OMVR.SimpleMesh GenerateSimpleMesh(Primitive prim, OMVR.DetailLevel lod)
         {
             PrimMesher.PrimMesh newPrim = GeneratePrimMesh(prim, lod, false);
             if (newPrim == null)
@@ -194,10 +194,12 @@ namespace OpenMetaverse.Rendering
                     smSculptType = PrimMesher.SculptMesh.SculptType.plane;
                     break;
             }
+
             // The lod for sculpties is the resolution of the texture passed.
             // The first guess is 1:1 then lower resolutions after that
             // int mesherLod = (int)Math.Sqrt(scupltTexture.Width * scupltTexture.Height);
             int mesherLod = 32; // number used in Idealist viewer
+            
             switch (lod)
             {
                 case OMVR.DetailLevel.Highest:
@@ -211,6 +213,7 @@ namespace OpenMetaverse.Rendering
                     mesherLod /= 4;
                     break;
             }
+
             PrimMesher.SculptMesh newMesh =
                 new PrimMesher.SculptMesh(scupltTexture, smSculptType, mesherLod, true, prim.Sculpt.Mirror, prim.Sculpt.Invert);
 
@@ -444,7 +447,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="yBegin">Starting value for Y</param>
         /// <param name="yEnd">Max value of Y</param>
         /// <returns></returns>
-        public OMVR.Face TerrainMesh(float[,] zMap, float xBegin, float xEnd, float yBegin, float yEnd)
+        public Face TerrainMesh(float[,] zMap, float xBegin, float xEnd, float yBegin, float yEnd)
         {
             PrimMesher.SculptMesh newMesh = new PrimMesher.SculptMesh(zMap, xBegin, xEnd, yBegin, yEnd, true);
             OMVR.Face terrain = new OMVR.Face();

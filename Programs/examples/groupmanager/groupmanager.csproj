@@ -16,12 +16,8 @@
     <ProjectReference Include="..\..\..\OpenMetaverse\OpenMetaverse.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="frmGroupInfo.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="frmGroupManager.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Update="frmGroupInfo.cs" />
+    <Compile Update="frmGroupManager.cs" />
     <EmbeddedResource Update="frmGroupInfo.resx">
       <DependentUpon>frmGroupInfo.cs</DependentUpon>
     </EmbeddedResource>

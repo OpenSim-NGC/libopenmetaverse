@@ -202,11 +202,9 @@ namespace GridProxy
         {
             this.proxyConfig = proxyConfig;
 
-            ServicePointManager.CertificatePolicy = new TrustAllCertificatePolicy();
             ServicePointManager.Expect100Continue = false;
             ServicePointManager.DefaultConnectionLimit = 128;
-            // Even though this will compile on Mono 2.4, it throws a runtime exception
-            //ServicePointManager.ServerCertificateValidationCallback = TrustAllCertificatePolicy.TrustAllCertificateHandler;
+            ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
 
             InitializeLoginProxy();
             InitializeSimProxy();

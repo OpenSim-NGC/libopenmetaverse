@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFrameworks>net461;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <NoWarn>1591,1574,0419,0618</NoWarn>
   </PropertyGroup>
@@ -15,6 +15,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\OpenMetaverse.PrimMesher\OpenMetaverse.PrimMesher.csproj" />
     <ProjectReference Include="..\OpenMetaverse.Rendering.Simple\OpenMetaverse.Rendering.Simple.csproj" />
     <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
     <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />

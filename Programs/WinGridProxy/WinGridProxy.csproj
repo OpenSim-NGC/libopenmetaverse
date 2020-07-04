@@ -36,21 +36,11 @@
     <ProjectReference Include="..\..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="AboutBox1.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="FormPluginManager.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="FormSessionSearch.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="FormWinGridProxy.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="ListViewNoFlicker.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Update="AboutBox1.cs" />
+    <Compile Update="FormPluginManager.cs" />
+    <Compile Update="FormSessionSearch.cs" />
+    <Compile Update="FormWinGridProxy.cs" />
+    <Compile Update="ListViewNoFlicker.cs" />
     <EmbeddedResource Update="AboutBox1.resx">
       <DependentUpon>AboutBox1.cs</DependentUpon>
     </EmbeddedResource>

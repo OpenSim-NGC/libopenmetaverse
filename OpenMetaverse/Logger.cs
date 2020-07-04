@@ -25,8 +25,10 @@
  */
 
 using log4net;
+using log4net.Appender;
 using log4net.Config;
 using System;
+using System.Reflection;
 
 [assembly: log4net.Config.XmlConfigurator(Watch = true)]
 
@@ -57,15 +59,18 @@ namespace OpenMetaverse
         /// </summary>
         static Logger()
         {
-            LogInstance = LogManager.GetLogger("OpenMetaverse");
+            LogInstance = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
             // If error level reporting isn't enabled we assume no logger is configured and initialize a default
             // ConsoleAppender
             if (!LogInstance.Logger.IsEnabledFor(log4net.Core.Level.Error))
             {
-                log4net.Appender.ConsoleAppender appender = new log4net.Appender.ConsoleAppender();
-                appender.Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level - %message%newline");
-                BasicConfigurator.Configure(appender);
+                IAppender appender = new ConsoleAppender
+                {
+                    Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level - %message%newline")
+                };
+                
+                BasicConfigurator.Configure(LogManager.GetRepository(Assembly.GetCallingAssembly()), appender);
 
                 if (Settings.LOG_LEVEL != Helpers.LogLevel.None)
                     LogInstance.Info("No log configuration found, defaulting to console logging");
