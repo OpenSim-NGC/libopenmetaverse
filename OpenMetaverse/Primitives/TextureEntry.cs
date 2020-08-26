@@ -1140,7 +1140,7 @@ namespace OpenMetaverse
                 if (DefaultTexture == null)
                     return Utils.EmptyBytes;
 
-                using (MemoryStream ms = new MemoryStream(256))
+                using (MemoryStream ms = new MemoryStream(4096))
                 {
                     ulong done = 0;
                     ulong cur = 0;
@@ -1611,7 +1611,7 @@ namespace OpenMetaverse
                 else
                     bakedIndexes = LegacyBakedIndexes;
 
-                using (MemoryStream ms = new MemoryStream(256))
+                using (MemoryStream ms = new MemoryStream(4096))
                 {
                     #region Texture
                     UUID defText = DefaultTexture.TextureID;

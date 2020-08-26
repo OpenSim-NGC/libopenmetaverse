@@ -1,5 +1,7 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) Contributors, http://opensimulator.org/
+ * See CONTRIBUTORS.TXT for a full list of copyright holders.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -286,8 +288,8 @@ namespace OpenMetaverse
             "ATTACH_LULEG",
             "ATTACH_LLLEG",
             "ATTACH_BELLY",
-            "ATTACH_RPEC",
             "ATTACH_LPEC",
+            "ATTACH_RPEC",
             "ATTACH_HUD_CENTER_2",
             "ATTACH_HUD_TOP_RIGHT",
             "ATTACH_HUD_TOP_CENTER",

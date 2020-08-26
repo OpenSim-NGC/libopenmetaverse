@@ -26,7 +26,7 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using OpenMetaverse.StructuredData;
 
@@ -85,10 +85,9 @@ namespace OpenMetaverse.Packets
 
         public static Packet FromXmlString(string xml)
         {
-            System.Xml.XmlTextReader reader =
-                new System.Xml.XmlTextReader(new System.IO.MemoryStream(Utils.StringToBytes(xml)));
-
-            return FromLLSD(OSDParser.DeserializeLLSDXml(reader));
+            using(MemoryStream ms = new MemoryStream(Utils.StringToBytes(xml)))
+            using (System.Xml.XmlTextReader reader = new System.Xml.XmlTextReader(ms))
+                return FromLLSD(OSDParser.DeserializeLLSDXml(reader));
         }
 
         public static Packet FromLLSD(OSD osd)

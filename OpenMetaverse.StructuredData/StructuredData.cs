@@ -597,6 +597,8 @@ namespace OpenMetaverse.StructuredData
             }
         }
 
+        public virtual void Clear() { }
+
         public virtual OSD Copy()
         {
             switch (Type)
@@ -1513,7 +1515,7 @@ namespace OpenMetaverse.StructuredData
             return dicvalue.TryGetValue(key, out llsd);
         }
 
-        public void Clear()
+        public override void Clear()
         {
             dicvalue.Clear();
         }
@@ -1763,7 +1765,7 @@ namespace OpenMetaverse.StructuredData
             value.Add(llsd);
         }
 
-        public void Clear()
+        public override void Clear()
         {
             value.Clear();
         }

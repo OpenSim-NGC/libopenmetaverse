@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.IO;
 
 namespace OpenMetaverse.Imaging
 {
@@ -41,7 +42,7 @@ namespace OpenMetaverse.Imaging
             public ushort Length;
             public byte EntrySize;
 
-            public void Read(System.IO.BinaryReader br)
+            public void Read(BinaryReader br)
             {
                 FirstEntryIndex = br.ReadUInt16();
                 Length = br.ReadUInt16();
@@ -58,7 +59,7 @@ namespace OpenMetaverse.Imaging
             public byte PixelDepth;
             public byte Descriptor;
 
-            public void Read(System.IO.BinaryReader br)
+            public void Read(BinaryReader br)
             {
                 XOrigin = br.ReadUInt16();
                 YOrigin = br.ReadUInt16();
@@ -102,15 +103,15 @@ namespace OpenMetaverse.Imaging
             public tgaColorMap ColorMap;
             public tgaImageSpec ImageSpec;
 
-            public void Read(System.IO.BinaryReader br)
+            public void Read(BinaryReader br)
             {
-                this.IdLength = br.ReadByte();
-                this.ColorMapType = br.ReadByte();
-                this.ImageType = br.ReadByte();
-                this.ColorMap = new tgaColorMap();
-                this.ImageSpec = new tgaImageSpec();
-                this.ColorMap.Read(br);
-                this.ImageSpec.Read(br);
+                IdLength = br.ReadByte();
+                ColorMapType = br.ReadByte();
+                ImageType = br.ReadByte();
+                ColorMap = new tgaColorMap();
+                ImageSpec = new tgaImageSpec();
+                ColorMap.Read(br);
+                ImageSpec.Read(br);
             }
 
             public bool RleEncoded
@@ -434,9 +435,8 @@ namespace OpenMetaverse.Imaging
             byte[] buffer = new byte[source.Length];
             source.Read(buffer, 0, buffer.Length);
 
-            System.IO.MemoryStream ms = new System.IO.MemoryStream(buffer);
-
-            using (System.IO.BinaryReader br = new System.IO.BinaryReader(ms))
+            using (MemoryStream ms = new MemoryStream(buffer))
+            using (System.IO.BinaryReader br = new BinaryReader(ms))
             {
                 tgaHeader header = new tgaHeader();
                 header.Read(br);
@@ -525,9 +525,8 @@ namespace OpenMetaverse.Imaging
             byte[] buffer = new byte[source.Length];
             source.Read(buffer, 0, buffer.Length);
 
-            System.IO.MemoryStream ms = new System.IO.MemoryStream(buffer);
-
-            using (System.IO.BinaryReader br = new System.IO.BinaryReader(ms))
+            using(MemoryStream ms = new System.IO.MemoryStream(buffer))
+            using (BinaryReader br = new BinaryReader(ms))
             {
                 tgaHeader header = new tgaHeader();
                 header.Read(br);

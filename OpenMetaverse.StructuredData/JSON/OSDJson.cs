@@ -71,6 +71,11 @@ namespace OpenMetaverse.StructuredData
             return SerializeJson(osd, false).ToJson();
         }
 
+        public static byte[] SerializeJsonToBytes(OSD osd)
+        {
+            return Encoding.UTF8.GetBytes(SerializeJson(osd, false).ToJson());
+        }
+
         public static string SerializeJsonString(OSD osd, bool preserveDefaults)
         {
             return SerializeJson(osd, preserveDefaults).ToJson();

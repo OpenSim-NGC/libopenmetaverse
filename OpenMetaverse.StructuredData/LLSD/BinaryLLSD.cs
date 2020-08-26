@@ -80,11 +80,8 @@ namespace OpenMetaverse.StructuredData
         /// <returns>OSD containting deserialized data</returns>
         public static OSD DeserializeLLSDBinary(byte[] binaryData)
         {
-
-            MemoryStream stream = new MemoryStream(binaryData);
-            OSD osd = DeserializeLLSDBinary(stream);
-            stream.Close();
-            return osd;
+            using (MemoryStream ms = new MemoryStream(binaryData))
+                return DeserializeLLSDBinary(ms);
         }
 
         /// <summary>
@@ -127,12 +124,8 @@ namespace OpenMetaverse.StructuredData
         /// <returns>Serialized data</returns>
         public static byte[] SerializeLLSDBinary(OSD osd, bool prependHeader)
         {
-            MemoryStream stream = SerializeLLSDBinaryStream(osd, prependHeader);
-            byte[] binaryData = stream.ToArray();
-
-            stream.Close();
-
-            return binaryData;
+            using(MemoryStream ms = SerializeLLSDBinaryStream(osd, prependHeader))
+                return ms.ToArray();
         }
 
         /// <summary>

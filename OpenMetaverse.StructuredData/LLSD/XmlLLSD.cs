@@ -52,7 +52,8 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(byte[] xmlData)
         {
-            using(XmlTextReader xrd =  new XmlTextReader(new MemoryStream(xmlData)))
+            using(MemoryStream ms =  new MemoryStream(xmlData))
+            using(XmlTextReader xrd =  new XmlTextReader(ms))
                 return DeserializeLLSDXml(xrd);
         }
 
@@ -69,7 +70,8 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(string xmlData)
         {
-            using(XmlTextReader xrd = new XmlTextReader(new StringReader(xmlData)))
+            using (StringReader sr = new StringReader(xmlData))
+            using(XmlTextReader xrd = new XmlTextReader(sr))
                 return DeserializeLLSDXml(xrd);
         }
 
@@ -930,10 +932,9 @@ namespace OpenMetaverse.StructuredData
 ";
                 #endregion XSD
 
-                MemoryStream stream = new MemoryStream(Encoding.ASCII.GetBytes(schemaText));
-
                 XmlSchema = new XmlSchema();
-                XmlSchema = XmlSchema.Read(stream, new ValidationEventHandler(LLSDXmlSchemaValidationHandler));
+                using (MemoryStream stream = new MemoryStream(Encoding.ASCII.GetBytes(schemaText)))
+                    XmlSchema = XmlSchema.Read(stream, new ValidationEventHandler(LLSDXmlSchemaValidationHandler));
             }
         }
 
