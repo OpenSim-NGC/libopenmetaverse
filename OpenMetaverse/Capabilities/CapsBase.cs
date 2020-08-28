@@ -33,19 +33,6 @@ using System.Threading;
 
 namespace OpenMetaverse.Http
 {
-    public class TrustAllCertificatePolicy : ICertificatePolicy
-    {
-        public bool CheckValidationResult(ServicePoint sp, X509Certificate cert, WebRequest req, int problem)
-        {
-            return true;
-        }
-
-        public static bool TrustAllCertificateHandler(Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            return true;
-        }
-    }
-
     public static class CapsBase
     {
         public delegate void OpenWriteEventHandler(HttpWebRequest request);
@@ -54,9 +41,7 @@ namespace OpenMetaverse.Http
 
         static CapsBase()
         {
-            ServicePointManager.CertificatePolicy = new TrustAllCertificatePolicy();
-            // Even though this will compile on Mono 2.4, it throws a runtime exception
-            //ServicePointManager.ServerCertificateValidationCallback = TrustAllCertificatePolicy.TrustAllCertificateHandler;
+            ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
         }
 
         private class RequestState

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <OutputType>WinExe</OutputType>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <NoWarn>1591,1574,0419,0618</NoWarn>
@@ -17,9 +17,7 @@
     <ProjectReference Include="..\..\..\OpenMetaverse.GUI\OpenMetaverse.GUI.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="Dashboard.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Update="Dashboard.cs" />
     <EmbeddedResource Update="Dashboard.resx">
       <DependentUpon>Dashboard.cs</DependentUpon>
     </EmbeddedResource>

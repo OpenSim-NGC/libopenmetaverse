@@ -1,10 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFrameworks>net472</TargetFrameworks>
     <NoWarn>1591,1574,0419,0618</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
+  </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Windows.Forms">
       <Private>False</Private>
@@ -15,32 +18,14 @@
     <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="AvatarList.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="FriendList.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="GroupList.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="InventoryTree.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="LocalChat.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="LoginPanel.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="MessageBar.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="MiniMap.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Update="StatusOutput.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Update="AvatarList.cs" />
+    <Compile Update="FriendList.cs" />
+    <Compile Update="GroupList.cs" />
+    <Compile Update="InventoryTree.cs" />
+    <Compile Update="LocalChat.cs" />
+    <Compile Update="LoginPanel.cs" />
+    <Compile Update="MessageBar.cs" />
+    <Compile Update="MiniMap.cs" />
+    <Compile Update="StatusOutput.cs" />
   </ItemGroup>
 </Project>

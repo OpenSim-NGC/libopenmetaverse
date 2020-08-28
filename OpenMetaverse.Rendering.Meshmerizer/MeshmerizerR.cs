@@ -33,6 +33,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+
 using OMV = OpenMetaverse;
 using OMVR = OpenMetaverse.Rendering;
 
@@ -42,7 +44,7 @@ namespace OpenMetaverse.Rendering
     /// Meshing code based on the Idealist Viewer (20081213).
     /// </summary>
     [RendererName("MeshmerizerR")]
-    public class MeshmerizerR : OMVR.IRendering
+    public class MeshmerizerR : IRendering
     {
         /// <summary>
         /// Generates a basic mesh structure from a primitive
@@ -50,7 +52,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="prim">Primitive to generate the mesh from</param>
         /// <param name="lod">Level of detail to generate the mesh at</param>
         /// <returns>The generated mesh or null on failure</returns>
-        public OMVR.SimpleMesh GenerateSimpleMesh(OMV.Primitive prim, OMVR.DetailLevel lod)
+        public OMVR.SimpleMesh GenerateSimpleMesh(Primitive prim, OMVR.DetailLevel lod)
         {
             PrimMesher.PrimMesh newPrim = GeneratePrimMesh(prim, lod, false);
             if (newPrim == null)
@@ -86,7 +88,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="sculptTexture">Sculpt texture</param>
         /// <param name="lod">Level of detail to generate the mesh at</param>
         /// <returns>The generated mesh or null on failure</returns>
-        public OMVR.SimpleMesh GenerateSimpleSculptMesh(OMV.Primitive prim, System.Drawing.Bitmap sculptTexture, OMVR.DetailLevel lod)
+        public OMVR.SimpleMesh GenerateSimpleSculptMesh(OMV.Primitive prim, Bitmap sculptTexture, OMVR.DetailLevel lod)
         {
             OMVR.FacetedMesh faceted = GenerateFacetedSculptMesh(prim, sculptTexture, lod);
 
@@ -171,7 +173,7 @@ namespace OpenMetaverse.Rendering
         /// routine since all the context for finding teh texture is elsewhere.
         /// </summary>
         /// <returns>The faceted mesh or null if can't do it</returns>
-        public OMVR.FacetedMesh GenerateFacetedSculptMesh(OMV.Primitive prim, System.Drawing.Bitmap scupltTexture, OMVR.DetailLevel lod)
+        public OMVR.FacetedMesh GenerateFacetedSculptMesh(OMV.Primitive prim, Bitmap scupltTexture, OMVR.DetailLevel lod)
         {
             PrimMesher.SculptMesh.SculptType smSculptType;
             switch (prim.Sculpt.Type)
@@ -192,10 +194,12 @@ namespace OpenMetaverse.Rendering
                     smSculptType = PrimMesher.SculptMesh.SculptType.plane;
                     break;
             }
+
             // The lod for sculpties is the resolution of the texture passed.
             // The first guess is 1:1 then lower resolutions after that
             // int mesherLod = (int)Math.Sqrt(scupltTexture.Width * scupltTexture.Height);
             int mesherLod = 32; // number used in Idealist viewer
+            
             switch (lod)
             {
                 case OMVR.DetailLevel.Highest:
@@ -209,6 +213,7 @@ namespace OpenMetaverse.Rendering
                     mesherLod /= 4;
                     break;
             }
+
             PrimMesher.SculptMesh newMesh =
                 new PrimMesher.SculptMesh(scupltTexture, smSculptType, mesherLod, true, prim.Sculpt.Mirror, prim.Sculpt.Invert);
 
@@ -220,7 +225,7 @@ namespace OpenMetaverse.Rendering
             omvrmesh.Prim = prim;
             omvrmesh.Profile = new OMVR.Profile();
             omvrmesh.Profile.Faces = new List<OMVR.ProfileFace>();
-            omvrmesh.Profile.Positions = new List<OMV.Vector3>();
+            omvrmesh.Profile.Positions = new List<Vector3>();
             omvrmesh.Path = new OMVR.Path();
             omvrmesh.Path.Points = new List<OMVR.PathPoint>();
 
@@ -442,7 +447,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="yBegin">Starting value for Y</param>
         /// <param name="yEnd">Max value of Y</param>
         /// <returns></returns>
-        public OMVR.Face TerrainMesh(float[,] zMap, float xBegin, float xEnd, float yBegin, float yEnd)
+        public Face TerrainMesh(float[,] zMap, float xBegin, float xEnd, float yBegin, float yEnd)
         {
             PrimMesher.SculptMesh newMesh = new PrimMesher.SculptMesh(zMap, xBegin, xEnd, yBegin, yEnd, true);
             OMVR.Face terrain = new OMVR.Face();

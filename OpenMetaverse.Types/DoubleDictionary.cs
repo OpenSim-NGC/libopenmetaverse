@@ -27,11 +27,7 @@
 using System;
 using System.Collections.Generic;
 
-#if VISUAL_STUDIO
 using ReaderWriterLockImpl = System.Threading.ReaderWriterLockSlim;
-#else
-using ReaderWriterLockImpl = OpenMetaverse.ReaderWriterLockSlim;
-#endif
 
 namespace OpenMetaverse
 {

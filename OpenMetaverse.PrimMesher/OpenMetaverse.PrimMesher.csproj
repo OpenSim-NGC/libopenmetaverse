@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <ProjectGuid>{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}</ProjectGuid>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>Dhalia Trimble, OpenSim Contributors, Cinder Roxley</Authors>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Version>1.2.0</Version>
+    <Product>OpenMetaverse.PrimMesher</Product>
+    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
+    <PackageId>OpenMetaverse.PrimMesher</PackageId>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugType>full</DebugType>
+    <DefineConstants>TRACE;DEBUG;VERTEX_INDEXER</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <DefineConstants>TRACE;VERTEX_INDEXER</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
+  </ItemGroup>
+</Project>
