@@ -26,8 +26,7 @@
 
 using System;
 using System.Collections.Generic;
-
-using ReaderWriterLockImpl = System.Threading.ReaderWriterLockSlim;
+using System.Threading;
 
 namespace OpenMetaverse
 {
@@ -35,7 +34,7 @@ namespace OpenMetaverse
     {
         Dictionary<TKey1, TValue> Dictionary1;
         Dictionary<TKey2, TValue> Dictionary2;
-        ReaderWriterLockImpl rwLock = new ReaderWriterLockImpl();
+        ReaderWriterLockSlim rwLock = new ReaderWriterLockSlim();
 
         public DoubleDictionary()
         {
