@@ -9,7 +9,6 @@
     <NoWarn>1591,1574,0419,0618</NoWarn>
     <DocumentationFile />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.0.1</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
