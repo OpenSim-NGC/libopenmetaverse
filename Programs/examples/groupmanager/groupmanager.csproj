@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <OutputType>WinExe</OutputType>
     <NoWarn>1591,1574,0419,0618</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -16,12 +16,8 @@
     <ProjectReference Include="..\..\..\OpenMetaverse\OpenMetaverse.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="frmGroupInfo.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="frmGroupManager.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Update="frmGroupInfo.cs" />
+    <Compile Update="frmGroupManager.cs" />
     <EmbeddedResource Update="frmGroupInfo.resx">
       <DependentUpon>frmGroupInfo.cs</DependentUpon>
     </EmbeddedResource>

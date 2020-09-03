@@ -1,10 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <OutputType>WinExe</OutputType>
-    <AssemblyVersion>1.0.1</AssemblyVersion>
-    <FileVersion>1.0.1</FileVersion>
     <NoWarn>1591,1574,0419,0618</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -18,9 +16,7 @@
     <ProjectReference Include="..\..\..\OpenMetaverse\OpenMetaverse.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="frmGridAccountant.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Update="frmGridAccountant.cs" />
     <EmbeddedResource Update="frmGridAccountant.resx">
       <DependentUpon>frmGridAccountant.cs</DependentUpon>
     </EmbeddedResource>

@@ -84,7 +84,8 @@ namespace OpenMetaverse.StructuredData
 
         public static OSD DeserializeLLSDNotation(byte[] xmlData)
         {
-            using (StreamReader xrd = new StreamReader(new MemoryStream(xmlData, false)))
+            using(MemoryStream ms = new MemoryStream(xmlData))
+            using (StreamReader xrd = new StreamReader(ms))
             {
                 return DeserializeLLSDNotationStart(xrd);
             }
@@ -116,15 +117,14 @@ namespace OpenMetaverse.StructuredData
 
         public static byte[] SerializeLLSDNotationToBytes(OSD osd, bool header = false)
         {
-            MemoryStream ms = new MemoryStream();
+            using(MemoryStream ms = new MemoryStream())
             using (StreamWriter writer = new StreamWriter(ms))
             {
                 if(header)
                     writer.Write("<? llsd/notation ?>");
                 SerializeLLSDNotationElement(writer, osd);
                 writer.Flush();
-                byte[] b = ms.ToArray();
-                return b;
+                return ms.ToArray();
             }
         }
 
@@ -566,8 +566,7 @@ namespace OpenMetaverse.StructuredData
             foreach (KeyValuePair<string, OSD> kvp in osdMap)
             {
                 writer.Write(singleQuotesNotationMarker);
-                //writer.Write(EscapeCharacter(kvp.Key, singleQuotesNotationMarker));
-                writer.Write(kvp.Key);
+                writer.Write(EscapeCharacter(kvp.Key, singleQuotesNotationMarker));
                 writer.Write(singleQuotesNotationMarker);
                 writer.Write(keyNotationDelimiter);
                 SerializeLLSDNotationElement(writer, kvp.Value);

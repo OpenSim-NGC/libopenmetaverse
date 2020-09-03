@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <OutputType>WinExe</OutputType>
     <NoWarn>1591,1574,0419,0618</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -16,9 +16,7 @@
     <ProjectReference Include="..\..\..\OpenMetaverse\OpenMetaverse.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="frmHeightmap.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Update="frmHeightmap.cs" />
     <EmbeddedResource Update="frmHeightmap.resx">
       <DependentUpon>frmHeightmap.cs</DependentUpon>
     </EmbeddedResource>

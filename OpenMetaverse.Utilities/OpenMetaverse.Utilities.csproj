@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <AssemblyTitle>OpenMetaverse.Utilities</AssemblyTitle>
     <Product>OpenMetaverse.Utilities</Product>
     <NoWarn>1591,1574,0419,0618</NoWarn>
