@@ -1442,7 +1442,20 @@ namespace OpenMetaverse
             if (String.IsNullOrEmpty(str))
                 return Utils.EmptyBytes;
 
-            int nbytes = osUTF8GetBytesCount(str);
+            int nbytes = osUTF8GetBytesCount(str, true);
+            byte[] dstarray = new byte[nbytes];
+            osUTF8Getbytes(str, dstarray, nbytes);
+            return dstarray;
+        }
+
+        public static unsafe byte[] StringToBytes(string str, int maxlen)
+        {
+            if (String.IsNullOrEmpty(str))
+                return Utils.EmptyBytes;
+
+            int nbytes = osUTF8GetBytesCount(str, true);
+            if (nbytes > maxlen)
+                nbytes = maxlen;
             byte[] dstarray = new byte[nbytes];
             osUTF8Getbytes(str, dstarray, nbytes);
             return dstarray;
@@ -1454,6 +1467,19 @@ namespace OpenMetaverse
                 return Utils.EmptyBytes;
 
             int nbytes = osUTF8GetBytesCount(str, false);
+            byte[] dstarray = new byte[nbytes];
+            osUTF8Getbytes(str, dstarray, nbytes, false);
+            return dstarray;
+        }
+
+        public static unsafe byte[] StringToBytesNoTerm(string str, int maxlen)
+        {
+            if (String.IsNullOrEmpty(str))
+                return Utils.EmptyBytes;
+
+            int nbytes = osUTF8GetBytesCount(str, false);
+            if(nbytes > maxlen)
+                nbytes = maxlen;
             byte[] dstarray = new byte[nbytes];
             osUTF8Getbytes(str, dstarray, nbytes, false);
             return dstarray;
@@ -1574,6 +1600,215 @@ namespace OpenMetaverse
             return ret;
         }
 
+        public static unsafe bool osUTF8TryGetbytesNoNullTerm(string srcstr, ref int srcstart, byte[] dstarray, ref int pos)
+        {
+            if (string.IsNullOrEmpty(srcstr))
+                return true;
+
+            int free = dstarray.Length - pos;
+
+            fixed (char* srcbase = srcstr)
+            {
+                fixed (byte* dstbase = dstarray)
+                {
+                    char* src = srcbase + srcstart;
+                    char* srcend = srcbase + srcstr.Length;
+                    byte* dst = dstbase + pos;
+
+                    char c;
+                    while (src < srcend && free > 0)
+                    {
+                        c = *src;
+                        ++src;
+
+                        if (c <= 0x7f)
+                        {
+                            *dst = (byte)c;
+                            ++dst;
+                            --free;
+                            continue;
+                        }
+
+                        if (c < 0x800)
+                        {
+                            free -= 2;
+                            if (free <= 0)
+                            {
+                                --src;
+                                break;
+                            }
+                            *dst = (byte)(0xC0 | (c >> 6));
+                            ++dst;
+                            *dst = (byte)(0x80 | (c & 0x3F));
+                            ++dst;
+                            continue;
+                        }
+
+                        if (c >= 0xD800 && c < 0xE000)
+                        {
+                            if (c >= 0xDC00)
+                                continue; // ignore invalid
+                            if (src + 1 >= srcend)
+                                break;
+
+                            int a = c;
+
+                            c = *src;
+                            ++src;
+                            if (c < 0xDC00 || c > 0xDFFF)
+                                continue; // ignore invalid
+
+                            free -= 4;
+                            if (free <= 0)
+                            {
+                                src -= 2;
+                                break;
+                            }
+
+                            a = (a << 10) + c - 0x35fdc00;
+
+                            *dst = (byte)(0xF0 | (a >> 18));
+                            ++dst;
+                            *dst = (byte)(0x80 | ((a >> 12) & 0x3f));
+                            ++dst;
+                            *dst = (byte)(0x80 | ((a >> 6) & 0x3f));
+                            ++dst;
+                            *dst = (byte)(0x80 | (a & 0x3f));
+                            ++dst;
+                            continue;
+                        }
+
+                        free -= 3;
+                        if (free <= 0)
+                        {
+                            --src;
+                            break;
+                        }
+
+                        *dst = (byte)(0xE0 | (c >> 12));
+                        ++dst;
+                        *dst = (byte)(0x80 | ((c >> 6) & 0x3f));
+                        ++dst;
+                        *dst = (byte)(0x80 | (c & 0x3f));
+                        ++dst;
+                    }
+
+                    pos = (int)(dst - dstbase);
+                    srcstart = (int)(src - srcbase);
+                    return src == srcend;
+                }
+            }
+        }
+
+        public static unsafe bool osUTF8TryGetbytesNullTerm(string srcstr, ref int srcstart, byte[] dstarray, ref int pos)
+        {
+            if (string.IsNullOrEmpty(srcstr))
+                return true;
+
+            int free = dstarray.Length - pos - 1;
+
+            fixed (char* srcbase = srcstr)
+            {
+                fixed (byte* dstbase = dstarray)
+                {
+                    char* src = srcbase + srcstart;
+                    char* srcend = srcbase + srcstr.Length;
+                    byte* dst = dstbase + pos;
+
+                    char c;
+                    while (src < srcend && free > 0)
+                    {
+                        c = *src;
+                        ++src;
+
+                        if (c <= 0x7f)
+                        {
+                            *dst = (byte)c;
+                            ++dst;
+                            --free;
+                            continue;
+                        }
+
+                        if (c < 0x800)
+                        {
+                            free -= 2;
+                            if (free <= 0)
+                            {
+                                --src;
+                                break;
+                            }
+                            *dst = (byte)(0xC0 | (c >> 6));
+                            ++dst;
+                            *dst = (byte)(0x80 | (c & 0x3F));
+                            ++dst;
+                            continue;
+                        }
+
+                        if (c >= 0xD800 && c < 0xE000)
+                        {
+                            if (c >= 0xDC00)
+                                continue; // ignore invalid
+                            if (src + 1 >= srcend)
+                                break;
+
+                            int a = c;
+
+                            c = *src;
+                            ++src;
+                            if (c < 0xDC00 || c > 0xDFFF)
+                                continue; // ignore invalid
+
+                            free -= 4;
+                            if (free <= 0)
+                            {
+                                src -= 2;
+                                break;
+                            }
+
+                            a = (a << 10) + c - 0x35fdc00;
+
+                            *dst = (byte)(0xF0 | (a >> 18));
+                            ++dst;
+                            *dst = (byte)(0x80 | ((a >> 12) & 0x3f));
+                            ++dst;
+                            *dst = (byte)(0x80 | ((a >> 6) & 0x3f));
+                            ++dst;
+                            *dst = (byte)(0x80 | (a & 0x3f));
+                            ++dst;
+                            continue;
+                        }
+
+                        free -= 3;
+                        if (free <= 0)
+                        {
+                            --src;
+                            break;
+                        }
+
+                        *dst = (byte)(0xE0 | (c >> 12));
+                        ++dst;
+                        *dst = (byte)(0x80 | ((c >> 6) & 0x3f));
+                        ++dst;
+                        *dst = (byte)(0x80 | (c & 0x3f));
+                        ++dst;
+                    }
+
+                    pos = (int)(dst - dstbase);
+                    srcstart = (int)(src - srcbase);
+                    if (src == srcend)
+                    {
+                        if (free <= 0)
+                            return false;
+
+                        *dst = 0;
+                        ++pos;
+                        return true;
+                    }
+                    return false;
+                }
+            }
+        }
+
         public static unsafe int osUTF8GetBytesCount(char* srcarray, int srclen, bool NullTerm = true)
         {
             char c;
@@ -1650,6 +1885,49 @@ namespace OpenMetaverse
 
             return nbytes;
         }
+
+        /*
+        public unsafe static int osUTF8GetBytesCount(string str)
+        {
+            if (string.IsNullOrEmpty(str))
+                return 0;
+
+            char c;
+            int nbytes = 0;
+            fixed(char* bptr = str)
+            {
+                char* ptr = bptr;
+                int i = str.Length;
+                while(--i >= 0)
+                {
+                    c = *ptr;
+                    ptr++;
+
+                    if (c <= 0x7f)
+                    {
+                        ++nbytes;
+                        continue;
+                    }
+
+                    if (c < 0x800)
+                    {
+                        nbytes += 2;
+                        continue;
+                    }
+
+                    if (c >= 0xD800 && c < 0xE000)
+                    {
+                        nbytes += 4;
+                        ++ptr;
+                        --i;
+                        continue;
+                    }
+                    nbytes += 3;
+                }
+            }
+            return nbytes;
+        }
+        */
 
         /// <summary>
         /// Converts a string containing hexadecimal characters to a byte array
@@ -2479,37 +2757,37 @@ namespace OpenMetaverse
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static unsafe int ByteToByeString(byte v, byte* dst)
+        public static unsafe int ByteToByteString(byte v, byte* dst)
         {
             return UIntToByteString(v, dst);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static unsafe int ByteToByeString(byte v, byte[] dst, int pos)
+        public static unsafe int ByteToByteString(byte v, byte[] dst, int pos)
         {
             return UIntToByteString(v, dst, pos);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static unsafe int ByteToByeString(byte v, Stream st)
+        public static unsafe int ByteToByteString(byte v, Stream st)
         {
             return UIntToByteString(v, st);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static unsafe int SByteToByeString(sbyte v, byte* dst)
+        public static unsafe int SByteToByteString(sbyte v, byte* dst)
         {
             return IntToByteString(v, dst);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static unsafe int SByteToByeString(sbyte v, byte[] dst, int pos)
+        public static unsafe int SByteToByteString(sbyte v, byte[] dst, int pos)
         {
             return IntToByteString(v, dst, pos);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static unsafe int SByteToByeString(sbyte v, Stream st)
+        public static unsafe int SByteToByteString(sbyte v, Stream st)
         {
             return IntToByteString(v, st);
         }
