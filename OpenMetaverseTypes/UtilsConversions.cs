@@ -1700,6 +1700,7 @@ namespace OpenMetaverse
             }
         }
 
+
         public static unsafe bool osUTF8TryGetbytesNullTerm(string srcstr, ref int srcstart, byte[] dstarray, ref int pos)
         {
             if (string.IsNullOrEmpty(srcstr))

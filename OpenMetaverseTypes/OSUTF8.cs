@@ -41,12 +41,18 @@ using System.Runtime.CompilerServices;
 
 namespace OpenMetaverse
 {
-    public struct osUTF8
+    public class osUTF8
     {
         internal byte[] m_data;
         internal int m_len;
 
         public static readonly osUTF8 Empty = new osUTF8(new byte[0], 0, 0);
+
+        public osUTF8()
+        {
+            m_data = new byte[0];
+            m_len = 0;
+        }
 
         public osUTF8(int capacity)
         {
@@ -94,7 +100,7 @@ namespace OpenMetaverse
         {
             if(isascii)
             {
-                m_len = source.Length;
+                m_len = 0;
                 m_data = new byte[m_len];
                 AppendASCII(source);
             }
@@ -182,6 +188,9 @@ namespace OpenMetaverse
 
         public unsafe bool Equals(osUTF8 o)
         {
+            if(o == null)
+                return false;
+
             if (m_len != o.m_len)
                 return false;
 
@@ -286,6 +295,13 @@ namespace OpenMetaverse
             ++m_len;
         }
 
+        public void Append(byte c)
+        {
+            CheckCapacity(1);
+            m_data[m_len] = c;
+            ++m_len;
+        }
+
         public unsafe void AppendASCII(string asciiString)
         {
             int nbytes = asciiString.Length;
@@ -337,6 +353,40 @@ namespace OpenMetaverse
             CheckCapacity(nbytes);
             Array.Copy(b.m_data, 0, m_data, m_len, nbytes);
             m_len += nbytes;
+        }
+
+        public unsafe void ToASCIILowerSelf()
+        {
+            if (m_len == 0)
+                return;
+            fixed (byte* baseptr = m_data)
+            {
+                byte* ptr = baseptr;
+                byte* end = ptr + m_len;
+                while (ptr < end)
+                {
+                    if (*ptr >= 0x41 && *ptr <= 0x5a)
+                        *ptr |= 0x20;
+                    ++ptr;
+                }
+            }
+        }
+
+        public unsafe void ToASCIIUpperSelf()
+        {
+            if (m_len == 0)
+                return;
+            fixed (byte* baseptr = m_data)
+            {
+                byte* ptr = baseptr;
+                byte* end = ptr + m_len;
+                while (ptr < end)
+                {
+                    if (*ptr >= 0x61 && *ptr <= 0x7a)
+                        *ptr &= 0xdf;
+                    ++ptr;
+                }
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -698,9 +748,54 @@ namespace OpenMetaverse
         {
             return osUTF8Slice.TryParseUUID(new osUTF8Slice(inp), out res, dashs);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AppendCharBytes(char c, ref string src, ref int indx)
+        {
+            if (c <= 0x7f)
+            {
+                AppendASCII(c);
+                return;
+            }
+
+            if (c < 0x800)
+            {
+                Append((byte)(0xC0 | (c >> 6)));
+                Append((byte)(0x80 | (c & 0x3F)));
+                return;
+            }
+
+            if (c >= 0xD800 && c < 0xE000)
+            {
+                if (c >= 0xDC00)
+                    return;
+
+                if (indx + 1 >= src.Length)
+                    return;
+
+                int a = c;
+
+                ++indx;
+                c = src[indx];
+                if (c < 0xDC00 || c > 0xDFFF)
+                    return; // ignore invalid
+
+                a = (a << 10) + c - 0x35fdc00;
+
+                Append((byte)(0xF0 | (a >> 18)));
+                Append((byte)(0x80 | ((a >> 12) & 0x3f)));
+                Append((byte)(0x80 | ((a >> 6) & 0x3f)));
+                Append((byte)(0x80 | (a & 0x3f)));
+                return;
+            }
+
+            Append((byte)(0xE0 | (c >> 12)));
+            Append((byte)(0x80 | ((c >> 6) & 0x3f)));
+            Append((byte)(0x80 | (c & 0x3f)));
+        }
     }
 
-    public struct osUTF8Slice
+    public class osUTF8Slice
     {
         internal byte[] m_data;
         internal int m_offset;
@@ -1076,6 +1171,40 @@ namespace OpenMetaverse
             CheckCapacity(ref indx, nbytes);
             Array.Copy(b.m_data, 0, m_data, indx, nbytes);
             m_len += nbytes;
+        }
+
+        public unsafe void ToASCIILowerSelf()
+        {
+            if (m_len == 0)
+                return;
+            fixed (byte* baseptr = m_data)
+            {
+                byte* ptr = baseptr + m_offset;
+                byte* end = ptr + m_len;
+                while (ptr < end)
+                {
+                    if (*ptr >= 0x41 && *ptr <= 0x5a)
+                        *ptr |= 0x20;
+                    ++ptr;
+                }
+            }
+        }
+
+        public unsafe void ToASCIIUpperSelf()
+        {
+            if (m_len == 0)
+                return;
+            fixed (byte* baseptr = m_data)
+            {
+                byte* ptr = baseptr + m_offset;
+                byte* end = ptr + m_len;
+                while (ptr < end)
+                {
+                    if (*ptr >= 0x61 && *ptr <= 0x7a)
+                        *ptr &= 0xdf;
+                    ++ptr;
+                }
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2078,6 +2207,7 @@ namespace OpenMetaverse
         }
     }
 
+/*
     public static class OSUTF8Cached
     {
         [ThreadStatic]
@@ -2123,9 +2253,8 @@ namespace OpenMetaverse
             return result;
         }
     }
+    */
 
-
-    /*
     public static class OSUTF8Cached
     {
         [ThreadStatic]
@@ -2173,5 +2302,4 @@ namespace OpenMetaverse
             return result;
         }
     }
-    */
 }
