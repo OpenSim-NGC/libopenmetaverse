@@ -46,7 +46,7 @@ namespace OpenMetaverse
         internal byte[] m_data;
         internal int m_len;
 
-        public static readonly osUTF8 Empty = new osUTF8(new byte[0], 0, 0);
+        public static readonly osUTF8 Empty = new osUTF8();
 
         public osUTF8()
         {
@@ -135,22 +135,6 @@ namespace OpenMetaverse
             get { return m_data.Length; }
         }
 
-        public bool IsNullOrEmpty { get { return m_len == 0; } }
-        public bool IsEmpty { get { return m_len == 0; } }
-        public unsafe bool IsNullOrWhitespace
-        {
-            get
-            {
-                if (m_len == 0)
-                    return true;
-                for (int i = 0; i < m_data.Length; ++i)
-                {
-                    if (m_data[i] != 0x20)
-                        return false;
-                }
-                return true;
-            }
-        }
 
         public unsafe override int GetHashCode()
         {
@@ -180,31 +164,50 @@ namespace OpenMetaverse
             if (obj is osUTF8)
                 return Equals((osUTF8)obj);
 
+            if (obj is osUTF8Slice)
+                return Equals((osUTF8Slice)obj);
+
             if (obj is string)
                 return Equals((string)obj);
 
             return false;
         }
 
-        public unsafe bool Equals(osUTF8 o)
+        public unsafe bool Equals(osUTF8Slice o)
         {
-            if(o == null)
-                return false;
-
-            if (m_len != o.m_len)
+            if (o == null || m_len != o.m_len)
                 return false;
 
             byte[] otherdata = o.m_data;
 
             if (m_len < 8)
             {
-                for (int i = 0; i < m_data.Length; ++i)
+                for (int i = 0, j = o.m_offset; i <  m_len; ++i, ++j)
                 {
-                    if (m_data[i] != otherdata[i])
+                    if (m_data[i] != otherdata[j])
                         return false;
                 }
                 return true;
             }
+
+            fixed (byte* a = m_data, b = &otherdata[o.m_offset])
+            {
+                for (int i = 0; i < m_len; ++i)
+                {
+                    if (a[i] != b[i])
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        public unsafe bool Equals(osUTF8 o)
+        {
+            if (o == null || m_len != o.m_len)
+                return false;
+
+            byte[] otherdata = o.m_data;
 
             fixed (byte* a = m_data, b = otherdata)
             {
@@ -224,8 +227,89 @@ namespace OpenMetaverse
 
         public bool Equals(string s)
         {
+            if (string.IsNullOrEmpty(s))
+                return m_len == 0;
             osUTF8 o = new osUTF8(s);
             return Equals(o);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(char c)
+        {
+            return m_len == 1 && m_data[0] == (byte)c;
+        }
+
+        public unsafe bool ACSIILowerEquals(osUTF8 o)
+        {
+            if (o == null || m_len != o.m_len)
+                return false;
+
+            fixed (byte* a = m_data, b = o.m_data)
+            {
+                byte* ptr = a;
+                byte* end = a + m_len;
+                byte* ptrb = b;
+                while (ptr < end)
+                {
+                    byte c = *ptr;
+                    if (c >= 0x41 && c <= 0x5a)
+                        c |= 0x20;
+                    if (c != *ptrb)
+                        return false;
+                    ++ptr;
+                    ++ptrb;
+                }
+            }
+            return true;
+        }
+
+        public unsafe bool ACSIILowerEquals(osUTF8Slice o)
+        {
+            if (o == null || m_len != o.m_len)
+                return false;
+
+            fixed (byte* a = m_data, b = o.m_data)
+            {
+                byte* ptr = a;
+                byte* end = ptr + m_len;
+                byte* ptrb = b + o.m_offset;
+                while (ptr < end)
+                {
+                    byte c = *ptr;
+                    if (c >= 0x41 && c <= 0x5a)
+                        c |= 0x20;
+                    if (c != *ptrb)
+                        return false;
+                    ++ptr;
+                    ++ptrb;
+                }
+            }
+            return true;
+        }
+
+        public unsafe bool ACSIILowerEquals(string o)
+        {
+            if (string.IsNullOrEmpty(o) || m_len != o.Length)
+                return false;
+
+            fixed (byte* a = m_data)
+            fixed (char* b = o)
+            {
+                byte* ptr = a;
+                byte* end = a + m_len;
+                char* ptrb = b;
+                while (ptr < end)
+                {
+                    byte c = *ptr;
+                    if (c >= 0x41 && c <= 0x5a)
+                        c |= 0x20;
+                    if (c != (byte)*ptrb)
+                        return false;
+                    ++ptr;
+                    ++ptrb;
+                }
+            }
+            return true;
         }
 
         public void Clear()
@@ -267,8 +351,7 @@ namespace OpenMetaverse
             return new osUTF8(b, 0, m_len + other.m_len);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void CheckCapacity(int needed)
+        public void CheckCapacity(int needed)
         {
             int needlimit = m_len + needed;
             int cur = m_data.Length;
@@ -353,6 +436,55 @@ namespace OpenMetaverse
             CheckCapacity(nbytes);
             Array.Copy(b.m_data, 0, m_data, m_len, nbytes);
             m_len += nbytes;
+        }
+
+        public unsafe void AppendInt(sbyte v)
+        {
+            CheckCapacity(4);
+            fixed (byte* d = m_data)
+                m_len += Utils.IntToByteString(v, d + m_len);
+        }
+
+        public unsafe void AppendInt(byte v)
+        {
+            CheckCapacity(4);
+            fixed (byte* d = m_data)
+                m_len += Utils.UIntToByteString(v, d + m_len);
+        }
+        public unsafe void AppendInt(int v)
+        {
+            CheckCapacity(16);
+            fixed (byte* d = m_data)
+                m_len += Utils.IntToByteString(v, d + m_len);
+        }
+
+        public unsafe void AppendInt(uint v)
+        {
+            CheckCapacity(16);
+            fixed (byte* d = m_data)
+                m_len += Utils.UIntToByteString(v, d + m_len);
+        }
+
+        public unsafe void AppendInt(long v)
+        {
+            CheckCapacity(32);
+            fixed (byte* d = m_data)
+                m_len += Utils.LongToByteString(v, d + m_len);
+        }
+
+        public unsafe void AppendInt(ulong v)
+        {
+            CheckCapacity(32);
+            fixed (byte* d = m_data)
+                m_len += Utils.ULongToByteString(v, d + m_len);
+        }
+
+        public unsafe void AppendUUID(UUID u)
+        {
+            CheckCapacity(36);
+            fixed (byte* d = m_data)
+                Utils.UUIDToByteDashString(u, d + m_len);
+            m_len += 36;
         }
 
         public unsafe void ToASCIILowerSelf()
@@ -793,1513 +925,36 @@ namespace OpenMetaverse
             Append((byte)(0x80 | ((c >> 6) & 0x3f)));
             Append((byte)(0x80 | (c & 0x3f)));
         }
-    }
 
-    public class osUTF8Slice
-    {
-        internal byte[] m_data;
-        internal int m_offset;
-        internal int m_len;
-
-        public static readonly osUTF8Slice Empty = new osUTF8Slice(new byte[0], 0, 0);
-
-        public osUTF8Slice(int capacity)
+        public static byte[] GetASCIIBytes(string s)
         {
-            m_data = new byte[capacity];
-            m_offset = 0;
-            m_len = 0;
-        }
-
-        public osUTF8Slice(byte[] source)
-        {
-            m_data = source;
-            m_offset = 0;
-            m_len = source.Length;
-        }
-
-        public osUTF8Slice(byte[] source, int offset, int len)
-        {
-            m_data = source;
-            m_offset = offset;
-            m_len = len;
-        }
-
-        public osUTF8Slice(osUTF8Slice source)
-        {
-            m_data = source.m_data;
-            m_offset = source.m_offset;
-            m_len = source.m_len;
-        }
-
-        public osUTF8Slice(osUTF8 source)
-        {
-            m_data = source.m_data;
-            m_offset = 0;
-            m_len = source.Length;
-        }
-
-        public osUTF8Slice(string source)
-        {
-            m_data = Utils.StringToBytesNoTerm(source);
-            m_offset = 0;
-            m_len = m_data.Length;
-        }
-
-        public byte this[int i]
-        {
-            get
-            {
-                if (i >= m_len)
-                    i = m_len;
-                i += m_offset;
-                if (i < 0)
-                    i = 0;
-                else if (i >= m_data.Length)
-                    i = m_data.Length - 1;
-                return m_data[i];
-            }
-        }
-
-        public int Length
-        {
-            get { return m_len; }
-        }
-
-        public int Capacity
-        {
-            get { return m_data.Length; }
-        }
-
-        public void MoveStart(int of)
-        {
-            m_len -= of;
-            m_offset += of;
-
-            if (m_offset < 0)
-            {
-                m_len -= m_offset;
-                m_offset = 0;
-            }
-            else if (m_offset >= m_data.Length)
-            {
-                m_offset = m_data.Length - 1;
-                m_len = 0;
-            }
-            else if (m_offset + m_len > m_data.Length)
-                m_len = m_data.Length - m_offset;
-        }
-
-        public bool IsNullOrEmpty { get { return m_len == 0; } }
-        public bool IsEmpty { get { return m_len == 0; } }
-        public unsafe bool IsNullOrWhitespace
-        {
-            get
-            {
-                if (m_len == 0)
-                    return true;
-                if (m_len < 8)
-                {
-                    for (int i = m_offset; i < m_offset + m_len; ++i)
-                    {
-                        if (m_data[i] != 0x20)
-                            return false;
-                    }
-                    return true;
-                }
-
-                fixed (byte* a = &m_data[m_offset])
-                {
-                    for (int i = 0; i < m_len; ++i)
-                    {
-                        if (a[i] != 0x20)
-                            return false;
-                    }
-                    return true;
-                }
-            }
-        }
-
-        public unsafe override int GetHashCode()
-        {
-            int hash = m_len;
-            if (m_len < 8)
-            {
-                for (int i = m_offset; i < m_offset + m_len; ++i)
-                {
-                    hash += m_data[i];
-                    hash <<= 3;
-                    hash += hash >> 26;
-                }
-            }
-            else
-            {
-                fixed (byte* a = &m_data[m_offset])
-                {
-                    for (int i = 0; i < m_len; ++i)
-                    {
-                        hash += a[i];
-                        hash <<= 5;
-                        hash += hash >> 26;
-                    }
-                }
-            }
-            return hash & 0x7fffffff;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override string ToString()
-        {
-            if(m_len == 0)
-                return string.Empty;
-            return Encoding.UTF8.GetString(m_data, m_offset, m_len);
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (obj == null)
-                return false;
-
-                if (obj is osUTF8)
-                    return Equals((osUTF8)obj);
-
-                if (obj is osUTF8Slice)
-                    return Equals((osUTF8Slice)obj);
-
-                if (obj is string)
-                return Equals((string)obj);
-
-            return false;
-        }
-
-        public unsafe bool Equals(osUTF8Slice o)
-        {
-            if (m_len != o.m_len)
-                return false;
-
-            byte[] otherdata = o.m_data;
-
-            if (m_len < 8)
-            {
-                for (int i = m_offset, j = o.m_offset; i < m_offset + m_len; ++i, ++j)
-                {
-                    if (m_data[i] != otherdata[j])
-                        return false;
-                }
-                return true;
-            }
-
-            fixed (byte* a = &m_data[m_offset], b = &otherdata[o.m_offset])
-            {
-                for (int i = 0; i < m_len; ++i)
-                {
-                    if (a[i] != b[i])
-                        return false;
-                }
-            }
-
-            return true;
-        }
-
-        public unsafe bool Equals(osUTF8 o)
-        {
-            if (m_len != o.m_len)
-                return false;
-
-            byte[] otherdata = o.m_data;
-
-            if (m_len < 8)
-            {
-                for (int i = m_offset, j = 0; i < m_offset + m_len; ++i, ++j)
-                {
-                    if (m_data[i] != otherdata[j])
-                        return false;
-                }
-                return true;
-            }
-
-            fixed (byte* a = &m_data[m_offset], b = otherdata)
-            {
-                for (int i = 0; i < m_len; ++i)
-                {
-                    if (a[i] != b[i])
-                        return false;
-                }
-            }
-            return true;
-        }
-
-        public bool Equals(string s)
-        {
-            osUTF8 o = new osUTF8(s);
-            return Equals(o);
-        }
-
-        public void Clear()
-        {
-            m_offset = 0;
-            m_len = 0;
-        }
-
-        public osUTF8Slice Clone()
-        {
-            byte[] b = new byte[m_data.Length];
-            Array.Copy(m_data, 0, b, 0, m_data.Length);
-            return new osUTF8Slice(b, m_offset, m_len);
-        }
-
-        public osUTF8 Extract()
-        {
-            byte[] b = new byte[m_len];
-            Array.Copy(m_data, m_offset, b, 0, m_len);
-            return new osUTF8(b, 0, m_len);
-        }
-
-        public byte[] ToArray()
-        {
-            byte[] b = new byte[m_len];
-            Array.Copy(m_data, m_offset, b, 0, m_len);
+            byte[] b = new byte[s.Length];
+            for(int i = 0; i < s.Length; ++i)
+                b[i] = (byte)s[i];
             return b;
         }
 
-        public osUTF8Slice Concat(osUTF8Slice other)
+        public static bool IsNullOrEmpty(osUTF8 u)
         {
-            byte[] b = new byte[m_len + other.m_len];
-            Array.Copy(m_data, m_offset, b, 0, m_len);
-            Array.Copy(other.m_data, other.m_offset, b, m_len, other.m_len);
-            return new osUTF8Slice(b, 0, m_len + other.m_len);
+            return (u == null || u.m_len == 0);
         }
 
-        public osUTF8Slice Concat(osUTF8 other)
+        public static bool IsEmpty(osUTF8 u)
         {
-            byte[] b = new byte[m_len + other.m_len];
-            Array.Copy(m_data, m_offset, b, 0, m_len);
-            Array.Copy(other.m_data, 0, b, m_len, other.m_len);
-            return new osUTF8Slice(b, 0, m_len + other.m_len);
+            return (u == null || u.m_len == 0);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void CheckCapacity(ref int curindx, int needed)
+        public static unsafe bool IsNullOrWhitespace(osUTF8 u)
         {
-            int needlimit = curindx + needed;
-            int cur = m_data.Length;
-            if (needlimit > cur)
-            {
-                cur *= 2;
-                if (needlimit < cur)
-                    needlimit = cur;
-
-                if ((uint)needlimit > 0x7FFFFFC7)
-                    needlimit = 0x7FFFFFC7;
-
-                byte[] b = new byte[needlimit];
-                Array.Copy(m_data, m_offset, b, 0, m_len);
-
-                curindx -= m_offset;
-                m_offset = 0;
-                m_data = b;
-            }
-        }
-
-        public void AppendASCII(char c)
-        {
-            int indx = m_offset + m_len;
-            CheckCapacity(ref indx, 1);
-            m_data[indx] = (byte)c;
-            ++m_len;
-        }
-
-        public unsafe void AppendASCII(string asciiString)
-        {
-            int indx = m_offset + m_len;
-            int nbytes = asciiString.Length;
-            CheckCapacity(ref indx, nbytes);
-            fixed (byte* bdst = &m_data[indx])
-            {
-                fixed (char* bsrc = asciiString)
+            if(u == null || u.m_len == 0)
+                return true;
+            byte[] data = u.m_data;
+            for (int i = 0; i < u.m_len; ++i)
                 {
-                    char* src = bsrc;
-                    char* scrend = bsrc + nbytes;
-                    byte* dst = bdst;
-                    while (src <= scrend)
-                    {
-                        *dst = (byte)*src;
-                        ++src;
-                        ++dst;
-                    }
-                }
-            }
-            m_len += nbytes;
-        }
-
-        public void Append(string s)
-        {
-            int indx = m_offset + m_len;
-            int srcindx = 0;
-
-            CheckCapacity(ref indx, s.Length);
-            while (!Utils.osUTF8TryGetbytesNoNullTerm(s, ref srcindx, m_data, ref indx))
-            {
-                m_len = indx - m_offset;
-                CheckCapacity(ref indx, s.Length - srcindx + 256);
-            }
-
-            m_len = indx - m_offset;
-        }
-
-        public void Append(byte[] b)
-        {
-            int indx = m_offset + m_len;
-            int nbytes = b.Length;
-            CheckCapacity(ref indx, nbytes);
-            Array.Copy(b, 0, m_data, indx, nbytes);
-            m_len += nbytes;
-        }
-
-        public void Append(osUTF8Slice b)
-        {
-            int indx = m_offset + m_len;
-            int nbytes = b.m_len;
-            CheckCapacity(ref indx, nbytes);
-            Array.Copy(b.m_data, b.m_offset, m_data, indx, nbytes);
-            m_len += nbytes;
-        }
-
-        public void Append(osUTF8 b)
-        {
-            int indx = m_offset + m_len;
-            int nbytes = b.m_len;
-            CheckCapacity(ref indx, nbytes);
-            Array.Copy(b.m_data, 0, m_data, indx, nbytes);
-            m_len += nbytes;
-        }
-
-        public unsafe void ToASCIILowerSelf()
-        {
-            if (m_len == 0)
-                return;
-            fixed (byte* baseptr = m_data)
-            {
-                byte* ptr = baseptr + m_offset;
-                byte* end = ptr + m_len;
-                while (ptr < end)
-                {
-                    if (*ptr >= 0x41 && *ptr <= 0x5a)
-                        *ptr |= 0x20;
-                    ++ptr;
-                }
-            }
-        }
-
-        public unsafe void ToASCIIUpperSelf()
-        {
-            if (m_len == 0)
-                return;
-            fixed (byte* baseptr = m_data)
-            {
-                byte* ptr = baseptr + m_offset;
-                byte* end = ptr + m_len;
-                while (ptr < end)
-                {
-                    if (*ptr >= 0x61 && *ptr <= 0x7a)
-                        *ptr &= 0xdf;
-                    ++ptr;
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public osUTF8Slice SubUTF8(int start)
-        {
-            return SubUTF8(start, m_len - start);
-        }
-
-        //returns a segment view of main buffer
-        public osUTF8Slice SubUTF8(int start, int len)
-        {
-            if (start < 0)
-                start = 0;
-            if (len > m_len)
-                len = m_len;
-
-            start += m_offset; // things are relative to current
-
-            if (start >= m_data.Length)
-                return new osUTF8Slice(m_data, m_data.Length - 1, 0);
-
-            int last = start + len - 1;
-
-            // cut at code points;
-            if (start > 0 && (m_data[start] & 0x80) != 0)
-            {
-                do
-                {
-                    --last;
-                }
-                while (start > 0 && (m_data[start] & 0xc0) != 0xc0);
-            }
-
-            if (last > start && (m_data[last] & 0x80) != 0)
-            {
-                do
-                {
-                    --last;
-                }
-                while (last > start && (m_data[last] & 0xc0) != 0xc0);
-            }
-
-            return new osUTF8Slice(m_data, start, last - start + 1);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SubUTF8Self(int start)
-        {
-            SubUTF8Self(start, m_len - start);
-        }
-
-        //returns a segment view of main buffer
-        public void SubUTF8Self(int start, int len)
-        {
-            if (m_len == 0)
-                return;
-
-            if (start < 0)
-                start = 0;
-            else if (start >= m_len)
-            {
-                m_offset += m_len - 1;
-                m_len = 0;
-                return;
-            }
-
-            if (len == 0)
-            {
-                m_len = 0;
-                return;
-            }
-
-            if (len > m_len)
-                len = m_len;
-
-            start += m_offset; // things are relative to current
-
-            if (start >= m_data.Length)
-            {
-                m_offset = m_data.Length - 1;
-                m_len = 0;
-                return;
-            }
-
-            int last = start + len - 1;
-            // cut at code points;
-            if (start > 0 && (m_data[start] & 0x80) != 0)
-            {
-                do
-                {
-                    --last;
-                }
-                while (start > 0 && (m_data[start] & 0xc0) != 0xc0);
-            }
-
-            if (last > start && (m_data[last] & 0x80) != 0)
-            {
-                do
-                {
-                    --last;
-                }
-                while (last > start && (m_data[last] & 0xc0) != 0xc0);
-            }
-
-            m_offset = start;
-            m_len = last - start + 1;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public string SubString(int start)
-        {
-            return SubString(start, m_len - start);
-        }
-
-        //returns a segment view of main buffer
-        public string SubString(int start, int len)
-        {
-            osUTF8Slice res = SubUTF8(start, len);
-            return res.ToString();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool checkAny(byte b, byte[] bytes)
-        {
-            for (int i = 0; i < bytes.Length; ++i)
-            {
-                if (b == bytes[i])
-                    return true;
-            }
-            return false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool checkAny(byte b, char[] chars)
-        {
-            for (int i = 0; i < chars.Length; ++i)
-            {
-                if (b == (byte)chars[i])
-                    return true;
-            }
-            return false;
-        }
-
-        // inplace remove white spaces at start
-        public void SelfTrimStart()
-        {
-            if (m_len == 0)
-                return;
-            int last = m_offset + m_len - 1;
-            while (m_data[m_offset] == 0x20)
-            {
-                ++m_offset;
-                --m_len;
-                if (m_offset == last)
-                    break;
-            }
-        }
-
-        public void SelfTrimStart(byte b)
-        {
-            if (m_len == 0)
-                return;
-            int last = m_offset + m_len - 1;
-            while (m_data[m_offset] == b)
-            {
-                ++m_offset;
-                --m_len;
-                if (m_offset == last)
-                    break;
-            }
-        }
-
-        public void SelfTrimStart(byte[] b)
-        {
-            if (m_len == 0)
-                return;
-            int last = m_offset + m_len - 1;
-            while (checkAny(m_data[m_offset], b))
-            {
-                ++m_offset;
-                --m_len;
-                if (m_offset == last)
-                    break;
-            }
-        }
-
-        public void SelfTrimStart(char[] b)
-        {
-            if (m_len == 0)
-                return;
-            int last = m_offset + m_len - 1;
-            while (checkAny(m_data[m_offset], b))
-            {
-                ++m_offset;
-                --m_len;
-                if (m_offset == last)
-                    break;
-            }
-        }
-
-        public void SelfTrimEnd()
-        {
-            if (m_len == 0)
-                return;
-            int last = m_offset + m_len - 1;
-            while (m_data[last] == 0x20)
-            {
-                --last;
-                --m_len;
-                if (last == m_offset)
-                    break;
-            }
-        }
-
-        public void SelfTrimEnd(byte b)
-        {
-            if (m_len == 0)
-                return;
-            int last = m_offset + m_len - 1;
-            while (m_data[last] == b)
-            {
-                --last;
-                --m_len;
-                if (last == m_offset)
-                    break;
-            }
-        }
-
-        public void SelfTrimEnd(byte[] b)
-        {
-            if (m_len == 0)
-                return;
-            int last = m_offset + m_len - 1;
-            while (checkAny(m_data[last], b))
-            {
-                --last;
-                --m_len;
-                if (last == m_offset)
-                    break;
-            }
-        }
-
-        public void SelfTrimEnd(char[] b)
-        {
-            if (m_len == 0)
-                return;
-            int last = m_offset + m_len - 1;
-            while (checkAny(m_data[last], b))
-            {
-                --last;
-                --m_len;
-                if (last == m_offset)
-                    break;
-            }
-        }
-
-        public void SelfTrim()
-        {
-            SelfTrimStart();
-            SelfTrimEnd();
-        }
-
-        public void SelfTrim(byte b)
-        {
-            SelfTrimStart(b);
-            SelfTrimEnd(b);
-        }
-
-        public void SelfTrim(byte[] v)
-        {
-            SelfTrimStart(v);
-            SelfTrimEnd(v);
-        }
-
-        public void SelfTrim(char[] v)
-        {
-            SelfTrimStart(v);
-            SelfTrimEnd(v);
-        }
-
-        public osUTF8Slice TrimStart()
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimStart();
-            return ret;
-        }
-
-        public osUTF8Slice TrimEnd()
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimEnd();
-            return ret;
-        }
-
-        public osUTF8Slice Trim()
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimStart();
-            ret.SelfTrimEnd();
-            return ret;
-        }
-
-        public osUTF8Slice TrimStart(byte b)
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimStart(b);
-            return ret;
-        }
-
-        public osUTF8Slice TrimEnd(byte b)
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimEnd(b);
-            return ret;
-        }
-
-        public osUTF8Slice Trim(byte b)
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimStart(b);
-            ret.SelfTrimEnd(b);
-            return ret;
-        }
-
-        public osUTF8Slice TrimStart(byte[] v)
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimStart(v);
-            return ret;
-        }
-
-        public osUTF8Slice TrimEnd(byte[] v)
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimEnd(v);
-            return ret;
-        }
-
-        public osUTF8Slice Trim(byte[] v)
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimStart(v);
-            ret.SelfTrimEnd(v);
-            return ret;
-        }
-
-        public osUTF8Slice TrimStart(char[] v)
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimStart(v);
-            return ret;
-        }
-
-        public osUTF8Slice TrimEnd(char[] v)
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimEnd(v);
-            return ret;
-        }
-
-        public osUTF8Slice Trim(char[] v)
-        {
-            osUTF8Slice ret = new osUTF8Slice(this);
-            ret.SelfTrimStart(v);
-            ret.SelfTrimEnd(v);
-            return ret;
-        }
-
-        public unsafe bool StartsWith(osUTF8Slice other)
-        {
-            int otherlen = other.m_len;
-            if (otherlen > m_len)
-                return false;
-
-            fixed (byte* a = &m_data[m_offset], b = &other.m_data[other.m_offset])
-            {
-                for (int i = 0; i < otherlen; ++i)
-                {
-                    if (a[i] != b[i])
+                    if (data[i] != 0x20)
                         return false;
                 }
-            }
             return true;
-        }
-
-        public unsafe bool StartsWith(osUTF8 other)
-        {
-            int otherlen = other.m_len;
-            if (otherlen > m_len)
-                return false;
-
-            fixed (byte* a = &m_data[m_offset], b = other.m_data)
-            {
-                for (int i = 0; i < otherlen; ++i)
-                {
-                    if (a[i] != b[i])
-                        return false;
-                }
-            }
-            return true;
-        }
-
-        public bool StartsWith(string s)
-        {
-            osUTF8Slice other = new osUTF8Slice(s); // yeack
-            return StartsWith(other);
-        }
-
-        public bool StartsWith(byte b)
-        {
-            return m_data[m_offset] == b;
-        }
-
-        public bool StartsWith(char b)
-        {
-            return m_data[m_offset] == (byte)b;
-        }
-
-        public bool EndsWith(byte b)
-        {
-            return m_data[m_offset + m_len - 1] == b;
-        }
-
-        public bool EndsWith(char b)
-        {
-            return m_data[m_offset + m_len - 1] == (byte)b;
-        }
-
-        public unsafe bool EndsWith(osUTF8Slice other)
-        {
-            int otherlen = other.m_len;
-            if (otherlen > m_len)
-                return false;
-
-            fixed (byte* a = &m_data[m_offset], b = &other.m_data[other.m_offset])
-            {
-                for (int i = otherlen - 1, j = m_len - 1; i >= 0; --i, --j)
-                {
-                    if (a[j] != b[i])
-                        return false;
-                }
-                return true;
-            }
-        }
-
-        public unsafe bool EndsWith(osUTF8 other)
-        {
-            int otherlen = other.m_len;
-            if (otherlen > m_len)
-                return false;
-
-            fixed (byte* a = &m_data[m_offset], b = other.m_data)
-            {
-                for (int i = otherlen - 1, j = m_len - 1; i >= 0; --i, --j)
-                {
-                    if (a[j] != b[i])
-                        return false;
-                }
-                return true;
-            }
-        }
-
-        public bool EndsWith(string s)
-        {
-            osUTF8Slice other = new osUTF8Slice(s); // yeack
-            return EndsWith(other);
-        }
-
-        public unsafe int IndexOf(byte b)
-        {
-            if (m_len > 8)
-            {
-                fixed (byte* a = &m_data[m_offset])
-                {
-                    for (int i = 0; i < m_len; ++i)
-                    {
-                        if (a[i] == b)
-                            return i;
-                    }
-                    return -1;
-                }
-            }
-
-            for (int i = m_offset; i < m_offset + m_len; ++i)
-            {
-                if (m_data[i] == b)
-                    return i - m_offset;
-            }
-            return -1;
-        }
-
-        public int IndexOf(char b)
-        {
-            if (b < 0x80)
-                return IndexOf((byte)b);
-            string s = new string(new char[] { b });
-            return IndexOf(s);
-        }
-
-        public unsafe int IndexOf(osUTF8Slice other)
-        {
-            int otherlen = other.m_len;
-            if (otherlen > m_len || otherlen == 0)
-                return -1;
-
-            byte[] otherdata = other.m_data;
-            fixed (byte* a = &m_data[m_offset], b = &otherdata[other.m_offset])
-            {
-                for (int i = 0; i < m_len - otherlen; ++i)
-                {
-                    int k = 0;
-                    for (int j = i; k < otherlen; ++k, ++j)
-                    {
-                        if (a[j] != b[k])
-                            return -1;
-                    }
-                    if (k == otherlen)
-                        return i;
-                }
-                return -1;
-            }
-        }
-
-        public unsafe int IndexOf(osUTF8 other)
-        {
-            int otherlen = other.m_len;
-            if (otherlen > m_len || otherlen == 0)
-                return -1;
-
-            byte[] otherdata = other.m_data;
-            fixed (byte* a = &m_data[m_offset], b = otherdata)
-            {
-                for (int i = 0; i < m_len - otherlen; ++i)
-                {
-                    int k = 0;
-                    for (int j = i; k < otherlen; ++k, ++j)
-                    {
-                        if (a[j] != b[k])
-                            return -1;
-                    }
-                    if (k == otherlen)
-                        return i;
-                }
-                return -1;
-            }
-        }
-
-        public int IndexOf(string s)
-        {
-            if (string.IsNullOrEmpty(s))
-                return -1;
-            osUTF8 o = new osUTF8(s);
-            return IndexOf(o);
-        }
-
-        public unsafe int IndexOfAny(byte[] b)
-        {
-            if (m_len < 8)
-            {
-                for (int i = m_offset; i < m_offset + m_len; ++i)
-                {
-                    if (checkAny(m_data[i], b))
-                        return i - m_offset;
-                }
-                return -1;
-            }
-            fixed (byte* a = &m_data[m_offset])
-            {
-                for (int i = 0; i < m_len; ++i)
-                {
-                    if (checkAny(a[i], b))
-                        return i;
-                }
-                return -1;
-            }
-        }
-
-        public unsafe int IndexOfAny(char[] b)
-        {
-            if (m_len < 8)
-            {
-                for (int i = m_offset; i < m_offset + m_len; ++i)
-                {
-                    if (checkAny(m_data[i], b))
-                        return i - m_offset;
-                }
-                return -1;
-            }
-            fixed (byte* a = &m_data[m_offset])
-            {
-                for (int i = 0; i < m_len; ++i)
-                {
-                    if (checkAny(a[i], b))
-                        return i;
-                }
-                return -1;
-            }
-        }
-
-        public bool Contains(osUTF8Slice other)
-        {
-            return IndexOf(other) > 0;
-        }
-
-        public bool Contains(string s)
-        {
-            return IndexOf(s) > 0;
-        }
-
-        public osUTF8Slice[] Split(byte b, bool ignoreEmpty = true)
-        {
-            if (m_len == 0)
-            {
-                return new osUTF8Slice[] { this };
-            }
-
-            bool incEmpty = !ignoreEmpty;
-            osUTF8Slice tmp = new osUTF8Slice(this);
-            List<osUTF8Slice> lst = new List<osUTF8Slice>();
-
-            int indx;
-            while ((indx = tmp.IndexOf(b)) >= 0)
-            {
-                osUTF8Slice o = tmp.SubUTF8(0, indx);
-                if (incEmpty)
-                    lst.Add(o);
-                else if (o.m_len > 0)
-                    lst.Add(o);
-                tmp.MoveStart(indx + 1);
-            }
-
-            if (tmp.m_len > 0)
-                lst.Add(tmp);
-            return lst.ToArray();
-        }
-
-        public osUTF8Slice[] Split(byte[] b, bool ignoreEmpty = true)
-        {
-            if (m_len == 0)
-            {
-                return new osUTF8Slice[] { this };
-            }
-
-            bool incEmpty = !ignoreEmpty;
-            osUTF8Slice tmp = new osUTF8Slice(this);
-            List<osUTF8Slice> lst = new List<osUTF8Slice>();
-
-            int indx;
-            while ((indx = tmp.IndexOfAny(b)) >= 0)
-            {
-                osUTF8Slice o = tmp.SubUTF8(0, indx);
-                if (incEmpty)
-                    lst.Add(o);
-                else if (o.m_len > 0)
-                    lst.Add(o);
-                tmp.MoveStart(indx + 1);
-            }
-
-            if (tmp.m_len > 0)
-                lst.Add(tmp);
-            return lst.ToArray();
-        }
-
-        public osUTF8Slice[] Split(char[] b, bool ignoreEmpty = true)
-        {
-            if (m_len == 0)
-            {
-                return new osUTF8Slice[] { this };
-            }
-
-            bool incEmpty = !ignoreEmpty;
-            osUTF8Slice tmp = new osUTF8Slice(this);
-            List<osUTF8Slice> lst = new List<osUTF8Slice>();
-
-            int indx;
-            while ((indx = tmp.IndexOfAny(b)) >= 0)
-            {
-                osUTF8Slice o = tmp.SubUTF8(0, indx);
-                if (incEmpty)
-                    lst.Add(o);
-                else if (o.m_len > 0)
-                    lst.Add(o);
-                tmp.MoveStart(indx + 1);
-            }
-
-            if (tmp.m_len > 0)
-                lst.Add(tmp);
-            return lst.ToArray();
-        }
-
-        public osUTF8Slice[] Split(char b, bool ignoreEmpty = true)
-        {
-            if (b < 0x80)
-                return Split((byte)b, ignoreEmpty);
-
-            return new osUTF8Slice[0];
-        }
-
-        public unsafe bool ReadLine(out osUTF8Slice line)
-        {
-            if (m_len == 0)
-            {
-                line = new osUTF8Slice(new byte[0], 0, 0);
-                return false;
-            }
-
-            int lineend = -1;
-            byte b = 0;
-            if (m_len < 8)
-            {
-                for (int i = m_offset; i < m_offset + m_len; ++i)
-                {
-                    b = m_data[i];
-                    if (b == (byte)'\r' || b == (byte)'\n')
-                    {
-                        if (i > 0 && m_data[i - 1] == (byte)'\\')
-                            continue;
-                        lineend = i;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                fixed (byte* a = &m_data[m_offset])
-                {
-                    for (int i = 0; i < m_len; ++i)
-                    {
-                        b = a[i];
-                        if (b == (byte)'\r' || b == (byte)'\n')
-                        {
-                            if (i > 0 && a[i - 1] == (byte)'\\')
-                                continue;
-                            lineend = i + m_offset;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            line = new osUTF8Slice(m_data, m_offset, m_len);
-            if (lineend < 0)
-            {
-                m_offset = m_offset + m_len - 1;
-                m_len = 0;
-                return false;
-            }
-
-            int linelen = lineend - m_offset;
-            line.m_len = linelen;
-
-            ++linelen;
-            if (linelen >= m_len)
-            {
-                m_offset = m_offset + m_len - 1;
-                m_len = 0;
-                return true;
-            }
-
-            m_offset += linelen;
-            m_len -= linelen;
-
-            if (m_len <= 0)
-            {
-                m_len = 0;
-                return true;
-            }
-
-            if (b == (byte)'\r')
-            {
-                if (m_data[m_offset] == (byte)'\n')
-                {
-                    ++m_offset;
-                    --m_len;
-                }
-            }
-
-            if (m_len <= 0)
-                m_len = 0;
-
-            return true;
-        }
-
-        public unsafe bool SkipLine()
-        {
-            if (m_len == 0)
-                return false;
-
-            int lineend = -1;
-            byte b = 0;
-            if (m_len < 8)
-            {
-                for (int i = m_offset; i < m_offset + m_len; ++i)
-                {
-                    b = m_data[i];
-                    if (b == (byte)'\r' || b == (byte)'\n')
-                    {
-                        if (i > 0 && m_data[i - 1] == (byte)'\\')
-                            continue;
-                        lineend = i;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                fixed (byte* a = &m_data[m_offset])
-                {
-                    for (int i = 0; i < m_len; ++i)
-                    {
-                        b = a[i];
-                        if (b == (byte)'\r' || b == (byte)'\n')
-                        {
-                            if (i > 0 && a[i - 1] == (byte)'\\')
-                                continue;
-                            lineend = i + m_offset;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (lineend < 0)
-            {
-                m_offset = m_offset + m_len - 1;
-                m_len = 0;
-                return true;
-            }
-
-            int linelen = lineend - m_offset;
-
-            ++linelen;
-            if (linelen >= m_len)
-            {
-                m_offset = m_offset + m_len - 1;
-                m_len = 0;
-                return true;
-            }
-
-            m_offset += linelen;
-            m_len -= linelen;
-            if (m_len <= 0)
-            {
-                m_len = 0;
-                return true;
-            }
-
-            if (b == (byte)'\r')
-            {
-                if (m_data[m_offset] == (byte)'\n')
-                {
-                    ++m_offset;
-                    --m_len;
-                }
-            }
-
-            if (m_len <= 0)
-                m_len = 0;
-
-            return true;
-        }
-
-        public static bool TryParseInt(osUTF8Slice t, out int res)
-        {
-            res = 0;
-
-            t.SelfTrim();
-            int len = t.m_len;
-            if (len == 0)
-                return false;
-
-            byte[] data = t.m_data;
-
-            int start = t.m_offset;
-            len += start;
-
-            bool neg = false;
-            if (data[start] == (byte)'-')
-            {
-                neg = true;
-                ++start;
-            }
-            else if (data[start] == (byte)'+')
-                ++start;
-
-            int b;
-            try
-            {
-                while (start < len)
-                {
-                    b = data[start];
-                    b -= (byte)'0';
-                    if (b < 0 || b > 9)
-                        break;
-
-                    res *= 10;
-                    res += b;
-                    ++start;
-                }
-                if (neg)
-                    res = -res;
-                return true;
-            }
-            catch { }
-            return false;
-        }
-
-        public static bool TryParseUUID(osUTF8Slice inp, out UUID res, bool dashs = true)
-        {
-            res = UUID.Zero;
-            osUTF8Slice t = new osUTF8Slice(inp);
-
-            t.SelfTrim();
-            int len = t.m_len;
-            if (len == 0)
-                return false;
-
-            if (dashs)
-            {
-                if (len < 36)
-                    return false;
-            }
-            else
-            {
-                if (len < 32)
-                    return false;
-            }
-
-            byte[] data = t.m_data;
-            int dataoffset = t.m_offset;
-
-            int _a = 0;
-            if (!Utils.TryHexToInt(data, dataoffset, 8, out _a))
-                return false;
-            dataoffset += 8;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            int n;
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-            short _b = (short)n;
-            dataoffset += 4;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-            short _c = (short)n;
-            dataoffset += 4;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-
-            byte _d = (byte)(n >> 8);
-            byte _e = (byte)n;
-            dataoffset += 4;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            if (!Utils.TryHexToInt(data, dataoffset, 8, out n))
-                return false;
-            byte _f = (byte)(n >> 24);
-            byte _g = (byte)(n >> 16);
-            byte _h = (byte)(n >> 8);
-            byte _i = (byte)n;
-            dataoffset += 8;
-
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-            byte _j = (byte)(n >> 8);
-            byte _k = (byte)n;
-
-            Guid g = new Guid(_a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k);
-            res = new UUID(g);
-            return true;
-        }
-    }
-
-/*
-    public static class OSUTF8Cached
-    {
-        [ThreadStatic]
-        private static byte[] m_cached;
-
-        public static osUTF8 Acquire()
-        {
-            byte[] sb = m_cached;
-            if (sb != null)
-            {
-                m_cached = null;
-                return new osUTF8(sb);
-            }
-            return new osUTF8(4096);
-        }
-
-        public static osUTF8 Acquire(int capacity)
-        {
-            if (capacity <= 4096)
-            {
-                byte[] sb = m_cached;
-                if (sb != null)
-                {
-                    m_cached = null;
-                    return new osUTF8(sb);
-                }
-                capacity = 4096;
-            }
-            return new osUTF8(capacity);
-        }
-
-        public static void Release(osUTF8 sb)
-        {
-            if (sb.Capacity == 4096)
-                m_cached = sb.m_data;
-        }
-
-        public static byte[] GetArrayAndRelease(osUTF8 sb)
-        {
-            byte[] result = sb.ToArray();
-            if (sb.Capacity == 4096)
-                m_cached = sb.m_data;
-            return result;
-        }
-    }
-    */
-
-    public static class OSUTF8Cached
-    {
-        [ThreadStatic]
-        private static osUTF8 m_cached;
-
-        public static osUTF8 Acquire()
-        {
-            osUTF8 sb = m_cached;
-            if (sb != null)
-            {
-                m_cached = null;
-                sb.Clear();
-                return sb;
-            }
-            return new osUTF8(4096);
-        }
-
-        public static osUTF8 Acquire(int capacity)
-        {
-            if (capacity <= 4096)
-            {
-                osUTF8 sb = m_cached;
-                if (sb != null)
-                {
-                    m_cached = null;
-                    sb.Clear();
-                    return sb;
-                }
-                capacity = 4096;
-            }
-            return new osUTF8(capacity);
-        }
-
-        public static void Release(osUTF8 sb)
-        {
-            if (sb.Capacity == 4096)
-                m_cached = sb;
-        }
-
-        public static byte[] GetArrayAndRelease(osUTF8 sb)
-        {
-            byte[] result = sb.ToArray();
-            if (sb.Capacity == 4096)
-                m_cached = sb;
-            return result;
         }
     }
 }
