@@ -413,7 +413,7 @@ namespace OpenMetaverse
             int srcindx = 0;
 
             CheckCapacity(s.Length);
-            while (!Utils.osUTF8TryGetbytesNoNullTerm(s, ref srcindx, m_data, ref indx))
+            while (!Utils.osUTF8TryGetbytesNoTerm(s, ref srcindx, m_data, ref indx))
             {
                 m_len = indx;
                 CheckCapacity(s.Length - srcindx + 256);
