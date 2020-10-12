@@ -1438,7 +1438,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="str">The string to convert</param>
         /// <returns>A null-terminated UTF8 byte array</returns>
-        public static unsafe byte[] StringToBytes(string str)
+        public static byte[] StringToBytes(string str)
         {
             if (string.IsNullOrEmpty(str))
                 return EmptyBytes;
@@ -1451,7 +1451,7 @@ namespace OpenMetaverse
             return dstarray;
         }
 
-        public static unsafe byte[] StringToBytes(string str, int maxlen)
+        public static byte[] StringToBytes(string str, int maxlen)
         {
             if (string.IsNullOrEmpty(str))
                 return EmptyBytes;
@@ -1464,7 +1464,7 @@ namespace OpenMetaverse
             return dstarray;
         }
 
-        public static unsafe byte[] StringToBytesNoTerm(string str)
+        public static byte[] StringToBytesNoTerm(string str)
         {
             if (string.IsNullOrEmpty(str))
                 return EmptyBytes;
@@ -1477,7 +1477,7 @@ namespace OpenMetaverse
             return dstarray;
         }
 
-        public static unsafe byte[] StringToBytesNoTerm(string str, int maxlen)
+        public static byte[] StringToBytesNoTerm(string str, int maxlen)
         {
             if (string.IsNullOrEmpty(str))
                 return EmptyBytes;
@@ -1495,6 +1495,7 @@ namespace OpenMetaverse
             int dstlen = NullTerm ? maxdstlen - 1 : maxdstlen;
             int srclen = srclenght > dstlen ? dstlen : srclenght;
 
+            int ret = 0;
             char c;
             fixed(char* srcarray = source)
             {
@@ -1503,6 +1504,7 @@ namespace OpenMetaverse
                     char* src = srcarray;
                     char* srcend = src + srclen;
                     char* srcend1 = srcend - 1;
+
                     byte* dst = dstarray;
                     byte* dstend = dst + dstlen;
                     byte* dstend2 = dstend - 2;
@@ -1511,13 +1513,11 @@ namespace OpenMetaverse
 
                     while (src < srcend && dst < dstend)
                     {
-                        c = *src;
-                        ++src;
+                        c = *src++;
 
                         if (c <= 0x7f)
                         {
-                            *dst = (byte)c;
-                            ++dst;
+                            *dst++ = (byte)c;
                             continue;
                         }
 
@@ -1525,10 +1525,9 @@ namespace OpenMetaverse
                         {
                             if (dst >= dstend2)
                                 break;
-                            *dst = (byte)(0xC0 | (c >> 6));
-                            ++dst;
-                            *dst = (byte)(0x80 | (c & 0x3F));
-                            ++dst;
+
+                            *dst++ = (byte)(0xC0 | (c >> 6));
+                            *dst++ = (byte)(0x80 | (c & 0x3F));
                             continue;
                         }
 
@@ -1541,35 +1540,28 @@ namespace OpenMetaverse
 
                             int a = c;
 
-                            c = *src;
-                            ++src;
+                            c = *src++;
+
                             if (c < 0xDC00 || c > 0xDFFF)
                                 continue; // ignore invalid
 
                             a = (a << 10) + c - 0x35fdc00;
 
-                            *dst = (byte)(0xF0 | (a >> 18));
-                            ++dst;
-                            *dst = (byte)(0x80 | ((a >> 12) & 0x3f));
-                            ++dst;
-                            *dst = (byte)(0x80 | ((a >> 6) & 0x3f));
-                            ++dst;
-                            *dst = (byte)(0x80 | (a & 0x3f));
-                            ++dst;
+                            *dst++ = (byte)(0xF0 | (a >> 18));
+                            *dst++ = (byte)(0x80 | ((a >> 12) & 0x3f));
+                            *dst++ = (byte)(0x80 | ((a >> 6) & 0x3f));
+                            *dst++ = (byte)(0x80 | (a & 0x3f));
                             continue;
                         }
                         if (dst >= dstend3)
                             break;
 
-                        *dst = (byte)(0xE0 | (c >> 12));
-                        ++dst;
-                        *dst = (byte)(0x80 | ((c >> 6) & 0x3f));
-                        ++dst;
-                        *dst = (byte)(0x80 | (c & 0x3f));
-                        ++dst;
+                        *dst++ = (byte)(0xE0 | (c >> 12));
+                        *dst++ = (byte)(0x80 | ((c >> 6) & 0x3f));
+                        *dst++ = (byte)(0x80 | (c & 0x3f));
                     }
 
-                    int ret = (int)(dst - dstarray);
+                    ret = (int)(dst - dstarray);
                     if(ret > 0)
                     {
                         if (NullTerm)
@@ -1586,9 +1578,9 @@ namespace OpenMetaverse
                             --ret;
                         }
                     }
-                    return ret;
                 }
             }
+            return ret;
         }
 
         public static unsafe bool osUTF8TryGetbytesNoTerm(string srcstr, ref int srcstart, byte[] dstarray, ref int pos)
@@ -1596,8 +1588,8 @@ namespace OpenMetaverse
             if (string.IsNullOrEmpty(srcstr))
                 return true;
 
+            bool ret = false;
             int free = dstarray.Length - pos;
-
             fixed (char* srcbase = srcstr)
             {
                 fixed (byte* dstbase = dstarray)
@@ -1610,13 +1602,11 @@ namespace OpenMetaverse
                     char c;
                     while (src < srcend && free > 0)
                     {
-                        c = *src;
-                        ++src;
+                        c = *src++;
 
                         if (c <= 0x7f)
                         {
-                            *dst = (byte)c;
-                            ++dst;
+                            *dst++ = (byte)c;
                             --free;
                             continue;
                         }
@@ -1629,10 +1619,8 @@ namespace OpenMetaverse
                                 --src;
                                 break;
                             }
-                            *dst = (byte)(0xC0 | (c >> 6));
-                            ++dst;
-                            *dst = (byte)(0x80 | (c & 0x3F));
-                            ++dst;
+                            *dst++ = (byte)(0xC0 | (c >> 6));
+                            *dst++ = (byte)(0x80 | (c & 0x3F));
                             continue;
                         }
 
@@ -1644,9 +1632,8 @@ namespace OpenMetaverse
                                 break;
 
                             int a = c;
+                            c = *src++;
 
-                            c = *src;
-                            ++src;
                             if (c < 0xDC00 || c > 0xDFFF)
                                 continue; // ignore invalid
 
@@ -1659,14 +1646,10 @@ namespace OpenMetaverse
 
                             a = (a << 10) + c - 0x35fdc00;
 
-                            *dst = (byte)(0xF0 | (a >> 18));
-                            ++dst;
-                            *dst = (byte)(0x80 | ((a >> 12) & 0x3f));
-                            ++dst;
-                            *dst = (byte)(0x80 | ((a >> 6) & 0x3f));
-                            ++dst;
-                            *dst = (byte)(0x80 | (a & 0x3f));
-                            ++dst;
+                            *dst++ = (byte)(0xF0 | (a >> 18));
+                            *dst++ = (byte)(0x80 | ((a >> 12) & 0x3f));
+                            *dst++ = (byte)(0x80 | ((a >> 6) & 0x3f));
+                            *dst++ = (byte)(0x80 | (a & 0x3f));
                             continue;
                         }
 
@@ -1677,12 +1660,9 @@ namespace OpenMetaverse
                             break;
                         }
 
-                        *dst = (byte)(0xE0 | (c >> 12));
-                        ++dst;
-                        *dst = (byte)(0x80 | ((c >> 6) & 0x3f));
-                        ++dst;
-                        *dst = (byte)(0x80 | (c & 0x3f));
-                        ++dst;
+                        *dst++ = (byte)(0xE0 | (c >> 12));
+                        *dst++ = (byte)(0x80 | ((c >> 6) & 0x3f));
+                        *dst++ = (byte)(0x80 | (c & 0x3f));
                     }
 
                     pos = (int)(dst - dstbase);
@@ -1691,39 +1671,38 @@ namespace OpenMetaverse
                     {
                         if(pos > 0 && *(dst - 1) == 0)
                             --pos;
-                        return true;
+                        ret = true;
                     }
-                    return false;
                 }
             }
+            return ret;
         }
 
-        public static unsafe bool osUTF8TryGetbytesNullTerm(string srcstr, ref int srcstart, byte[] dstarray, ref int pos)
+        public static unsafe bool osUTF8TryGetbytesNullTerm(string srcstr, ref int sourceindx, byte[] dstarray, ref int destindx)
         {
             if (string.IsNullOrEmpty(srcstr))
                 return true;
 
-            int free = dstarray.Length - pos - 1;
+            bool ret = false;
+            int free = dstarray.Length - destindx - 1;
 
             fixed (char* srcbase = srcstr)
             {
                 fixed (byte* dstbase = dstarray)
                 {
-                    char* src = srcbase + srcstart;
+                    char* src = srcbase + sourceindx;
                     char* srcend = srcbase + srcstr.Length;
                     char* srcend1 = srcend - 1;
-                    byte* dst = dstbase + pos;
+                    byte* dst = dstbase + destindx;
 
                     char c;
                     while (src < srcend && free > 0)
                     {
-                        c = *src;
-                        ++src;
+                        c = *src++;
 
                         if (c <= 0x7f)
                         {
-                            *dst = (byte)c;
-                            ++dst;
+                            *dst++ = (byte)c;
                             --free;
                             continue;
                         }
@@ -1736,10 +1715,8 @@ namespace OpenMetaverse
                                 --src;
                                 break;
                             }
-                            *dst = (byte)(0xC0 | (c >> 6));
-                            ++dst;
-                            *dst = (byte)(0x80 | (c & 0x3F));
-                            ++dst;
+                            *dst++ = (byte)(0xC0 | (c >> 6));
+                            *dst++ = (byte)(0x80 | (c & 0x3F));
                             continue;
                         }
 
@@ -1751,9 +1728,8 @@ namespace OpenMetaverse
                                 break;
 
                             int a = c;
+                            c = *src++;
 
-                            c = *src;
-                            ++src;
                             if (c < 0xDC00 || c > 0xDFFF)
                                 continue; // ignore invalid
 
@@ -1766,14 +1742,10 @@ namespace OpenMetaverse
 
                             a = (a << 10) + c - 0x35fdc00;
 
-                            *dst = (byte)(0xF0 | (a >> 18));
-                            ++dst;
-                            *dst = (byte)(0x80 | ((a >> 12) & 0x3f));
-                            ++dst;
-                            *dst = (byte)(0x80 | ((a >> 6) & 0x3f));
-                            ++dst;
-                            *dst = (byte)(0x80 | (a & 0x3f));
-                            ++dst;
+                            *dst++ = (byte)(0xF0 | (a >> 18));
+                            *dst++ = (byte)(0x80 | ((a >> 12) & 0x3f));
+                            *dst++ = (byte)(0x80 | ((a >> 6) & 0x3f));
+                            *dst++ = (byte)(0x80 | (a & 0x3f));
                             continue;
                         }
 
@@ -1784,28 +1756,25 @@ namespace OpenMetaverse
                             break;
                         }
 
-                        *dst = (byte)(0xE0 | (c >> 12));
-                        ++dst;
-                        *dst = (byte)(0x80 | ((c >> 6) & 0x3f));
-                        ++dst;
-                        *dst = (byte)(0x80 | (c & 0x3f));
-                        ++dst;
+                        *dst++ = (byte)(0xE0 | (c >> 12));
+                        *dst++ = (byte)(0x80 | ((c >> 6) & 0x3f));
+                        *dst++ = (byte)(0x80 | (c & 0x3f));
                     }
 
-                    pos = (int)(dst - dstbase);
-                    srcstart = (int)(src - srcbase);
+                    destindx = (int)(dst - dstbase);
+                    sourceindx = (int)(src - srcbase);
                     if (src == srcend)
                     {
-                        if (free <= 0)
-                            return false;
-
-                        *dst = 0;
-                        ++pos;
-                        return true;
+                        if (free > 0)
+                        {
+                            *dst = 0;
+                            ++destindx;
+                            ret = true;
+                        }
                     }
-                    return false;
                 }
             }
+            return ret;
         }
 
         public static int osUTF8GetBytesCountNoTerm(string str, out int maxsource)
@@ -1916,7 +1885,7 @@ namespace OpenMetaverse
         public static int osUTF8GetBytesCountWithTerm(string str, out int maxstrlen)
         {
             maxstrlen = 0;
-            char c = (char)0;
+            char c;
             char lastc = (char)0;
             int nbytes = 0;
             int i = 0;
