@@ -66,12 +66,6 @@ namespace OpenMetaverse
             m_len = source.Length;
         }
 
-        public osUTF8(byte[] source, int offset, int len)
-        {
-            m_data = source;
-            m_len = len;
-        }
-
         public osUTF8(osUTF8Slice source)
         {
             m_data = source.ToArray();
@@ -348,7 +342,7 @@ namespace OpenMetaverse
             byte[] b = new byte[m_len + other.m_len];
             Array.Copy(m_data, 0, b, 0, m_len);
             Array.Copy(other.m_data, 0, b, m_len, other.m_len);
-            return new osUTF8(b, 0, m_len + other.m_len);
+            return new osUTF8(b);
         }
 
         public void CheckCapacity(int needed)
@@ -396,7 +390,7 @@ namespace OpenMetaverse
                     char* src = bsrc;
                     char* scrend = bsrc + nbytes;
                     byte* dst = bdst;
-                    while (src <= scrend)
+                    while (src < scrend)
                     {
                         *dst = (byte)*src;
                         ++src;

@@ -405,7 +405,7 @@ namespace OpenMetaverse
         {
             byte[] b = new byte[m_len];
             Array.Copy(m_data, m_offset, b, 0, m_len);
-            return new osUTF8(b, 0, m_len);
+            return new osUTF8(b);
         }
 
         public byte[] ToArray()

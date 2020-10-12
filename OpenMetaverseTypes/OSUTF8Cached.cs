@@ -84,14 +84,15 @@ namespace OpenMetaverse
                         os.Clear();
                         return os;
                     }
+                    capacity = MAXDATASIZE;
                 }
             }
-            return new osUTF8(4096);
+            return new osUTF8(capacity);
         }
 
         public static void Release(osUTF8 os)
         {
-            if (os.m_data.Length <= MAXDATASIZE)
+            if (os.m_data.Length == MAXDATASIZE)
             {
                 lock (m_poollock)
                 {
@@ -108,7 +109,7 @@ namespace OpenMetaverse
         public static byte[] GetArrayAndRelease(osUTF8 os)
         {
             byte[] result = os.ToArray();
-            if (os.m_data.Length <= MAXDATASIZE)
+            if (os.m_data.Length == MAXDATASIZE)
             {
                 lock (m_poollock)
                 {
