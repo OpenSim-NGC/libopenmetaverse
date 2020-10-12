@@ -34,54 +34,92 @@
     Ubit Umarov (Leal Duarte) 2020
 */
 
-using System;
 
 namespace OpenMetaverse
 {
     public static class OSUTF8Cached
     {
-        [ThreadStatic]
-        private static osUTF8 m_cached;
+        const int MAXSIZE = 128; // 8MB
+        const int PREALLOC = 128;
+        const int MAXDATASIZE = 64 * 1024;
+
+        private static readonly osUTF8[] m_pool = new osUTF8[MAXSIZE];
+        private static readonly object m_poollock = new object();
+        private static int m_poolPtr;
+
+        static OSUTF8Cached()
+        {
+            for (int i = 0; i < PREALLOC; ++i)
+                m_pool[i] = new osUTF8(MAXDATASIZE);
+            m_poolPtr = PREALLOC - 1;
+        }
 
         public static osUTF8 Acquire()
         {
-            osUTF8 sb = m_cached;
-            if (sb != null)
+            lock (m_poollock)
             {
-                m_cached = null;
-                sb.Clear();
-                return sb;
+                if (m_poolPtr >= 0)
+                {
+                    osUTF8 os = m_pool[m_poolPtr];
+                    m_pool[m_poolPtr] = null;
+                    m_poolPtr--;
+                    os.Clear();
+                    return os;
+                }
             }
-            return new osUTF8(4096);
+            return new osUTF8(MAXDATASIZE);
         }
 
         public static osUTF8 Acquire(int capacity)
         {
-            if (capacity <= 4096)
+            if(capacity <= MAXDATASIZE)
             {
-                osUTF8 sb = m_cached;
-                if (sb != null)
+                lock (m_poollock)
                 {
-                    m_cached = null;
-                    sb.Clear();
-                    return sb;
+                    if (m_poolPtr >= 0)
+                    {
+                        osUTF8 os = m_pool[m_poolPtr];
+                        m_pool[m_poolPtr] = null;
+                        m_poolPtr--;
+                        os.Clear();
+                        return os;
+                    }
                 }
-                capacity = 4096;
             }
-            return new osUTF8(capacity);
+            return new osUTF8(4096);
         }
 
-        public static void Release(osUTF8 sb)
+        public static void Release(osUTF8 os)
         {
-            if (sb.Capacity == 4096)
-                m_cached = sb;
+            if (os.m_data.Length <= MAXDATASIZE)
+            {
+                lock (m_poollock)
+                {
+                    if (m_poolPtr < MAXSIZE - 1)
+                    {
+                        os.Clear();
+                        m_poolPtr++;
+                        m_pool[m_poolPtr] = os;
+                    }
+                }
+            }
         }
 
-        public static byte[] GetArrayAndRelease(osUTF8 sb)
+        public static byte[] GetArrayAndRelease(osUTF8 os)
         {
-            byte[] result = sb.ToArray();
-            if (sb.Capacity == 4096)
-                m_cached = sb;
+            byte[] result = os.ToArray();
+            if (os.m_data.Length <= MAXDATASIZE)
+            {
+                lock (m_poollock)
+                {
+                    if (m_poolPtr < MAXSIZE - 1)
+                    {
+                        os.Clear();
+                        m_poolPtr++;
+                        m_pool[m_poolPtr] = os;
+                    }
+                }
+            }
             return result;
         }
     }
