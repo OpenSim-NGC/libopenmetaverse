@@ -1,3 +1,6 @@
+# Set default
+* text=auto
+
 # These files are text and should be normalized (convert crlf =&gt; lf)
 *.cs      text diff=csharp
 *.xaml    text
