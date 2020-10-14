@@ -111,7 +111,7 @@ namespace OpenMetaverse
             m_len = 0;
             if (isascii)
             {
-                m_data = new byte[m_len];
+                m_data = new byte[source.Length];
                 AppendASCII(source);
             }
             else
@@ -126,7 +126,7 @@ namespace OpenMetaverse
             get
             {
                 if (i >= m_len)
-                    i = m_len;
+                    i = m_len - 1;
                 i += m_offset;
                 if (i < 0)
                     i = 0;
@@ -474,7 +474,7 @@ namespace OpenMetaverse
                     char* src = bsrc;
                     char* scrend = bsrc + nbytes;
                     byte* dst = bdst;
-                    while (src <= scrend)
+                    while (src < scrend)
                     {
                         *dst = (byte)*src;
                         ++src;

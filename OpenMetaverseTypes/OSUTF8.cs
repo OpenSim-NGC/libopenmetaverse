@@ -74,7 +74,7 @@ namespace OpenMetaverse
 
         public osUTF8(osUTF8 source)
         {
-            m_data = source.m_data;
+            m_data = source.ToArray();
             m_len = source.Length;
         }
 
@@ -95,7 +95,7 @@ namespace OpenMetaverse
             if(isascii)
             {
                 m_len = 0;
-                m_data = new byte[m_len];
+                m_data = new byte[source.Length];
                 AppendASCII(source);
             }
             else
@@ -110,7 +110,7 @@ namespace OpenMetaverse
             get
             {
                 if (i >= m_len)
-                    i = m_len;
+                    i = m_len - 1;
                 if (i < 0)
                     i = 0;
                 else if (i >= m_data.Length)
@@ -128,7 +128,6 @@ namespace OpenMetaverse
         {
             get { return m_data.Length; }
         }
-
 
         public unsafe override int GetHashCode()
         {

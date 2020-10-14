@@ -688,7 +688,7 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.String:
                     return new OSDString(((OSDString)this).value);
                 case OSDType.OSDUTF8:
-                    return new OSDUTF8(((OSDUTF8)this).value.Clone());
+                    return new OSDUTF8(((OSDUTF8)this).value);
                 case OSDType.UUID:
                     return new OSDUUID(((OSDUUID)this).value);
                 case OSDType.Date:
