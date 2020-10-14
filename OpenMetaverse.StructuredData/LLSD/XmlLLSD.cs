@@ -98,12 +98,39 @@ namespace OpenMetaverse.StructuredData
 
         public static byte[] SerializeLLSDXmlToBytes(OSD data, bool formal = false)
         {
-            return Encoding.UTF8.GetBytes(SerializeLLSDXmlString(data, formal));
+            osUTF8 tmp = OSUTF8Cached.Acquire();
+            if (formal)
+                tmp.Append(osUTF8Const.XMLformalHeaderllsdstart);
+            else
+                tmp.Append(osUTF8Const.XMLllsdStart);
+            SerializeLLSDXmlElement(tmp, data, formal);
+            tmp.Append(osUTF8Const.XMLllsdEnd);
+
+            return OSUTF8Cached.GetArrayAndRelease(tmp);
+        }
+
+        public static byte[] SerializeLLSDXmlToBytes(OSD data)
+        {
+            osUTF8 tmp = OSUTF8Cached.Acquire();
+
+            tmp.Append(osUTF8Const.XMLllsdStart);
+            SerializeLLSDXmlElement(tmp, data, false);
+            tmp.Append(osUTF8Const.XMLllsdEnd);
+
+            return OSUTF8Cached.GetArrayAndRelease(tmp);
+        }
+
+        public static byte[] SerializeInnerLLSDXmlToBytes(OSD data)
+        {
+            osUTF8 tmp = OSUTF8Cached.Acquire();
+            SerializeLLSDXmlElement(tmp, data, false);
+
+            return OSUTF8Cached.GetArrayAndRelease(tmp);
         }
 
         public static byte[] SerializeLLSDXmlBytes(OSD data, bool formal = false)
         {
-            return Encoding.UTF8.GetBytes(SerializeLLSDXmlString(data, formal));
+            return SerializeLLSDXmlToBytes(data, formal);
         }
 
         /// <summary>
@@ -290,137 +317,188 @@ namespace OpenMetaverse.StructuredData
 
         private static void writeOSDString(MemoryStream mb, OSD data)
         {
-            byte[] tmp = Encoding.UTF8.GetBytes(data.AsString());
-            mb.Write(tmp,0,tmp.Length);
-        }
-
-        public static void EscapeToXML(MemoryStream ms, string s)
-        {
-            int i;
             char c;
-            int len = s.Length;
-
-            for (i = 0; i < len; i++)
+            for (int i = 0; i < s.Length; i++)
             {
                 c = s[i];
                 switch (c)
                 {
                     case '<':
-                        ms.Write(ltB, 0, ltB.Length);
+                        ms.Append(osUTF8Const.XMLamp_lt);
                         break;
                     case '>':
-                        ms.Write(gtB, 0, gtB.Length);
+                        ms.Append(osUTF8Const.XMLamp_gt);
                         break;
                     case '&':
-                        ms.Write(ampB, 0, ampB.Length);
+                        ms.Append(osUTF8Const.XMLamp);
                         break;
                     case '"':
-                        ms.Write(quotB, 0, quotB.Length);
+                        ms.Append(osUTF8Const.XMLamp_quot);
                         break;
                     case '\\':
-                        ms.Write(aposB, 0, aposB.Length);
+                        ms.Append(osUTF8Const.XMLamp_apos);
                         break;
                     default:
-                        ms.WriteByte((byte)c);
+                        ms.AppendASCII(c);
                         break;
                 }
             }
         }
 
-        public static void SerializeLLSDXmlElement(MemoryStream mb, OSD data, bool formal)
+        public static void EscapeToXML(osUTF8 ms, string s)
+        {
+            char c;
+            for (int i = 0; i <  s.Length; i++)
+            {
+                c = s[i];
+                switch (c)
+                {
+                    case '<':
+                        ms.Append(osUTF8Const.XMLamp_lt);
+                        break;
+                    case '>':
+                        ms.Append(osUTF8Const.XMLamp_gt);
+                        break;
+                    case '&':
+                        ms.Append(osUTF8Const.XMLamp);
+                        break;
+                    case '"':
+                        ms.Append(osUTF8Const.XMLamp_quot);
+                        break;
+                    case '\\':
+                        ms.Append(osUTF8Const.XMLamp_apos);
+                        break;
+                    default:
+                        ms.AppendCharBytes(c, ref s, ref i);
+                        break;
+                }
+            }
+        }
+
+        public static void EscapeToXML(osUTF8 ms, osUTF8 s)
+        {
+            byte c;
+            for (int i = 0; i < s.Length; i++)
+            {
+                c = s[i];
+                switch (c)
+                {
+                    case (byte)'<':
+                        ms.Append(osUTF8Const.XMLamp_lt);
+                        break;
+                    case (byte)'>':
+                        ms.Append(osUTF8Const.XMLamp_gt);
+                        break;
+                    case (byte)'&':
+                        ms.Append(osUTF8Const.XMLamp);
+                        break;
+                    case (byte)'"':
+                        ms.Append(osUTF8Const.XMLamp_quot);
+                        break;
+                    case (byte)'\\':
+                        ms.Append(osUTF8Const.XMLamp_apos);
+                        break;
+                    default:
+                        ms.Append(c);
+                        break;
+                }
+            }
+        }
+
+        public static void SerializeLLSDXmlElement(osUTF8 mb, OSD data, bool formal)
         {
             switch (data.Type)
             {
                 case OSDType.Unknown:
-                    mb.Write(undefBytes, 0, undefBytes.Length);
+                    mb.Append(osUTF8Const.XMLundef);
                     break;
                 case OSDType.Boolean:
                     if(data.AsBoolean())
-                        mb.Write(booleanOneB, 0, booleanOneB.Length);
+                        mb.Append(osUTF8Const.XMLfullbooleanOne);
                     else
-                        mb.Write(booleanZeroB, 0, booleanZeroB.Length);
+                        mb.Append(osUTF8Const.XMLfullbooleanZero);
                     break;
                 case OSDType.Integer:
-                    mb.Write(integerB, 0, integerB.Length);
-                    writeOSDString(mb, data);
-                    mb.Write(integerBend, 0, integerBend.Length);
+                    mb.Append(osUTF8Const.XMLintegerStart);
+                    mb.AppendInt(data.AsInteger());
+                    mb.Append(osUTF8Const.XMLintegerEnd);
                     break;
                 case OSDType.Real:
-                    mb.Write(realB, 0, realB.Length);
-                    writeOSDString(mb, data);
-                    mb.Write(realBend, 0, realBend.Length);
+                    mb.Append(osUTF8Const.XMLrealStart);
+                    mb.AppendASCII(data.ToString());
+                    mb.Append(osUTF8Const.XMLrealEnd);
                     break;
                 case OSDType.String:
-                    mb.Write(stringB, 0, stringB.Length);
-                    writeOSDString(mb, data);
-                    mb.Write(stringBend, 0, stringBend.Length);
+                    mb.Append(osUTF8Const.XMLstringStart);
+                    EscapeToXML(mb, data);
+                    mb.Append(osUTF8Const.XMLstringEnd);
                     break;
                 case OSDType.UUID:
-                    mb.Write(uuidB, 0, uuidB.Length);
-                    writeOSDString(mb, data);
-                    mb.Write(uuidBend, 0, uuidBend.Length);
+                    mb.Append(osUTF8Const.XMLuuidStart);
+                    mb.AppendUUID(data.AsUUID());
+                    mb.Append(osUTF8Const.XMLuuidEnd);
                     break;
                 case OSDType.Date:
-                    mb.Write(dateB, 0, dateB.Length);
-                    writeOSDString(mb, data);
-                    mb.Write(dateBend, 0, dateBend.Length);
+                    mb.Append(osUTF8Const.XMLdateStart);
+                    mb.AppendASCII(data.ToString());
+                    mb.Append(osUTF8Const.XMLdateEnd);
                     break;
                 case OSDType.URI:
-                    mb.Write(uriB, 0, uriB.Length);
-                    writeOSDString(mb, data);
-                    mb.Write(uriBend, 0, uriBend.Length);
+                    mb.Append(osUTF8Const.XMLuriStart);
+                    EscapeToXML(mb, data.ToString());
+                    mb.Append(osUTF8Const.XMLuriEnd);
                     break;
                 case OSDType.Binary:
                     if (formal)
-                        mb.Write(formalBinaryB, 0, formalBinaryB.Length);
+                        mb.Append(osUTF8Const.XMLformalBinaryStart);
                     else
-                        mb.Write(binaryB, 0, binaryB.Length);
+                        mb.Append(osUTF8Const.XMLbinaryStart);
                     base64Encode(data.AsBinary(), mb);
-                    mb.Write(binaryBend, 0, binaryBend.Length);
+                    mb.Append(osUTF8Const.XMLbinaryEnd);
                     break;
                 case OSDType.Map:
-                    mb.Write(mapB, 0, mapB.Length);
+                    mb.Append(osUTF8Const.XMLmapStart);
                     foreach (KeyValuePair<string, OSD> kvp in (OSDMap)data)
                     {
-                        mb.Write(keyB, 0, keyB.Length);
-                        writeOSDString(mb, kvp.Key);
-                        mb.Write(keyBend, 0, keyBend.Length);
+                        mb.Append(osUTF8Const.XMLkeyStart);
+                        mb.Append(kvp.Key.ToString());
+                        mb.Append(osUTF8Const.XMLkeyEnd);
 
                         SerializeLLSDXmlElement(mb, kvp.Value, formal);
                     }
-                    mb.Write(mapBend, 0, mapBend.Length);
+                    mb.Append(osUTF8Const.XMLmapEnd);
                     break;
                 case OSDType.Array:
                     OSDArray array = (OSDArray)data;
-                    mb.Write(arrayB, 0, arrayB.Length);
+                    mb.Append(osUTF8Const.XMLarrayStart);
                     for (int i = 0; i < array.Count; i++)
                     {
                         SerializeLLSDXmlElement(mb, array[i], formal);
                     }
-                    mb.Write(arrayBend, 0, arrayBend.Length);
+                    mb.Append(osUTF8Const.XMLarrayEnd);
                     break;
                 case OSDType.LLSDxml:
-                    writeOSDString(mb, data.AsString());
+                    mb.Append(data.AsString());
                     break;
                 default:
                     break;
             }
         }
 
-         public static unsafe void base64Encode(byte[] data, MemoryStream mb)
+        public static unsafe void base64Encode(byte[] data, osUTF8 mb)
         {
             int lenMod3 = data.Length % 3;
             int len = data.Length - lenMod3;
 
-            fixed (byte* d = data, b64 = base64Bytes)
+            fixed (byte* d = data, b64 = osUTF8Const.base64Bytes)
             {
                 int i = 0;
                 while (i < len)
                 {
-                    mb.WriteByte(b64[d[i] >> 2]);
-                    mb.WriteByte(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
-                    mb.WriteByte(b64[((d[i + 1] & 0x0f) << 2) | ((d[i + 2] & 0xc0) >> 6)]);
-                    mb.WriteByte(b64[d[i + 2] & 0x3f]);
+                    mb.Append(b64[d[i] >> 2]);
+                    mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                    mb.Append(b64[((d[i + 1] & 0x0f) << 2) | ((d[i + 2] & 0xc0) >> 6)]);
+                    mb.Append(b64[d[i + 2] & 0x3f]);
                     i += 3;
                 }
 
@@ -429,32 +507,71 @@ namespace OpenMetaverse.StructuredData
                     case 2:
                     {
                         i = len;
-                        mb.WriteByte(b64[d[i] >> 2]);
-                        mb.WriteByte(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
-                        mb.WriteByte(b64[((d[i + 1] & 0x0f) << 2)]);
-                        mb.WriteByte((byte)'=');
+                        mb.Append(b64[d[i] >> 2]);
+                        mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                        mb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
+                        mb.Append((byte)'=');
                         break;
                     }
                     case 1:
                     {
                         i = len;
-                        mb.WriteByte(b64[d[i] >> 2]);
-                        mb.WriteByte(b64[(d[i] & 0x03) << 4]);
-                        mb.WriteByte((byte)'=');
-                        mb.WriteByte((byte)'=');
+                        mb.Append(b64[d[i] >> 2]);
+                        mb.Append(b64[(d[i] & 0x03) << 4]);
+                        mb.Append((byte)'=');
+                        mb.Append((byte)'=');
                         break;
                     }
                 }
             }
         }
-        */
+
+        public static unsafe void base64Encode(byte[] data, int start, int lenght, osUTF8 mb)
+        {
+            int lenMod3 = lenght % 3;
+            int len = lenght - lenMod3;
+
+            fixed (byte* d = &data[start], b64 = osUTF8Const.base64Bytes)
+            {
+                int i = 0;
+                while (i < len)
+                {
+                    mb.Append(b64[d[i] >> 2]);
+                    mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                    mb.Append(b64[((d[i + 1] & 0x0f) << 2) | ((d[i + 2] & 0xc0) >> 6)]);
+                    mb.Append(b64[d[i + 2] & 0x3f]);
+                    i += 3;
+                }
+
+                switch (lenMod3)
+                {
+                    case 2:
+                    {
+                        i = len;
+                        mb.Append(b64[d[i] >> 2]);
+                        mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                        mb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
+                        mb.Append((byte)'=');
+                        break;
+                    }
+                    case 1:
+                    {
+                        i = len;
+                        mb.Append(b64[d[i] >> 2]);
+                        mb.Append(b64[(d[i] & 0x03) << 4]);
+                        mb.Append((byte)'=');
+                        mb.Append((byte)'=');
+                        break;
+                    }
+                }
+            }
+        }
 
         static readonly char[] base64Chars = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',
                                               'P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d',
                                               'e','f','g','h','i','j','k','l','m','n','o','p','q','r','s',
                                               't','u','v','w','x','y','z','0','1','2','3','4','5','6','7',
                                               '8','9','+','/'};
-
 
         public static unsafe void base64Encode(byte[] data, StringBuilder sb)
         {
