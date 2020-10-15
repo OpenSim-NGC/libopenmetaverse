@@ -27,9 +27,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Xml;
 using System.Xml.Schema;
+using System.Text;
+using System.Runtime.InteropServices;
+using OpenMetaverse;
 
 namespace OpenMetaverse.StructuredData
 {
@@ -50,8 +52,8 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(byte[] xmlData)
         {
-            using(MemoryStream ms =  new MemoryStream(xmlData))
-            using(XmlTextReader xrd =  new XmlTextReader(ms))
+            using (MemoryStream ms = new MemoryStream(xmlData))
+            using (XmlTextReader xrd = new XmlTextReader(ms))
                 return DeserializeLLSDXml(xrd);
         }
 
@@ -69,7 +71,7 @@ namespace OpenMetaverse.StructuredData
         public static OSD DeserializeLLSDXml(string xmlData)
         {
             using (StringReader sr = new StringReader(xmlData))
-            using(XmlTextReader xrd = new XmlTextReader(sr))
+            using (XmlTextReader xrd = new XmlTextReader(sr))
                 return DeserializeLLSDXml(xrd);
         }
 
@@ -141,7 +143,7 @@ namespace OpenMetaverse.StructuredData
         public static string SerializeLLSDXmlString(OSD data, bool formal = false)
         {
             StringBuilder sb = osStringBuilderCache.Acquire();
-            if(formal)
+            if (formal)
                 sb.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
 
             sb.Append("<llsd>");
@@ -172,7 +174,7 @@ namespace OpenMetaverse.StructuredData
                     sb.Append("<undef />");
                     break;
                 case OSDType.Boolean:
-                    if(data.AsBoolean())
+                    if (data.AsBoolean())
                         sb.Append("<boolean>1</boolean>");
                     else
                         sb.Append("<boolean>0</boolean>");
@@ -208,7 +210,7 @@ namespace OpenMetaverse.StructuredData
                     sb.Append("</uri>");
                     break;
                 case OSDType.Binary:
-                    if(formal)
+                    if (formal)
                         sb.Append("<binary encoding=\"base64\">");
                     else
                         sb.Append("<binary>");
@@ -275,47 +277,7 @@ namespace OpenMetaverse.StructuredData
             }
         }
 
-        /*
-        // lazy keywords but more readable than direct bytes
-        static readonly byte[] undefBytes = Encoding.UTF8.GetBytes("<undef/>");
-        static readonly byte[] booleanOneB = Encoding.UTF8.GetBytes("<boolean>1</boolean>");
-        static readonly byte[] booleanZeroB = Encoding.UTF8.GetBytes("<boolean>0</boolean>");
-        static readonly byte[] integerB = Encoding.UTF8.GetBytes("<integer>");
-        static readonly byte[] integerBend = Encoding.UTF8.GetBytes("</integer>");
-        static readonly byte[] realB = Encoding.UTF8.GetBytes("<real>");
-        static readonly byte[] realBend = Encoding.UTF8.GetBytes("</real>");
-        static readonly byte[] stringB = Encoding.UTF8.GetBytes("<string>");
-        static readonly byte[] stringBend = Encoding.UTF8.GetBytes("</string>");
-        static readonly byte[] uuidB = Encoding.UTF8.GetBytes("<uuid>");
-        static readonly byte[] uuidBend = Encoding.UTF8.GetBytes("</uuid>");
-        static readonly byte[] dateB = Encoding.UTF8.GetBytes("<date>");
-        static readonly byte[] dateBend = Encoding.UTF8.GetBytes("</date>");
-        static readonly byte[] uriB = Encoding.UTF8.GetBytes("<uri>");
-        static readonly byte[] uriBend = Encoding.UTF8.GetBytes("</uri>");
-        static readonly byte[] formalBinaryB = Encoding.UTF8.GetBytes("<binary encoding=\"base64\">");
-        static readonly byte[] binaryB = Encoding.UTF8.GetBytes("<binary>");
-        static readonly byte[] binaryBend = Encoding.UTF8.GetBytes("</binary>");
-        static readonly byte[] mapB = Encoding.UTF8.GetBytes("<map>");
-        static readonly byte[] mapBend = Encoding.UTF8.GetBytes("</map>");
-        static readonly byte[] keyB = Encoding.UTF8.GetBytes("<key>");
-        static readonly byte[] keyBend = Encoding.UTF8.GetBytes("</key>");
-        static readonly byte[] arrayB = Encoding.UTF8.GetBytes("<array>");
-        static readonly byte[] arrayBend = Encoding.UTF8.GetBytes("</array>");
-        static readonly byte[] ltB = Encoding.UTF8.GetBytes("&lt;");
-        static readonly byte[] gtB = Encoding.UTF8.GetBytes("&gt;");
-        static readonly byte[] ampB = Encoding.UTF8.GetBytes("&amp;");
-        static readonly byte[] quotB = Encoding.UTF8.GetBytes("&quot;");
-        static readonly byte[] aposB = Encoding.UTF8.GetBytes("&apos;");
-
-
-        static readonly byte[] base64Bytes = {(byte)'A',(byte)'B',(byte)'C',(byte)'D',(byte)'E',(byte)'F',(byte)'G',(byte)'H',(byte)'I',(byte)'J',(byte)'K',(byte)'L',(byte)'M',(byte)'N',(byte)'O',
-                                              (byte)'P',(byte)'Q',(byte)'R',(byte)'S',(byte)'T',(byte)'U',(byte)'V',(byte)'W',(byte)'X',(byte)'Y',(byte)'Z',(byte)'a',(byte)'b',(byte)'c',(byte)'d',
-                                              (byte)'e',(byte)'f',(byte)'g',(byte)'h',(byte)'i',(byte)'j',(byte)'k',(byte)'l',(byte)'m',(byte)'n',(byte)'o',(byte)'p',(byte)'q',(byte)'r',(byte)'s',
-                                              (byte)'t',(byte)'u',(byte)'v',(byte)'w',(byte)'x',(byte)'y',(byte)'z',(byte)'0',(byte)'1',(byte)'2',(byte)'3',(byte)'4',(byte)'5',(byte)'6',(byte)'7',
-                                              (byte)'8',(byte)'9',(byte)'+',(byte)'/'};
-
-
-        private static void writeOSDString(MemoryStream mb, OSD data)
+        public static void EscapeASCIIToXML(osUTF8 ms, string s)
         {
             char c;
             for (int i = 0; i < s.Length; i++)
@@ -348,7 +310,7 @@ namespace OpenMetaverse.StructuredData
         public static void EscapeToXML(osUTF8 ms, string s)
         {
             char c;
-            for (int i = 0; i <  s.Length; i++)
+            for (int i = 0; i < s.Length; i++)
             {
                 c = s[i];
                 switch (c)
@@ -413,7 +375,7 @@ namespace OpenMetaverse.StructuredData
                     mb.Append(osUTF8Const.XMLundef);
                     break;
                 case OSDType.Boolean:
-                    if(data.AsBoolean())
+                    if (data.AsBoolean())
                         mb.Append(osUTF8Const.XMLfullbooleanOne);
                     else
                         mb.Append(osUTF8Const.XMLfullbooleanZero);
@@ -505,23 +467,23 @@ namespace OpenMetaverse.StructuredData
                 switch (lenMod3)
                 {
                     case 2:
-                    {
-                        i = len;
-                        mb.Append(b64[d[i] >> 2]);
-                        mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
-                        mb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
-                        mb.Append((byte)'=');
-                        break;
-                    }
+                        {
+                            i = len;
+                            mb.Append(b64[d[i] >> 2]);
+                            mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                            mb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
+                            mb.Append((byte)'=');
+                            break;
+                        }
                     case 1:
-                    {
-                        i = len;
-                        mb.Append(b64[d[i] >> 2]);
-                        mb.Append(b64[(d[i] & 0x03) << 4]);
-                        mb.Append((byte)'=');
-                        mb.Append((byte)'=');
-                        break;
-                    }
+                        {
+                            i = len;
+                            mb.Append(b64[d[i] >> 2]);
+                            mb.Append(b64[(d[i] & 0x03) << 4]);
+                            mb.Append((byte)'=');
+                            mb.Append((byte)'=');
+                            break;
+                        }
                 }
             }
         }
@@ -546,23 +508,23 @@ namespace OpenMetaverse.StructuredData
                 switch (lenMod3)
                 {
                     case 2:
-                    {
-                        i = len;
-                        mb.Append(b64[d[i] >> 2]);
-                        mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
-                        mb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
-                        mb.Append((byte)'=');
-                        break;
-                    }
+                        {
+                            i = len;
+                            mb.Append(b64[d[i] >> 2]);
+                            mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                            mb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
+                            mb.Append((byte)'=');
+                            break;
+                        }
                     case 1:
-                    {
-                        i = len;
-                        mb.Append(b64[d[i] >> 2]);
-                        mb.Append(b64[(d[i] & 0x03) << 4]);
-                        mb.Append((byte)'=');
-                        mb.Append((byte)'=');
-                        break;
-                    }
+                        {
+                            i = len;
+                            mb.Append(b64[d[i] >> 2]);
+                            mb.Append(b64[(d[i] & 0x03) << 4]);
+                            mb.Append((byte)'=');
+                            mb.Append((byte)'=');
+                            break;
+                        }
                 }
             }
         }
@@ -595,22 +557,22 @@ namespace OpenMetaverse.StructuredData
                     switch (lenMod3)
                     {
                         case 2:
-                        {
-                            i = len;
-                            sb.Append(b64[d[i] >> 2]);
-                            sb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
-                            sb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
-                            sb.Append('=');
-                            break;
-                        }
+                            {
+                                i = len;
+                                sb.Append(b64[d[i] >> 2]);
+                                sb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                                sb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
+                                sb.Append('=');
+                                break;
+                            }
                         case 1:
-                        {
-                            i = len;
-                            sb.Append(b64[d[i] >> 2]);
-                            sb.Append(b64[(d[i] & 0x03) << 4]);
-                            sb.Append("==");
-                            break;
-                        }
+                            {
+                                i = len;
+                                sb.Append(b64[d[i] >> 2]);
+                                sb.Append(b64[(d[i] & 0x03) << 4]);
+                                sb.Append("==");
+                                break;
+                            }
                     }
                 }
             }
