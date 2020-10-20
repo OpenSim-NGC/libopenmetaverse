@@ -1514,6 +1514,8 @@ namespace OpenMetaverse
                     while (src < srcend && dst < dstend)
                     {
                         c = *src++;
+                        if(c == 0)
+                            break;
 
                         if (c <= 0x7f)
                         {
@@ -1523,7 +1525,7 @@ namespace OpenMetaverse
 
                         if (c < 0x800)
                         {
-                            if (dst >= dstend2)
+                            if (dst > dstend2)
                                 break;
 
                             *dst++ = (byte)(0xC0 | (c >> 6));
@@ -1535,7 +1537,7 @@ namespace OpenMetaverse
                         {
                             if (c >= 0xDC00)
                                 continue; // ignore invalid
-                            if (src >= srcend1 || dst >= dstend4)
+                            if (src > srcend1 || dst > dstend4)
                                 break;
 
                             int a = c;
@@ -1553,7 +1555,7 @@ namespace OpenMetaverse
                             *dst++ = (byte)(0x80 | (a & 0x3f));
                             continue;
                         }
-                        if (dst >= dstend3)
+                        if (dst > dstend3)
                             break;
 
                         *dst++ = (byte)(0xE0 | (c >> 12));
@@ -1562,21 +1564,10 @@ namespace OpenMetaverse
                     }
 
                     ret = (int)(dst - dstarray);
-                    if(ret > 0)
+                    if (NullTerm)
                     {
-                        if (NullTerm)
-                        {
-                            if (*(dst - 1) != 0)
-                            {
-                                *dst = 0;
-                                ++ret;
-                            }
-                        }
-                        else
-                        {
-                            if (*(dst - 1) == 0)
-                            --ret;
-                        }
+                        *dst = 0;
+                        ++ret;
                     }
                 }
             }
@@ -1603,6 +1594,8 @@ namespace OpenMetaverse
                     while (src < srcend && free > 0)
                     {
                         c = *src++;
+                        if(c == 0)
+                            break;
 
                         if (c <= 0x7f)
                         {
@@ -1668,11 +1661,7 @@ namespace OpenMetaverse
                     pos = (int)(dst - dstbase);
                     srcstart = (int)(src - srcbase);
                     if (src == srcend)
-                    {
-                        if(pos > 0 && *(dst - 1) == 0)
-                            --pos;
                         ret = true;
-                    }
                 }
             }
             return ret;
@@ -1699,6 +1688,8 @@ namespace OpenMetaverse
                     while (src < srcend && free > 0)
                     {
                         c = *src++;
+                        if( c == 0)
+                            break;
 
                         if (c <= 0x7f)
                         {
@@ -1831,18 +1822,18 @@ namespace OpenMetaverse
             int max3 = maxnbytes - 3;
             int max4 = maxnbytes - 4;
 
-            char c;
-            char lastc = (char)0;
+            char c = ' ';
             int nbytes = 0;
             int i = 0;
             while(i < str.Length && nbytes < maxnbytes)
             {
                 c = str[i++];
+                if(c == 0)
+                    break;
 
                 if (c <= 0x7f)
                 {
                     ++nbytes;
-                    lastc = c;
                     continue;
                 }
 
@@ -1851,7 +1842,6 @@ namespace OpenMetaverse
                     if (nbytes > max2)
                         break;
                     nbytes += 2;
-                    lastc = c;
                     continue;
                 }
 
@@ -1863,19 +1853,11 @@ namespace OpenMetaverse
                         break;
                     nbytes += 4;
                     ++i;
-                    lastc = c;
                     continue;
                 }
                 if (nbytes > max3)
                     break;
                 nbytes += 3;
-                lastc = c;
-            }
-
-            if (i > 0 && lastc == 0)
-            {
-                --nbytes;
-                --i;
             }
 
             maxsourcelen = i;
@@ -1885,25 +1867,23 @@ namespace OpenMetaverse
         public static int osUTF8GetBytesCountWithTerm(string str, out int maxstrlen)
         {
             maxstrlen = 0;
-            char c;
-            char lastc = (char)0;
+            char c = ' ';
             int nbytes = 0;
             int i = 0;
             while( i < str.Length)
             {
                 c = str[i++];
+                if(c == 0)
+                    break;
 
                 if (c <= 0x7f)
                 {
-                    lastc = c;
                     ++nbytes;
-                    lastc = c;
                     continue;
                 }
 
                 if (c < 0x800)
                 {
-                    lastc = c;
                     nbytes += 2;
                     continue;
                 }
@@ -1912,17 +1892,14 @@ namespace OpenMetaverse
                 {
                     if (c < 0xDC00 || c > 0xDFFF)
                         continue;
-                    lastc = c;
                     nbytes += 4;
                     ++i;
                     continue;
                 }
-                lastc = c;
                 nbytes += 3;
             }
 
-            if (lastc != 0)
-                ++nbytes;
+            ++nbytes;
 
             maxstrlen = i;
             return nbytes;
@@ -1935,18 +1912,17 @@ namespace OpenMetaverse
             int max3 = maxnbytes - 3;
             int max4 = maxnbytes - 4;
 
-            char c;
-            char lastc = ' ';
+            char c = ' ';
             int nbytes = 0;
             int i = 0;
             while (i < str.Length && nbytes < maxnbytes)
             {
                 c = str[i++];
-
+                if(c == 0)
+                    break;
                 if (c <= 0x7f)
                 {
                     ++nbytes;
-                    lastc = c;
                     continue;
                 }
 
@@ -1955,7 +1931,6 @@ namespace OpenMetaverse
                     if (nbytes > max2)
                         break;
                     nbytes += 2;
-                    lastc = c;
                     continue;
                 }
 
@@ -1967,20 +1942,15 @@ namespace OpenMetaverse
                         break;
                     nbytes += 4;
                     ++i;
-                    lastc = c;
                     continue;
                 }
                 if (nbytes > max3)
                     break;
                 nbytes += 3;
-                lastc = c;
             }
 
-            if (lastc != 0)
-            {
-                if(nbytes < maxnbytes)
-                    ++nbytes;
-            }
+            if(nbytes < maxnbytes)
+                ++nbytes;
 
             maxsourcelen = i;
             return nbytes;
