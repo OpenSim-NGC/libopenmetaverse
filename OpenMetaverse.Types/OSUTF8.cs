@@ -163,6 +163,9 @@ namespace OpenMetaverse
             if (obj is string)
                 return Equals((string)obj);
 
+            if (obj is byte[])
+                return Equals((byte[])obj);
+
             return false;
         }
 
@@ -192,6 +195,32 @@ namespace OpenMetaverse
                 }
             }
 
+            return true;
+        }
+
+        public unsafe bool Equals(byte[] o)
+        {
+            if (o == null || m_len != o.Length)
+                return false;
+
+            if (m_len < 8)
+            {
+                for (int i = 0; i < m_len; ++i)
+                {
+                    if (m_data[i] != o[i])
+                        return false;
+                }
+                return true;
+            }
+
+            fixed (byte* a = m_data, b = o)
+            {
+                for (int i = 0; i < m_len; ++i)
+                {
+                    if (a[i] != b[i])
+                        return false;
+                }
+            }
             return true;
         }
 
@@ -406,7 +435,7 @@ namespace OpenMetaverse
             int srcindx = 0;
 
             CheckCapacity(s.Length);
-            while (!Utils.osUTF8TryGetbytesNoTerm(s, ref srcindx, m_data, ref indx))
+            while (!Utils.osUTF8TryGetbytes(s, ref srcindx, m_data, ref indx))
             {
                 m_len = indx;
                 CheckCapacity(s.Length - srcindx + 256);
