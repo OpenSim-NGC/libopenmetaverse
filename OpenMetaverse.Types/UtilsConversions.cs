@@ -1443,11 +1443,12 @@ namespace OpenMetaverse
             if (string.IsNullOrEmpty(str))
                 return EmptyBytes;
 
-            int nbytes = osUTF8GetBytesCountWithTerm(str, out int sourcelen);
+            int nbytes = osUTF8GetBytesCount(str, out int sourcelen);
             if (nbytes == 0)
                 return EmptyBytes;
-            byte[] dstarray = new byte[nbytes];
-            osUTF8Getbytes(str, sourcelen, dstarray, nbytes, false);
+            byte[] dstarray = new byte[nbytes + 1];
+            osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
+            dstarray[nbytes] = 0;
             return dstarray;
         }
 
@@ -1456,11 +1457,12 @@ namespace OpenMetaverse
             if (string.IsNullOrEmpty(str))
                 return EmptyBytes;
 
-            int nbytes = osUTF8GetBytesCountWithTerm(str, out int sourcelen);
+            int nbytes = osUTF8GetBytesCount(str, maxlen -1, out int sourcelen);
             if (nbytes == 0)
                 return EmptyBytes;
-            byte[] dstarray = new byte[nbytes];
-            osUTF8Getbytes(str, sourcelen, dstarray, nbytes, false);
+            byte[] dstarray = new byte[nbytes + 1];
+            osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
+            dstarray[nbytes] = 0;
             return dstarray;
         }
 
@@ -1469,11 +1471,11 @@ namespace OpenMetaverse
             if (string.IsNullOrEmpty(str))
                 return EmptyBytes;
 
-            int nbytes = osUTF8GetBytesCountNoTerm(str, out int sourcelen);
+            int nbytes = osUTF8GetBytesCount(str, out int sourcelen);
             if (nbytes == 0)
                 return EmptyBytes;
             byte[] dstarray = new byte[nbytes];
-            osUTF8Getbytes(str, sourcelen, dstarray, nbytes, false);
+            osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
             return dstarray;
         }
 
@@ -1482,19 +1484,16 @@ namespace OpenMetaverse
             if (string.IsNullOrEmpty(str))
                 return EmptyBytes;
 
-            int nbytes = osUTF8GetBytesCountNoTerm(str, maxlen, out int sourcelen);
+            int nbytes = osUTF8GetBytesCount(str, maxlen, out int sourcelen);
             if (nbytes == 0)
                 return EmptyBytes;
             byte[] dstarray = new byte[nbytes];
-            osUTF8Getbytes(str, sourcelen, dstarray, nbytes, false);
+            osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
             return dstarray;
         }
 
-        public static unsafe int osUTF8Getbytes(string source, int srclenght, byte[] destiny, int maxdstlen, bool NullTerm = true)
+        public static unsafe int osUTF8Getbytes(string source, int srclenght, byte[] destiny, int maxdstlen)
         {
-            int dstlen = NullTerm ? maxdstlen - 1 : maxdstlen;
-            int srclen = srclenght > dstlen ? dstlen : srclenght;
-
             int ret = 0;
             char c;
             fixed(char* srcarray = source)
@@ -1502,11 +1501,11 @@ namespace OpenMetaverse
                 fixed(byte* dstarray = destiny)
                 {
                     char* src = srcarray;
-                    char* srcend = src + srclen;
+                    char* srcend = src + srclenght;
                     char* srcend1 = srcend - 1;
 
                     byte* dst = dstarray;
-                    byte* dstend = dst + dstlen;
+                    byte* dstend = dst + maxdstlen;
                     byte* dstend2 = dstend - 2;
                     byte* dstend3 = dstend - 3;
                     byte* dstend4 = dstend - 4;
@@ -1562,19 +1561,13 @@ namespace OpenMetaverse
                         *dst++ = (byte)(0x80 | ((c >> 6) & 0x3f));
                         *dst++ = (byte)(0x80 | (c & 0x3f));
                     }
-
                     ret = (int)(dst - dstarray);
-                    if (NullTerm)
-                    {
-                        *dst = 0;
-                        ++ret;
-                    }
                 }
             }
             return ret;
         }
 
-        public static unsafe bool osUTF8TryGetbytesNoTerm(string srcstr, ref int srcstart, byte[] dstarray, ref int pos)
+        public static unsafe bool osUTF8TryGetbytes(string srcstr, ref int srcstart, byte[] dstarray, ref int pos)
         {
             if (string.IsNullOrEmpty(srcstr))
                 return true;
@@ -1621,7 +1614,7 @@ namespace OpenMetaverse
                         {
                             if (c >= 0xDC00)
                                 continue; // ignore invalid
-                            if (src >= srcend1)
+                            if (src > srcend1)
                                 break;
 
                             int a = c;
@@ -1667,108 +1660,7 @@ namespace OpenMetaverse
             return ret;
         }
 
-        public static unsafe bool osUTF8TryGetbytesNullTerm(string srcstr, ref int sourceindx, byte[] dstarray, ref int destindx)
-        {
-            if (string.IsNullOrEmpty(srcstr))
-                return true;
-
-            bool ret = false;
-            int free = dstarray.Length - destindx - 1;
-
-            fixed (char* srcbase = srcstr)
-            {
-                fixed (byte* dstbase = dstarray)
-                {
-                    char* src = srcbase + sourceindx;
-                    char* srcend = srcbase + srcstr.Length;
-                    char* srcend1 = srcend - 1;
-                    byte* dst = dstbase + destindx;
-
-                    char c;
-                    while (src < srcend && free > 0)
-                    {
-                        c = *src++;
-                        if( c == 0)
-                            break;
-
-                        if (c <= 0x7f)
-                        {
-                            *dst++ = (byte)c;
-                            --free;
-                            continue;
-                        }
-
-                        if (c < 0x800)
-                        {
-                            free -= 2;
-                            if (free <= 0)
-                            {
-                                --src;
-                                break;
-                            }
-                            *dst++ = (byte)(0xC0 | (c >> 6));
-                            *dst++ = (byte)(0x80 | (c & 0x3F));
-                            continue;
-                        }
-
-                        if (c >= 0xD800 && c < 0xE000)
-                        {
-                            if (c >= 0xDC00)
-                                continue; // ignore invalid
-                            if (src >= srcend1)
-                                break;
-
-                            int a = c;
-                            c = *src++;
-
-                            if (c < 0xDC00 || c > 0xDFFF)
-                                continue; // ignore invalid
-
-                            free -= 4;
-                            if (free <= 0)
-                            {
-                                src -= 2;
-                                break;
-                            }
-
-                            a = (a << 10) + c - 0x35fdc00;
-
-                            *dst++ = (byte)(0xF0 | (a >> 18));
-                            *dst++ = (byte)(0x80 | ((a >> 12) & 0x3f));
-                            *dst++ = (byte)(0x80 | ((a >> 6) & 0x3f));
-                            *dst++ = (byte)(0x80 | (a & 0x3f));
-                            continue;
-                        }
-
-                        free -= 3;
-                        if (free <= 0)
-                        {
-                            --src;
-                            break;
-                        }
-
-                        *dst++ = (byte)(0xE0 | (c >> 12));
-                        *dst++ = (byte)(0x80 | ((c >> 6) & 0x3f));
-                        *dst++ = (byte)(0x80 | (c & 0x3f));
-                    }
-
-                    destindx = (int)(dst - dstbase);
-                    sourceindx = (int)(src - srcbase);
-                    if (src == srcend)
-                    {
-                        if (free > 0)
-                        {
-                            *dst = 0;
-                            ++destindx;
-                            ret = true;
-                        }
-                    }
-                }
-            }
-            return ret;
-        }
-
-        public static int osUTF8GetBytesCountNoTerm(string str, out int maxsource)
+        public static int osUTF8GetBytesCount(string str, out int maxsource)
         {
             maxsource = 0;
             char c;
@@ -1815,7 +1707,7 @@ namespace OpenMetaverse
             return nbytes;
         }
 
-        public static int osUTF8GetBytesCountNoTerm(string str, int maxnbytes, out int maxsourcelen)
+        public static int osUTF8GetBytesCount(string str, int maxnbytes, out int maxsourcelen)
         {
             maxsourcelen = 0;
             int max2 = maxnbytes - 2;
@@ -1859,98 +1751,6 @@ namespace OpenMetaverse
                     break;
                 nbytes += 3;
             }
-
-            maxsourcelen = i;
-            return nbytes;
-        }
-
-        public static int osUTF8GetBytesCountWithTerm(string str, out int maxstrlen)
-        {
-            maxstrlen = 0;
-            char c = ' ';
-            int nbytes = 0;
-            int i = 0;
-            while( i < str.Length)
-            {
-                c = str[i++];
-                if(c == 0)
-                    break;
-
-                if (c <= 0x7f)
-                {
-                    ++nbytes;
-                    continue;
-                }
-
-                if (c < 0x800)
-                {
-                    nbytes += 2;
-                    continue;
-                }
-
-                if (c >= 0xD800 && c < 0xE000)
-                {
-                    if (c < 0xDC00 || c > 0xDFFF)
-                        continue;
-                    nbytes += 4;
-                    ++i;
-                    continue;
-                }
-                nbytes += 3;
-            }
-
-            ++nbytes;
-
-            maxstrlen = i;
-            return nbytes;
-        }
-
-        public static int osUTF8GetBytesCountWithTerm(string str, int maxnbytes, out int maxsourcelen)
-        {
-            maxsourcelen = 0;
-            int max2 = maxnbytes - 2;
-            int max3 = maxnbytes - 3;
-            int max4 = maxnbytes - 4;
-
-            char c = ' ';
-            int nbytes = 0;
-            int i = 0;
-            while (i < str.Length && nbytes < maxnbytes)
-            {
-                c = str[i++];
-                if(c == 0)
-                    break;
-                if (c <= 0x7f)
-                {
-                    ++nbytes;
-                    continue;
-                }
-
-                if (c < 0x800)
-                {
-                    if (nbytes > max2)
-                        break;
-                    nbytes += 2;
-                    continue;
-                }
-
-                if (c >= 0xD800 && c < 0xE000)
-                {
-                    if (c < 0xDC00 || c > 0xDFFF)
-                        continue;
-                    if (nbytes > max4)
-                        break;
-                    nbytes += 4;
-                    ++i;
-                    continue;
-                }
-                if (nbytes > max3)
-                    break;
-                nbytes += 3;
-            }
-
-            if(nbytes < maxnbytes)
-                ++nbytes;
 
             maxsourcelen = i;
             return nbytes;
