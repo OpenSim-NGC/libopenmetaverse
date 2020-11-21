@@ -134,6 +134,15 @@ namespace OpenMetaverse
                     i = m_data.Length - 1;
                 return m_data[i];
             }
+            set
+            {
+                if (i > 0)
+                {
+                    i += m_offset;
+                    if(i < m_len)
+                        m_data[i] = value;
+                }
+            }
         }
 
         public int Length
@@ -1137,7 +1146,7 @@ namespace OpenMetaverse
                     for (int j = i; k < otherlen; ++k, ++j)
                     {
                         if (a[j] != b[k])
-                            return -1;
+                            break;
                     }
                     if (k == otherlen)
                         return i;
@@ -1161,7 +1170,32 @@ namespace OpenMetaverse
                     for (int j = i; k < otherlen; ++k, ++j)
                     {
                         if (a[j] != b[k])
-                            return -1;
+                            break;
+                    }
+                    if (k == otherlen)
+                        return i;
+                }
+                return -1;
+            }
+        }
+
+        public unsafe int IndexOf(byte[] other)
+        {
+            if(other == null)
+                return -1;
+            int otherlen = other.Length;
+            if (otherlen > m_len || otherlen == 0)
+                return -1;
+
+            fixed (byte* a = &m_data[m_offset], b = other)
+            {
+                for (int i = 0; i < m_len - otherlen; ++i)
+                {
+                    int k = 0;
+                    for (int j = i; k < otherlen; ++k, ++j)
+                    {
+                        if (a[j] != b[k])
+                            break;
                     }
                     if (k == otherlen)
                         return i;

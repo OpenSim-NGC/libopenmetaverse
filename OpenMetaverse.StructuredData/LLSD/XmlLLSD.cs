@@ -452,6 +452,8 @@ namespace OpenMetaverse.StructuredData
             int lenMod3 = data.Length % 3;
             int len = data.Length - lenMod3;
 
+            mb.CheckCapacity(4 * data.Length / 3);
+
             fixed (byte* d = data, b64 = osUTF8Const.base64Bytes)
             {
                 int i = 0;
