@@ -399,7 +399,7 @@ namespace OpenMetaverse
                     if ((m_attributes & TextureAttributes.Material) == 0)
                         m_material = DefaultTexture.m_material;
 
-                    byte tb = (m_material &= 0xE0);
+                    byte tb = (byte)(m_material & 0xE0);
                     tb |= (byte)value;
 
                     if(o != tb)
@@ -426,7 +426,7 @@ namespace OpenMetaverse
                         m_material = DefaultTexture.m_material;
 
                     // Clear out the old shiny value
-                    byte tb = (m_material &= 0x3F);
+                    byte tb = (byte)(m_material & 0x3F);
                     // Put the new shiny value in the material byte
                     tb |= (byte)value;
                     if (o != tb)
@@ -453,7 +453,7 @@ namespace OpenMetaverse
                         m_material = DefaultTexture.m_material;
 
                     // Clear out the old fullbright value
-                    byte tb = (m_material &= 0xDF);
+                    byte tb = (byte)(m_material & 0xDF);
                     if (value)
                         tb |= 0x20;
 
