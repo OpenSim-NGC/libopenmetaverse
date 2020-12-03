@@ -1829,7 +1829,7 @@ namespace OpenMetaverse.Packets
             // common/custom types
             if (recurseLevel <= 0)
             {
-                result.AppendFormat("Message Type: {0} http://lib.openmetaverse.co/wiki/{0}" + Environment.NewLine, message.GetType().Name);
+                result.AppendFormat("Message Type: {0}" + Environment.NewLine, message.GetType().Name);
             }
             else
             {
