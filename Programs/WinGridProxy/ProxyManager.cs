@@ -49,7 +49,7 @@ namespace WinGridProxy
         public static event MessageLogHandler OnMessageLog;
 
         // handle login request/response data
-        public delegate void LoginLogHandler(object request, Direction direction);
+        public delegate void LoginLogHandler(object request, int osize, Dictionary<string,string> headers, string host, Direction direction);
         public static event LoginLogHandler OnLoginResponse;
 
         // fired when a new Capability is added to the KnownCaps Dictionary
@@ -131,13 +131,13 @@ namespace WinGridProxy
         private void LoginRequest(object sender, XmlRpcRequestEventArgs e)
         {
             if (OnLoginResponse != null)
-                OnLoginResponse(e.m_Request, Direction.Outgoing);
+                OnLoginResponse(e.m_Request, e.m_originalSize, e.m_headers, e.m_host, Direction.Outgoing);
         }
 
         private void LoginResponse(XmlRpcResponse response)
         {
             if (OnLoginResponse != null)
-                OnLoginResponse(response, Direction.Incoming);
+                OnLoginResponse(response, -1, null, null, Direction.Incoming);
         }
 
 
