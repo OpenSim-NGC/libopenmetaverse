@@ -364,14 +364,14 @@ namespace OpenMetaverse.StructuredData
         public static void SkipWhiteSpace(Stream stream)
         {
             int bt;
-
             while (((bt = stream.ReadByte()) > 0) &&
                 ((byte)bt == ' ' || (byte)bt == '\t' ||
                   (byte)bt == '\n' || (byte)bt == '\r')
                  )
             {
             }
-            stream.Seek(-1, SeekOrigin.Current);
+            if(stream.Position > 0)
+                stream.Seek(-1, SeekOrigin.Current);
         }
 
         /// <summary>
