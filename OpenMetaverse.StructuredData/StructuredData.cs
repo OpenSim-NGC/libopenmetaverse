@@ -158,6 +158,19 @@ namespace OpenMetaverse.StructuredData
                         return (int)Math.Floor(udbl);
                     else
                         return 0;
+                case OSDType.Binary:
+                    byte[] b = ((OSDBinary)this).value;
+                    if (b.Length < 4)
+                        return 0;
+                    return (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
+                case OSDType.Array:
+                    List<OSD> l = ((OSDArray)this).value;
+                    if (l.Count < 4)
+                        return 0;
+                    byte[] by = new byte[4];
+                    for (int i = 0; i < 4; i++)
+                        by[i] = (byte)l[i].AsInteger();
+                    return (by[0] << 24) | (by[1] << 16) | (by[2] << 8) | by[3];
                 case OSDType.Date:
                     return (int)Utils.DateTimeToUnixTime(((OSDDate)this).value);
                 default:
@@ -1596,6 +1609,15 @@ namespace OpenMetaverse.StructuredData
         public override string AsString() { return Convert.ToBase64String(value); }
         public override byte[] AsBinary() { return value; }
 
+        public override int AsInteger()
+        {
+            return (
+                (value[0] << 24) +
+                (value[1] << 16) +
+                (value[2] << 8) +
+                (value[3] << 0));
+        }
+
         public override uint AsUInteger()
         {
             return (uint)(
@@ -1788,74 +1810,84 @@ namespace OpenMetaverse.StructuredData
                 this.value = new List<OSD>();
         }
 
-                public override byte[] AsBinary()
-                {
-                    byte[] binary = new byte[value.Count];
+        public override byte[] AsBinary()
+        {
+            byte[] binary = new byte[value.Count];
 
-                    for (int i = 0; i < value.Count; i++)
-                        binary[i] = (byte)value[i].AsInteger();
+            for (int i = 0; i < value.Count; i++)
+                binary[i] = (byte)value[i].AsInteger();
 
-                    return binary;
-                }
+            return binary;
+        }
 
-            public override long AsLong()
+        public override long AsLong()
+        {
+            if (value.Count < 8)
+                return 0;
+            byte[] b = new byte[8];
+            for (int i = 0; i < 8; i++)
+                b[i] = (byte)value[i].AsInteger();
+            return (
+                ((long)b[0] << 56) |
+                ((long)b[1] << 48) |
+                ((long)b[2] << 40) |
+                ((long)b[3] << 32) |
+                ((long)b[4] << 24) |
+                ((long)b[5] << 16) |
+                ((long)b[6] << 8) |
+                b[7]);
+        }
+
+        public override ulong AsULong()
+        {
+            if (value.Count < 8)
+                return 0;
+            byte[] b = new byte[8];
+            for (int i = 0; i < 8; i++)
+                b[i] = (byte)value[i].AsInteger();
+            return (
+                ((ulong)b[0] << 56) |
+                ((ulong)b[1] << 48) |
+                ((ulong)b[2] << 40) |
+                ((ulong)b[3] << 32) |
+                ((ulong)b[4] << 24) |
+                ((ulong)b[5] << 16) |
+                ((ulong)b[6] << 8) |
+                b[7]);
+        }
+
+        public override int AsInteger()
+        {
+            if (value.Count < 4)
+                return 0;
+            byte[] by = new byte[4];
+            for (int i = 0; i < 4; i++)
+                by[i] = (byte)value[i].AsInteger();
+            return (by[0] << 24) | (by[1] << 16) | (by[2] << 8) | by[3];
+        }
+
+        public override uint AsUInteger()
+        {
+            if (value.Count < 4)
+                return 0;
+            byte[] by = new byte[4];
+            for (int i = 0; i < 4; i++)
+                by[i] = (byte)value[i].AsInteger();
+            return (uint)((by[0] << 24) | (by[1] << 16) | (by[2] << 8) | by[3]);
+        }
+        /*
+        public override Vector2 AsVector2()
+        {
+            Vector2 vector = Vector2.Zero;
+
+            if (this.Count == 2)
             {
-                if (value.Count < 8)
-                    return 0;
-                byte[] b = new byte[8];
-                for (int i = 0; i < 8; i++)
-                    b[i] = (byte)value[i].AsInteger();
-                return (
-                    ((long)b[0] << 56) |
-                    ((long)b[1] << 48) |
-                    ((long)b[2] << 40) |
-                    ((long)b[3] << 32) |
-                    ((long)b[4] << 24) |
-                    ((long)b[5] << 16) |
-                    ((long)b[6] << 8) |
-                    b[7]);
+                vector.X = (float)this[0].AsReal();
+                vector.Y = (float)this[1].AsReal();
             }
 
-            public override ulong AsULong()
-            {
-                if (value.Count < 8)
-                    return 0;
-                byte[] b = new byte[8];
-                for (int i = 0; i < 8; i++)
-                    b[i] = (byte)value[i].AsInteger();
-                return (
-                    ((ulong)b[0] << 56) |
-                    ((ulong)b[1] << 48) |
-                    ((ulong)b[2] << 40) |
-                    ((ulong)b[3] << 32) |
-                    ((ulong)b[4] << 24) |
-                    ((ulong)b[5] << 16) |
-                    ((ulong)b[6] << 8) |
-                    b[7]);
-            }
-
-            public override uint AsUInteger()
-            {
-                if (value.Count < 4)
-                    return 0;
-                byte[] by = new byte[4];
-                for (int i = 0; i < 4; i++)
-                    by[i] = (byte)value[i].AsInteger();
-                return (uint)((by[0] << 24) | (by[1] << 16) | (by[2] << 8) | by[3]);
-            }
-/*
-            public override Vector2 AsVector2()
-            {
-                Vector2 vector = Vector2.Zero;
-
-                if (this.Count == 2)
-                {
-                    vector.X = (float)this[0].AsReal();
-                    vector.Y = (float)this[1].AsReal();
-                }
-
-                return vector;
-            }
+            return vector;
+        }
 
         public override Vector3 AsVector3()
         {
@@ -1914,7 +1946,7 @@ namespace OpenMetaverse.StructuredData
 
             return quaternion;
         }
-*/
+        */
         public override Color4 AsColor4()
         {
             Color4 color = Color4.Black;
