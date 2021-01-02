@@ -190,11 +190,11 @@ namespace WinGridProxy
         /// <summary>
         /// Handle Login Requests/Responses
         /// </summary>        
-        private void ProxyManager_OnLoginResponse(object request, Direction direction)
+        private void ProxyManager_OnLoginResponse(object request, int rsize, Dictionary<string,string> headers, string host, Direction direction)
         {
             if (this.InvokeRequired)
             {
-                this.BeginInvoke(new MethodInvoker(() => ProxyManager_OnLoginResponse(request, direction)));
+                this.BeginInvoke(new MethodInvoker(() => ProxyManager_OnLoginResponse(request, rsize, headers, host, direction)));
             }
             else
             {
@@ -211,11 +211,12 @@ namespace WinGridProxy
 
                 ListViewItem foundItem = FindListViewItem(listViewPacketFilters, loginType, false);
 
+                string rhost = host?? comboBoxLoginURL.Text;
                 if (foundItem != null && foundItem.Checked == true)
                 {
                     PacketCounter++;
 
-                    SessionLogin sessionLogin = new SessionLogin(request, direction, comboBoxLoginURL.Text, request.GetType().Name + " " + loginType);
+                    SessionLogin sessionLogin = new SessionLogin(request,rsize, headers, direction, rhost, request.GetType().Name + " " + loginType);
 
                     ListViewItem sessionEntry = new ListViewItem(new string[] { PacketCounter.ToString(), sessionLogin.TimeStamp.ToString("HH:mm:ss.fff"),
                         sessionLogin.Protocol, sessionLogin.Name, sessionLogin.Length.ToString(), sessionLogin.Host, sessionLogin.ContentType });

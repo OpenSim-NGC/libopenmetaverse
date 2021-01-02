@@ -30,12 +30,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using Nwc.XmlRpc;
-using OpenMetaverse;
-using OpenMetaverse.Http;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -44,6 +40,13 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml;
+
+using Nwc.XmlRpc;
+
+using OpenMetaverse;
+using OpenMetaverse.Http;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 
 namespace GridProxy
 {
@@ -577,15 +580,16 @@ namespace GridProxy
             if (contentLength < 8192)
                 OpenMetaverse.Logger.Log(String.Format("[{0}] request length={1}:\n{2}", reqNo, contentLength, Utils.BytesToString(content)), Helpers.LogLevel.Debug);
 
-          if (uri == "/")
+            if (uri == "/")
             {
+                headers["method"] = meth;
                 if (contentType == "application/xml+llsd" || contentType == "application/xml")
                 {
                     ProxyLoginSD(netStream, content);
                 }
                 else
                 {
-                    ProxyLogin(netStream, content);
+                    ProxyLogin(netStream, content, headers);
                 }
             }
             else if (new Regex(@"^/https?://.*$").Match(uri).Success)
@@ -627,10 +631,21 @@ namespace GridProxy
                 return;
             }
 
+            if(meth =="PATCH")
+            {
+
+            }
             CapInfo cap = null;
             lock (this)
             {
                 string capuri = Regex.Replace(uri, @"/?\?.*$", string.Empty);
+                
+                // detect AIS url
+                int indx = capuri.IndexOf("/item/");
+                if (indx < 0)
+                    indx = capuri.IndexOf("/category/");
+                if(indx > 0)
+                    capuri = capuri.Substring(0,indx);
 
                 if (KnownCaps.ContainsKey(capuri))
                 {
@@ -638,7 +653,10 @@ namespace GridProxy
                 }
             }
 
-            CapsRequest capReq = null; bool shortCircuit = false; bool requestFailed = false;
+            CapsRequest capReq = null;
+            bool shortCircuit = false;
+            bool requestFailed = false;
+
             if (cap != null)
             {
                 capReq = new CapsRequest(cap);
@@ -1126,7 +1144,7 @@ namespace GridProxy
             return false;
         }
 
-        private void ProxyLogin(NetworkStream netStream, byte[] content)
+        private void ProxyLogin(NetworkStream netStream, byte[] content, Dictionary<string,string> headers )
         {
             lock (this)
             {
@@ -1137,13 +1155,13 @@ namespace GridProxy
                 // convert the body into an XML-RPC request
                 XmlRpcRequest request = (XmlRpcRequest)(new XmlRpcRequestDeserializer()).Deserialize(Encoding.UTF8.GetString(content));
 
+                string remoteLoginUri = proxyConfig.remoteLoginUri.ToString();
                 // call the loginRequestDelegate
                 lock (loginRequestDelegates)
                 {
                     foreach (XmlRpcRequestDelegate d in loginRequestDelegates)
                     {
-                        try { d(this, new XmlRpcRequestEventArgs(request)); }
-                        //try { d(request); }
+                        try { d(this, new XmlRpcRequestEventArgs(request, content.Length, headers, remoteLoginUri)); }
                         catch (Exception e) { OpenMetaverse.Logger.Log("Exception in login request delegate" + e, Helpers.LogLevel.Error, e); }
                     }
                 }
@@ -1151,8 +1169,7 @@ namespace GridProxy
                 try
                 {
                     // forward the XML-RPC request to the server
-                    response = (XmlRpcResponse)request.Send(proxyConfig.remoteLoginUri.ToString(),
-                        30 * 1000); // 30 second timeout
+                    response = (XmlRpcResponse)request.Send(remoteLoginUri, 30 * 1000); // 30 second timeout
                 }
                 catch (Exception e)
                 {
@@ -1160,16 +1177,18 @@ namespace GridProxy
                     return;
                 }
 
-                System.Collections.Hashtable responseData;
+                Hashtable responseData;
                 try
                 {
-                    responseData = (System.Collections.Hashtable)response.Value;
+                    responseData = (Hashtable)response.Value;
                 }
                 catch (Exception e)
                 {
                     OpenMetaverse.Logger.Log(e.Message, Helpers.LogLevel.Error);
                     return;
                 }
+
+                Hashtable ori = new Hashtable(responseData);
 
                 // proxy any simulator address given in the XML-RPC response
                 if (responseData.Contains("sim_ip") && responseData.Contains("sim_port"))
@@ -1194,15 +1213,19 @@ namespace GridProxy
                 }
 
                 // forward the XML-RPC response to the client
-                StreamWriter writer = new StreamWriter(netStream);
-                writer.Write("HTTP/1.0 200 OK\r\n");
-                writer.Write("Content-type: text/xml\r\n");
-                writer.Write("\r\n");
+                using(StreamWriter writer = new StreamWriter(netStream, new System.Text.UTF8Encoding(false)))
+                {
+                    writer.Write("HTTP/1.0 200 OK\r\n");
+                    writer.Write("Content-type: text/xml\r\n");
+                    writer.Write("\r\n");
 
-                XmlTextWriter responseWriter = new XmlTextWriter(writer);
-                XmlRpcResponseSerializer.Singleton.Serialize(responseWriter, response);
-                responseWriter.Close(); writer.Close();
-
+                    using(XmlTextWriter responseWriter = new XmlTextWriter(writer))
+                    {
+                        var xrpc = new XmlRpcResponseSerializer();
+                        xrpc.Serialize(responseWriter, response);
+                    }
+                }
+                response.Value = ori;
                 lock (loginResponseDelegates)
                 {
                     foreach (XmlRpcResponseDelegate d in loginResponseDelegates)
@@ -1211,7 +1234,6 @@ namespace GridProxy
                         catch (Exception e) { OpenMetaverse.Logger.Log("Exception in login response delegate" + e, Helpers.LogLevel.Error, e); }
                     }
                 }
-
             }
         }
 
