@@ -2286,10 +2286,16 @@ namespace GridProxy
     public class XmlRpcRequestEventArgs : EventArgs
     {
         public XmlRpcRequest m_Request;
+        public int m_originalSize;
+        public string m_host;
+        public Dictionary<string,string> m_headers;
 
-        public XmlRpcRequestEventArgs(XmlRpcRequest request)
+        public XmlRpcRequestEventArgs(XmlRpcRequest request, int originalSize, Dictionary<string, string> headers, string host)
         {
-            this.m_Request = request;
+            m_Request = request;
+            m_originalSize = originalSize;
+            m_headers = headers;
+            m_host = host;
         }
     }
 }
