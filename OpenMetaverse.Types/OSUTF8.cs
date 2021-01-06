@@ -1007,5 +1007,53 @@ namespace OpenMetaverse
                 }
             return true;
         }
+
+        public void RemoveBytesSelf(int start, int len)
+        {
+            if (start < 0)
+                throw new ArgumentOutOfRangeException("startIndex", "ArgumentOutOfRange_StartIndex");
+
+            if(start >= m_len)
+                return;
+
+            if (len < 0)
+            {
+                m_len = start;
+                return;
+            }
+
+            int end = start + len;
+            if (end >= m_len)
+            {
+                m_len = start;
+                return;
+            }
+            Array.Copy(m_data, end, m_data, start, m_len - end);
+            m_len -=  len;
+        }
+
+        public osUTF8 RemoveBytes(int start, int len)
+        {
+            if (start < 0)
+                throw new ArgumentOutOfRangeException("startIndex", "ArgumentOutOfRange_StartIndex");
+
+            if (start >= m_len)
+                return Clone();
+
+            osUTF8 o = new osUTF8(m_len);
+            Array.Copy(m_data, 0, o.m_data, 0, start);
+            o.m_len = start;
+
+            if (len < 0)
+                return o;
+
+            int end = start + len;
+            if (end >= m_len)
+                return o;
+
+            Array.Copy(m_data, end, o.m_data, start, m_len - end);
+            o.m_len = m_len - len;
+            return o;
+        }
     }
 }

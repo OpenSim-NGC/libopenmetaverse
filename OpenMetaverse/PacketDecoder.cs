@@ -1620,7 +1620,7 @@ namespace OpenMetaverse.Packets
         {
             StringBuilder result = new StringBuilder();
 
-            result.AppendFormat("Packet Type: {0} http://lib.openmetaverse.co/wiki/{0} http://wiki.secondlife.com/wiki/{0}" + Environment.NewLine, packet.Type);
+            result.AppendFormat("Packet Type: {0}" + Environment.NewLine, packet.Type);
             result.AppendLine("[Packet Header]");
             // payload
             result.AppendFormat("Sequence: {0}" + Environment.NewLine, packet.Header.Sequence);
@@ -1829,7 +1829,7 @@ namespace OpenMetaverse.Packets
             // common/custom types
             if (recurseLevel <= 0)
             {
-                result.AppendFormat("Message Type: {0} http://lib.openmetaverse.co/wiki/{0}" + Environment.NewLine, message.GetType().Name);
+                result.AppendFormat("Message Type: {0}" + Environment.NewLine, message.GetType().Name);
             }
             else
             {
