@@ -1,8 +1,8 @@
 <Project>
  <PropertyGroup>
-  	<AssemblyVersion>1.1.4</AssemblyVersion>
-  	<FileVersion>1.1.4</FileVersion>
-	<Version>1.1.4</Version>
+  	<AssemblyVersion>1.1.6</AssemblyVersion>
+  	<FileVersion>1.1.6</FileVersion>
+	<Version>1.1.6</Version>
 	<MSBuildProjectExtensionsPath>$(SolutionDir)\obj\$(Configuration)\$(MSBuildProjectName)\</MSBuildProjectExtensionsPath>
 	<IntermediateOutputPath>$(SolutionDir)\obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
 	<OutputPath>$(SolutionDir)\bin\$(Configuration)\$(AssemblyName)\</OutputPath>

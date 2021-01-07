@@ -24,15 +24,21 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using GridProxy;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Text;
+using System.Xml;
+
 using OpenMetaverse;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
-using System;
-using System.Net;
-using System.Text;
+
+using GridProxy;
+using Nwc.XmlRpc;
 
 namespace WinGridProxy
 {
@@ -58,9 +64,9 @@ namespace WinGridProxy
         public Session()
         {
             this.TimeStamp = DateTime.UtcNow;
-            this.Host = this.Protocol = this.Name = String.Empty;
+            this.Host = this.Protocol = this.Name = string.Empty;
             this.Length = 0;
-            this.ContentType = String.Empty;
+            this.ContentType = string.Empty;
         }
 
         public virtual string ToRawString(Direction direction)
@@ -112,7 +118,7 @@ namespace WinGridProxy
             if (direction == this.Direction)
                 return PacketDecoder.PacketToString(this.Packet);
             else
-                return String.Empty;
+                return string.Empty;
         }
 
         public override string ToRawString(Direction direction)
@@ -120,7 +126,7 @@ namespace WinGridProxy
             if (direction == this.Direction)
                 return PacketDecoder.PacketToString(this.Packet);
             else
-                return String.Empty;
+                return string.Empty;
         }
 
         public override byte[] ToBytes(Direction direction)
@@ -287,12 +293,12 @@ namespace WinGridProxy
                     }
                     else
                     {
-                        return String.Empty;
+                        return string.Empty;
                     }
                 }
             }
             catch { }
-            return String.Empty;
+            return string.Empty;
         }
 
         public override string ToRawString(Direction direction)
@@ -313,7 +319,7 @@ namespace WinGridProxy
                         return result.ToString();
                     }
                     else
-                        return String.Empty;
+                        return string.Empty;
                 }
                 else
                 {
@@ -330,7 +336,7 @@ namespace WinGridProxy
                         return result.ToString();
                     }
                     else
-                        return String.Empty;
+                        return string.Empty;
                 }
             }
             catch { }
@@ -514,41 +520,89 @@ namespace WinGridProxy
     internal sealed class SessionLogin : Session
     {
         private object Data { get; set; }
+        private Dictionary<string,string> m_headers = null;
         //request, direction, comboBoxLoginURL.Text
-        public SessionLogin() : base() { this.Protocol = "https"; }
-        public SessionLogin(object request, Direction direction, String url, String contentType)
+        public SessionLogin() : base()
+        {
+            Protocol = "https";
+        }
+        public SessionLogin(object request, int rsize, Dictionary<string, string> headers, Direction direction, String url, String contentType)
             : base()
         {
-            this.Data = request;
-            this.Direction = direction;
-            this.Host = url;
-            this.ContentType = contentType;
-            this.Name = (direction == Direction.Incoming) ? "Login Response" : "Login Request";
-            this.Protocol = "https";
-            this.Length = this.Data.ToString().Length;
+            Data = request;
+            Direction = direction;
+            Host = url;
+            ContentType = contentType;
+            Name = (direction == Direction.Incoming) ? "Login Response" : "Login Request";
+            Protocol = "https";
+            if(rsize > 0)
+                Length = rsize;
+            else
+                Length = ToRawString(Direction).Length;
+            m_headers = headers;
         }
 
         public override string ToPrettyString(Direction direction)
         {
-            if (direction == this.Direction)
+            if (direction == Direction)
             {
-                return this.Data.ToString();
+                return Data.ToString();
             }
             else
             {
-                return String.Empty;
+                return string.Empty;
             }
         }
 
         public override string ToRawString(Direction direction)
         {
-            if (direction == this.Direction)
+            if (direction == Direction)
             {
-                return this.Data.ToString();
+                StringBuilder sb = new StringBuilder(4096);
+                if(m_headers != null)
+                {
+                    if(m_headers.ContainsKey("method"))
+                    {
+                        sb.Append(m_headers["method"]);
+                        sb.Append(": ");
+                        sb.Append(Host);
+                        sb.AppendLine();
+                    }
+                    m_headers.Remove("host");
+                    foreach (KeyValuePair<string,string> kvp in m_headers)
+                    {
+                        if(kvp.Key == "method")
+                            continue;
+                        sb.Append(kvp.Key);
+                        sb.Append(' ');
+                        sb.Append(kvp.Value);
+                        sb.AppendLine();
+                    }
+                    sb.AppendLine();
+                }
+                using (MemoryStream ms = new MemoryStream(1024))
+                {
+                    using (XmlTextWriter xml = new XmlTextWriter(ms, new UTF8Encoding(false)))
+                    {
+                        if(Data is XmlRpcResponse)
+                        {
+                            var xrpcr = new XmlRpcResponseSerializer();
+                            xrpcr.Serialize(xml, Data);
+                        }
+                        else
+                        {
+                            var xrpcr = new XmlRpcRequestSerializer();
+                            xrpcr.Serialize(xml, Data);
+                        }
+                        xml.Flush();
+                        sb.Append(UTF8Encoding.UTF8.GetString(ms.ToArray()));
+                    }
+                }
+                return sb.ToString();
             }
             else
             {
-                return String.Empty;
+                return string.Empty;
             }
         }
         public override string ToXml(Direction direction)
@@ -651,7 +705,7 @@ namespace WinGridProxy
             }
             else
             {
-                return String.Empty;
+                return string.Empty;
             }
         }
 
@@ -683,7 +737,7 @@ namespace WinGridProxy
             }
             else
             {
-                return String.Empty;
+                return string.Empty;
             }
         }
 
