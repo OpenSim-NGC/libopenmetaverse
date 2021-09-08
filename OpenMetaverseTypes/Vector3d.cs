@@ -290,17 +290,9 @@ namespace OpenMetaverse
             if (factor > Double.Epsilon)
             {
                 factor = 1d / factor;
-                value.X *= factor;
-                value.Y *= factor;
-                value.Z *= factor;
+                return new Vector3d(value.X * factor, value.Y * factor, value.Z * factor);
             }
-            else
-            {
-                value.X = 0d;
-                value.Y = 0d;
-                value.Z = 0d;
-            }
-            return value;
+            return Vector3.Zero;
         }
 
         /// <summary>

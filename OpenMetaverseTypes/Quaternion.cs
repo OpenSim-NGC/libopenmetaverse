@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Globalization;
 
@@ -103,7 +104,7 @@ namespace OpenMetaverse
         #endregion Constructors
 
         #region Public Methods
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ApproxEquals(Quaternion quat)
         {
             // assume normalized
@@ -112,7 +113,7 @@ namespace OpenMetaverse
                     Math.Abs(quat.Z - Z) < 1e-6f;
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ApproxEquals(Quaternion quat, float tolerance)
         {
             // assume normalized
@@ -121,13 +122,13 @@ namespace OpenMetaverse
                     Math.Abs(quat.Z - Z) < tolerance;
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Length()
         {
             return (float)Math.Sqrt((X * X) + (Y * Y) + (Z * Z) + (W * W));
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float LengthSquared()
         {
             return (X * X) + (Y * Y) + (Z * Z) + (W * W);
@@ -136,7 +137,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Normalizes the quaternion
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Normalize()
         {
             float mag = LengthSquared();
@@ -157,7 +158,7 @@ namespace OpenMetaverse
             }
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Conjugate()
         {
             X = -X;
@@ -165,7 +166,7 @@ namespace OpenMetaverse
             Z = -Z;
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Invert()
         {
             float len = LengthSquared();
@@ -352,7 +353,7 @@ namespace OpenMetaverse
 
         #region Static Methods
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion Add(Quaternion quaternion1, Quaternion quaternion2)
         {
             return new Quaternion(
@@ -365,7 +366,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Returns the conjugate (spatial inverse) of a quaternion
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion Conjugate(Quaternion quaternion)
         {
             return new Quaternion( -quaternion.X, -quaternion.Y, -quaternion.Z, quaternion.W);
@@ -487,13 +488,13 @@ namespace OpenMetaverse
                         (matrix.M12 - matrix.M21) * num2);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion Divide(Quaternion q1, Quaternion q2)
         {
             return Quaternion.Inverse(q1) * q2;
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Dot(Quaternion q1, Quaternion q2)
         {
             return (q1.X * q2.X) + (q1.Y * q2.Y) + (q1.Z * q2.Z) + (q1.W * q2.W);
@@ -502,7 +503,7 @@ namespace OpenMetaverse
         /// <summary>
         /// inverse of a quaternion
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion Inverse(Quaternion quaternion)
         {
             float normsq = quaternion.LengthSquared();
@@ -570,7 +571,7 @@ namespace OpenMetaverse
                 );
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion Subtract(Quaternion quaternion1, Quaternion quaternion2)
         {
             return new Quaternion(
@@ -590,7 +591,7 @@ namespace OpenMetaverse
             );
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion Multiply(Quaternion quaternion, float scaleFactor)
         {
             return new Quaternion(
@@ -600,7 +601,7 @@ namespace OpenMetaverse
                 quaternion.W * scaleFactor);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion Negate(Quaternion quaternion)
         {
             return new Quaternion(
@@ -610,7 +611,7 @@ namespace OpenMetaverse
                 -quaternion.W);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion Normalize(Quaternion q)
         {
             float mag = q.LengthSquared();
