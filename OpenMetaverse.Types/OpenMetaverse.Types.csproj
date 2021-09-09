@@ -1,16 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <ProjectType>Local</ProjectType>
-    <TargetFrameworks>net48</TargetFrameworks>
-    <RootNamespace>OpenMetaverse</RootNamespace>
-    <NoWarn>1591,1574,0419,0618</NoWarn>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-  </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="ReaderWriterLockSlim.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="5.0.0" />
-  </ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net5.0;netstandard2.0;netstandard2.1</TargetFrameworks>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
+    </ItemGroup>
+
 </Project>

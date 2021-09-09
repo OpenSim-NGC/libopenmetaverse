@@ -1223,6 +1223,9 @@ namespace OpenMetaverse
                         {
                             try
                             {
+                                /*LoginReplyXmlRpcHandler(
+                                    request.Send(cc.URI, cc.Timeout),
+                                    loginParams);*/
                                 LoginReplyXmlRpcHandler(
                                     request.Send(cc.URI, cc.Timeout),
                                     loginParams);
