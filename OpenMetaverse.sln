@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMetaverse", "OpenMetaverse\OpenMetaverse.csproj", "{EE2F2B35-2810-4859-AF23-85F97C8F9BC1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMetaverse.Types", "OpenMetaverse.Types\OpenMetaverse.Types.csproj", "{9BB1ED23-99C6-4823-A866-4DA5E4E21B1D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMetaverse.StructuredData", "OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj", "{C5D57C3E-4DE9-43AB-88A0-BB5662D3F5A3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EE2F2B35-2810-4859-AF23-85F97C8F9BC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE2F2B35-2810-4859-AF23-85F97C8F9BC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE2F2B35-2810-4859-AF23-85F97C8F9BC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE2F2B35-2810-4859-AF23-85F97C8F9BC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9BB1ED23-99C6-4823-A866-4DA5E4E21B1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9BB1ED23-99C6-4823-A866-4DA5E4E21B1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9BB1ED23-99C6-4823-A866-4DA5E4E21B1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9BB1ED23-99C6-4823-A866-4DA5E4E21B1D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5D57C3E-4DE9-43AB-88A0-BB5662D3F5A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5D57C3E-4DE9-43AB-88A0-BB5662D3F5A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5D57C3E-4DE9-43AB-88A0-BB5662D3F5A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5D57C3E-4DE9-43AB-88A0-BB5662D3F5A3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
