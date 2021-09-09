@@ -16,6 +16,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "importprimscript", "importp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IRCGateway", "IRCGateway\IRCGateway.csproj", "{A152171B-974E-4D18-AC6D-4ED1F6F7098F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mapgenerator", "mapgenerator\mapgenerator.csproj", "{A387B0F1-0DB8-4A4F-BB4F-11FB625E386B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,5 +56,9 @@ Global
 		{A152171B-974E-4D18-AC6D-4ED1F6F7098F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A152171B-974E-4D18-AC6D-4ED1F6F7098F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A152171B-974E-4D18-AC6D-4ED1F6F7098F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A387B0F1-0DB8-4A4F-BB4F-11FB625E386B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A387B0F1-0DB8-4A4F-BB4F-11FB625E386B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A387B0F1-0DB8-4A4F-BB4F-11FB625E386B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A387B0F1-0DB8-4A4F-BB4F-11FB625E386B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
