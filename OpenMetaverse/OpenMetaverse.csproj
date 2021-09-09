@@ -13,6 +13,7 @@
     <ItemGroup>
       <PackageReference Include="log4net" Version="2.0.12" />
       <PackageReference Include="SmartThreadPool.dll" Version="2.3.0" />
+      <PackageReference Include="ZeroFormatter" Version="1.6.4" />
       <PackageReference Include="zlib.net-mutliplatform" Version="1.0.5" />
     </ItemGroup>
 
