@@ -95,6 +95,8 @@ namespace OpenMetaverse
             public TextureRequestState State;
             /// <summary>The Unique Request ID, This is also the Asset ID of the texture being requested</summary>
             public UUID RequestID;
+            /// <summary>The cancellation token for the request.</summary>
+            public CancellationTokenSource TokenSource; //added from LibreOpenMetaverse
             /// <summary>The slot this request is occupying in the threadpoolSlots array</summary>
             public int RequestSlot;
             /// <summary>The ImageType of the request.</summary>
@@ -131,6 +133,8 @@ namespace OpenMetaverse
         private readonly int[] threadpoolSlots;
         /// <summary>The primary thread which manages the requests.</summary>
         private Thread downloadMaster;
+        /// <summary>The cancellation token for the TexturePipeline and all child tasks.</summary>
+        private CancellationTokenSource downloadTokenSource; //added from LibreOpenMetaverse
         /// <summary>true if the TexturePipeline is currently running</summary>
         bool _Running;
         /// <summary>A synchronization object used by the primary thread</summary>
@@ -150,6 +154,8 @@ namespace OpenMetaverse
             _Client = client;
 
             maxTextureRequests = client.Settings.MAX_CONCURRENT_TEXTURE_DOWNLOADS;
+            
+            downloadTokenSource = new CancellationTokenSource();//Added from LibreOpenMetaverse
 
             resetEvents = new AutoResetEvent[maxTextureRequests];
             threadpoolSlots = new int[maxTextureRequests];
@@ -219,10 +225,17 @@ namespace OpenMetaverse
             if (null != RefreshDownloadsTimer) RefreshDownloadsTimer.Dispose();
             RefreshDownloadsTimer = null;
 
-            if (downloadMaster != null && downloadMaster.IsAlive)
+            /*
+             if (downloadMaster != null && downloadMaster.IsAlive)
             {
                 downloadMaster.Abort();
             }
+            */
+            
+            //Added from LibreOpenMetaverse
+            if (!downloadTokenSource.IsCancellationRequested)
+                downloadTokenSource.Cancel();
+            
             downloadMaster = null;
 
             _Client.Network.UnregisterCallback(PacketType.ImageNotInDatabase, ImageNotInDatabaseHandler);
@@ -314,6 +327,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
+                    //TokenSource added from LibreMetaverse
                     lock (_Transfers)
                     {
                         TaskInfo request;
@@ -328,6 +342,7 @@ namespace OpenMetaverse
                             request.State = TextureRequestState.Pending;
                             request.RequestID = textureID;
                             request.ReportProgress = progressive;
+                            request.TokenSource = CancellationTokenSource.CreateLinkedTokenSource(downloadTokenSource.Token);
                             request.RequestSlot = -1;
                             request.Type = imageType;
 
