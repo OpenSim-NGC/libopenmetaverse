@@ -32,6 +32,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestClient", "TestClient\Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMetaverse.Utilities", "OpenMetaverse.Utilities\OpenMetaverse.Utilities.csproj", "{F8823A63-0731-4CAA-8D70-7B70DD9EF1A3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisualParamGenerator", "VisualParamGenerator\VisualParamGenerator.csproj", "{6553B0BC-6F1D-4527-834B-CAF77EC7AC10}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -102,5 +104,9 @@ Global
 		{F8823A63-0731-4CAA-8D70-7B70DD9EF1A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F8823A63-0731-4CAA-8D70-7B70DD9EF1A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F8823A63-0731-4CAA-8D70-7B70DD9EF1A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6553B0BC-6F1D-4527-834B-CAF77EC7AC10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6553B0BC-6F1D-4527-834B-CAF77EC7AC10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6553B0BC-6F1D-4527-834B-CAF77EC7AC10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6553B0BC-6F1D-4527-834B-CAF77EC7AC10}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
