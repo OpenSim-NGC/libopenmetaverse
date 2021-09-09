@@ -16,4 +16,16 @@
       <PackageReference Include="zlib.net-mutliplatform" Version="1.0.5" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="ImportedDlls\XMLRPC.dll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="XMLRPC, Version=1.10.0.1, Culture=neutral, PublicKeyToken=null">
+        <HintPath>ImportedDlls\XMLRPC.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>
