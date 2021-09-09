@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net5.0;netstandard2.0;netstandard2.1</TargetFrameworks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
+      <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
+      <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="XMLRPC, Version=1.10.0.1, Culture=neutral, PublicKeyToken=null">
+        <HintPath>..\OpenMetaverse\ImportedDlls\XMLRPC.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>
