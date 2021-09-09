@@ -34,6 +34,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMetaverse.Utilities", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisualParamGenerator", "VisualParamGenerator\VisualParamGenerator.csproj", "{6553B0BC-6F1D-4527-834B-CAF77EC7AC10}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoiceTest", "VoiceTest\VoiceTest.csproj", "{CFD286A1-ACD2-43D1-BD9A-6A5E8FCCCCF8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -108,5 +110,9 @@ Global
 		{6553B0BC-6F1D-4527-834B-CAF77EC7AC10}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6553B0BC-6F1D-4527-834B-CAF77EC7AC10}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6553B0BC-6F1D-4527-834B-CAF77EC7AC10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFD286A1-ACD2-43D1-BD9A-6A5E8FCCCCF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFD286A1-ACD2-43D1-BD9A-6A5E8FCCCCF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CFD286A1-ACD2-43D1-BD9A-6A5E8FCCCCF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CFD286A1-ACD2-43D1-BD9A-6A5E8FCCCCF8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

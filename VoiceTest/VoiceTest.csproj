@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net5.0;netstandard2.0;netstandard2.1</TargetFrameworks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\OpenMetaverse.Tests\OpenMetaverse.Tests.csproj" />
+      <ProjectReference Include="..\OpenMetaverse.Utilities\OpenMetaverse.Utilities.csproj" />
+      <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
+    </ItemGroup>
+
+</Project>
