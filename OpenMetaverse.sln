@@ -26,6 +26,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMetaverse.Rendering.Sim
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMetaverse.Tests", "OpenMetaverse.Tests\OpenMetaverse.Tests.csproj", "{73CB19D5-79B1-48EE-9A8F-CA81E00474EC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PacketDump", "PacketDump\PacketDump.csproj", "{7F14D9E7-36C1-4065-BA27-D005838E743E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -84,5 +86,9 @@ Global
 		{73CB19D5-79B1-48EE-9A8F-CA81E00474EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{73CB19D5-79B1-48EE-9A8F-CA81E00474EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{73CB19D5-79B1-48EE-9A8F-CA81E00474EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F14D9E7-36C1-4065-BA27-D005838E743E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F14D9E7-36C1-4065-BA27-D005838E743E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F14D9E7-36C1-4065-BA27-D005838E743E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F14D9E7-36C1-4065-BA27-D005838E743E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
