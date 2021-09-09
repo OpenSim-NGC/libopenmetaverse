@@ -75,6 +75,7 @@ namespace OpenMetaverse.Voice
 
         // Position update thread
         private Thread posThread;
+        private CancellationTokenSource posTokenSource; //added based on LibreOpenMetaverse
         private ManualResetEvent posRestart;
         public GridClient Client;
         private VoicePosition position;
@@ -128,8 +129,21 @@ namespace OpenMetaverse.Voice
         public void Start()
         {
             // Start the background thread
-            if (posThread != null && posThread.IsAlive)
+            
+            /* Removed as thread.abort is obsolte
+             * 
+             * if (posThread != null && posThread.IsAlive)
                 posThread.Abort();
+             */
+            
+            // Start the background thread (from libre OpenMetaverse)
+            if (posThread != null && posThread.IsAlive)
+            {
+                posRestart.Set();
+                posTokenSource.Cancel();
+            }
+            
+            posTokenSource = new CancellationTokenSource();//Added from LibreOpenMetaverse
             posThread = new Thread(new ThreadStart(PositionThreadBody));
             posThread.Name = "VoicePositionUpdate";
             posThread.IsBackground = true;
@@ -250,8 +264,18 @@ namespace OpenMetaverse.Voice
             {
                 PosUpdating(false);
 
-                if (posThread.IsAlive)
+                /* Removed as thread.abort is obsolete                  
+                 if (posThread.IsAlive)
                     posThread.Abort();
+                */
+                
+                //Added From Libre OpenMetaverse
+                if (posThread.IsAlive)
+                {
+                    posRestart.Set();
+                    posTokenSource.Cancel();
+                }
+                
                 posThread = null;
             }
 
@@ -986,9 +1010,11 @@ namespace OpenMetaverse.Voice
 
         private void PositionThreadBody()
         {
+            var token = posTokenSource.Token; //added from LibreOpenMetaverse
             while (true)
             {
                 posRestart.WaitOne();
+                token.ThrowIfCancellationRequested(); //added from LibreOpenMetaverse
                 Thread.Sleep(1500);
                 UpdatePosition(Client.Self);
             }
