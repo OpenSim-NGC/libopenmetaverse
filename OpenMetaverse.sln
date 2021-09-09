@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GridProxyApp", "GridProxyAp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "importprimscript", "importprimscript\importprimscript.csproj", "{7E8F8066-A030-4889-9766-3C94EAED8629}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IRCGateway", "IRCGateway\IRCGateway.csproj", "{A152171B-974E-4D18-AC6D-4ED1F6F7098F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,5 +50,9 @@ Global
 		{7E8F8066-A030-4889-9766-3C94EAED8629}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E8F8066-A030-4889-9766-3C94EAED8629}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E8F8066-A030-4889-9766-3C94EAED8629}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A152171B-974E-4D18-AC6D-4ED1F6F7098F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A152171B-974E-4D18-AC6D-4ED1F6F7098F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A152171B-974E-4D18-AC6D-4ED1F6F7098F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A152171B-974E-4D18-AC6D-4ED1F6F7098F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
