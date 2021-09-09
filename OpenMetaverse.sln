@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IRCGateway", "IRCGateway\IR
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mapgenerator", "mapgenerator\mapgenerator.csproj", "{A387B0F1-0DB8-4A4F-BB4F-11FB625E386B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMetaverse.PrimMesher", "OpenMetaverse.PrimMesher\OpenMetaverse.PrimMesher.csproj", "{443BAE2E-12F2-41F2-B7D9-9D8763261FE9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,5 +62,9 @@ Global
 		{A387B0F1-0DB8-4A4F-BB4F-11FB625E386B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A387B0F1-0DB8-4A4F-BB4F-11FB625E386B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A387B0F1-0DB8-4A4F-BB4F-11FB625E386B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{443BAE2E-12F2-41F2-B7D9-9D8763261FE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{443BAE2E-12F2-41F2-B7D9-9D8763261FE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{443BAE2E-12F2-41F2-B7D9-9D8763261FE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{443BAE2E-12F2-41F2-B7D9-9D8763261FE9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
