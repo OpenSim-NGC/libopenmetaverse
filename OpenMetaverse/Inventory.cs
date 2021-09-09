@@ -363,7 +363,10 @@ namespace OpenMetaverse
                         Logger.Log("Caching " + Items.Count.ToString() + " inventory items to " + filename, Helpers.LogLevel.Info);
                         foreach (KeyValuePair<UUID, InventoryNode> kvp in Items)
                         {
-                            bformatter.Serialize(stream, kvp.Value);
+                            /* Removed as binary formatter is obsolete 
+                               bformatter.Serialize(stream, kvp.Value);
+                             */
+                            ZeroFormatter.ZeroFormatterSerializer.Serialize(stream, kvp.Value); //added from LibreMetaverse
                         }
                     }
                 }
@@ -391,11 +394,15 @@ namespace OpenMetaverse
 
                 using (Stream stream = File.Open(filename, FileMode.Open))
                 {
-                    BinaryFormatter bformatter = new BinaryFormatter();
+                    //BinaryFormatter bformatter = new BinaryFormatter(); //removed as part of binary formatter replacements
 
                     while (stream.Position < stream.Length)
                     {
-                        OpenMetaverse.InventoryNode node = (InventoryNode)bformatter.Deserialize(stream);
+                        /* Removed as binaryformatter is obsolte
+                           OpenMetaverse.InventoryNode node = (InventoryNode)bformatter.Deserialize(stream);
+                         */
+                        
+                        var node = ZeroFormatter.ZeroFormatterSerializer.Deserialize<InventoryNode>(stream); //added from LibreOpenMetaverse
                         nodes.Add(node);
                         item_count++;
                     }
