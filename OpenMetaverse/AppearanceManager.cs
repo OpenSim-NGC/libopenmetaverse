@@ -403,6 +403,10 @@ namespace OpenMetaverse
         /// </summary>
         private Thread AppearanceThread;
         /// <summary>
+        /// Main appearance cancellation token source
+        /// </summary>
+        private CancellationTokenSource CancellationTokenSource; //Added from LibreOpenMetaverse
+        /// <summary>
         /// Is server baking complete. It needs doing only once
         /// </summary>
         private bool ServerBakingDone = false;
@@ -471,11 +475,14 @@ namespace OpenMetaverse
                 RebakeScheduleTimer.Dispose();
                 RebakeScheduleTimer = null;
             }
+            
+            CancellationTokenSource = new CancellationTokenSource(); //added from LibreOpenMetaverse
 
             // This is the first time setting appearance, run through the entire sequence
             AppearanceThread = new Thread(
                 delegate ()
                 {
+                    var cancellationToken = CancellationTokenSource.Token; //added from LibreOpenMetaverse
                     bool success = true;
                     try
                     {
@@ -2367,13 +2374,23 @@ namespace OpenMetaverse
                 RebakeScheduleTimer.Dispose();
                 RebakeScheduleTimer = null;
             }
+            
+            // Added from LibreOpenMetaverse
+            if (CancellationTokenSource != null)
+            {
+                CancellationTokenSource.Cancel();
+                CancellationTokenSource.Dispose();
+                CancellationTokenSource = null;
+            }
 
             if (AppearanceThread != null)
             {
-                if (AppearanceThread.IsAlive)
+                /* removed as thread.abort is obsolte
+                 if (AppearanceThread.IsAlive)
                 {
                     AppearanceThread.Abort();
                 }
+                */
                 AppearanceThread = null;
                 AppearanceThreadRunning = 0;
             }
