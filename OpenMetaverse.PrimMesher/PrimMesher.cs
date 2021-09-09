@@ -2259,14 +2259,14 @@ namespace OpenMetaverse.PrimMesher
             }
         }
 
-#if VERTEX_INDEXER
+//#if VERTEX_INDEXER
         public VertexIndexer GetVertexIndexer()
         {
             if (viewerMode && viewerFaces.Count > 0)
                 return new VertexIndexer(this);
             return null;
         }
-#endif
+//#endif
 
         /// <summary>
         ///     Scales the mesh
