@@ -1,17 +1,9 @@
 # These files are text eol=lf and should be normalized (convert crlf =&gt; lf)
-*.cs      text eol=lf diff=csharp
-*.xaml    text eol=lf
-*.csproj  text eol=lf
-*.sln     text eol=lf
-*.tt      text eol=lf
-*.ps1     text eol=lf
-*.cmd     text eol=lf
-*.msbuild text eol=lf
-*.md      text eol=lf
-
+* text=auto eol=lf
+*.{cmd,[cC][mM][dD]} text eol=crlf
+*.{bat,[bB][aA][tT]} text eol=crlf
 # Images should be treated as binary
 # (binary is a macro for -text eol=lf -diff)
 *.png     binary
 *.jepg    binary
-
 *.sdf     binary

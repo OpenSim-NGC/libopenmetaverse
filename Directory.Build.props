@@ -5,7 +5,7 @@
 	<Version>1.1.6</Version>
 	<MSBuildProjectExtensionsPath>$(SolutionDir)\obj\$(Configuration)\$(MSBuildProjectName)\</MSBuildProjectExtensionsPath>
 	<IntermediateOutputPath>$(SolutionDir)\obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
-	<OutputPath>$(SolutionDir)\bin\$(Configuration)\$(AssemblyName)\</OutputPath>
+	<OutputPath>$(SolutionDir)\build\$(Configuration)\$(AssemblyName)\</OutputPath>
 	<OutDir>$(OutputPath)</OutDir>
  </PropertyGroup>
 </Project>

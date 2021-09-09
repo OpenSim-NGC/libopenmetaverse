@@ -3,9 +3,9 @@ compile.bat
 *.userprefs
 *.suo
 *.cache
-
 .vs/
 [Oo]bj/
 [Bb]in/
+[Bb]uild/
 PublishProfiles/
 
