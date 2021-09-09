@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMetaverse.Types", "Open
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMetaverse.StructuredData", "OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj", "{C5D57C3E-4DE9-43AB-88A0-BB5662D3F5A3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSJ2K", "CSJ2K\CSJ2K.csproj", "{5392990C-0A87-42F8-897A-4FB45FFD347E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{C5D57C3E-4DE9-43AB-88A0-BB5662D3F5A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C5D57C3E-4DE9-43AB-88A0-BB5662D3F5A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C5D57C3E-4DE9-43AB-88A0-BB5662D3F5A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5392990C-0A87-42F8-897A-4FB45FFD347E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5392990C-0A87-42F8-897A-4FB45FFD347E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5392990C-0A87-42F8-897A-4FB45FFD347E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5392990C-0A87-42F8-897A-4FB45FFD347E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
