@@ -47,6 +47,7 @@ namespace OpenMetaverse
 
         #region Constructors
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector3(float x, float y, float z)
         {
             X = x;
@@ -54,6 +55,7 @@ namespace OpenMetaverse
             Z = z;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector3(float value)
         {
             X = value;
@@ -61,6 +63,7 @@ namespace OpenMetaverse
             Z = value;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector3(Vector2 value, float z)
         {
             X = value.X;
@@ -68,6 +71,7 @@ namespace OpenMetaverse
             Z = z;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector3(Vector3d vector)
         {
             X = (float)vector.X;
@@ -75,23 +79,26 @@ namespace OpenMetaverse
             Z = (float)vector.Z;
         }
 
-        /// <summary>
-        /// Constructor, builds a vector from a byte array
-        /// </summary>
-        /// <param name="byteArray">Byte array containing three four-byte floats</param>
-        /// <param name="pos">Beginning position in the byte array</param>
-        public Vector3(byte[] byteArray, int pos)
-        {
-            X = Y = Z = 0f;
-            FromBytes(byteArray, pos);
-        }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector3(Vector3 vector)
         {
             X = vector.X;
             Y = vector.Y;
             Z = vector.Z;
         }
+
+        /// <summary>
+        /// Constructor, builds a vector from a byte array
+        /// </summary>
+        /// <param name="byteArray">Byte array containing three four-byte floats</param>
+        /// <param name="pos">Beginning position in the byte array</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector3(byte[] byteArray, int pos)
+        {
+            X = Y = Z = 0f;
+            FromBytes(byteArray, pos);
+        }
+
 
         #endregion Constructors
 
@@ -126,19 +133,19 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Length()
         {
-            return (float)Math.Sqrt((X * X) + (Y * Y) + (Z * Z));
+            return (float)Math.Sqrt(X * X + Y * Y + Z * Z);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float LengthSquared()
         {
-            return (X * X) + (Y * Y) + (Z * Z);
+            return (X * X + Y * Y + Z * Z);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Normalize()
         {
-            float factor = LengthSquared();
+            float factor = X * X + Y * Y + Z * Z;
             if (factor > 1e-6f)
             {
                 factor = 1f / (float)Math.Sqrt(factor);
@@ -274,13 +281,10 @@ namespace OpenMetaverse
         public static float DistanceSquared(Vector3 value1, Vector3 value2)
         {
             float x = value1.X - value2.X;
-            x *= x;
             float y = value1.Y - value2.Y;
-            y *= y;
             float z = value1.Z - value2.Z;
-            x += y;
 
-            return (x + z * z);
+            return x * x + y * y + z * z;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -359,9 +363,9 @@ namespace OpenMetaverse
             if (factor > 1e-6f)
             {
                 factor = 1f / (float)Math.Sqrt(factor);
-                return new Vector3(value.X * factor, value.Y * factor, value.Z * factor);
+                return value * factor;
             }
-            return Vector3.Zero;
+            return new Vector3();
         }
 
         /// <summary>
@@ -505,7 +509,7 @@ namespace OpenMetaverse
         {
             int hash = X.GetHashCode();
             hash = Utils.CombineHash(hash, Y.GetHashCode());
-            hash = Utils.CombineHash(hash, Y.GetHashCode()); 
+            hash = Utils.CombineHash(hash, Z.GetHashCode()); 
             return hash;
         }
 
@@ -627,6 +631,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Cross product between two vectors
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 operator %(Vector3 value1, Vector3 value2)
         {
             return Cross(value1, value2);
@@ -637,6 +642,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static explicit operator Vector3(Vector3d value)
         {
             return new Vector3(value);
@@ -647,7 +653,7 @@ namespace OpenMetaverse
         /// <summary>A vector with a value of 0,0,0</summary>
         public readonly static Vector3 Zero = new Vector3();
         /// <summary>A vector with a value of 1,1,1</summary>
-        public readonly static Vector3 One = new Vector3(1f, 1f, 1f);
+        public readonly static Vector3 One = new Vector3(1f);
         /// <summary>A unit vector facing forward (X axis), value 1,0,0</summary>
         public readonly static Vector3 UnitX = new Vector3(1f, 0f, 0f);
         /// <summary>A unit vector facing left (Y axis), value 0,1,0</summary>

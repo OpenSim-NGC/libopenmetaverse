@@ -46,6 +46,7 @@ namespace OpenMetaverse
 
         #region Constructors
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Quaternion(float x, float y, float z, float w)
         {
             X = x;
@@ -54,6 +55,7 @@ namespace OpenMetaverse
             W = w;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Quaternion(Vector3 vectorPart, float scalarPart)
         {
             X = vectorPart.X;
@@ -68,6 +70,7 @@ namespace OpenMetaverse
         /// <param name="x">X value from -1.0 to 1.0</param>
         /// <param name="y">Y value from -1.0 to 1.0</param>
         /// <param name="z">Z value from -1.0 to 1.0</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Quaternion(float x, float y, float z)
         {
             X = x;
@@ -86,6 +89,7 @@ namespace OpenMetaverse
         /// <param name="normalized">Whether the source data is normalized or
         /// not. If this is true 12 bytes will be read, otherwise 16 bytes will
         /// be read.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Quaternion(byte[] byteArray, int pos, bool normalized)
         {
             X = Y = Z = 0;
@@ -93,6 +97,7 @@ namespace OpenMetaverse
             FromBytes(byteArray, pos, normalized);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Quaternion(Quaternion q)
         {
             X = q.X;
@@ -172,12 +177,11 @@ namespace OpenMetaverse
             float len = LengthSquared();
             if (len > 1e-6f)
             {
-                len = 1.0f / len;
-
-                X = -X * len;
-                Y = -Y * len;
-                Z = -Z * len;
-                W = W * len;
+                len = -1.0f / len;
+                X = X * len;
+                Y = Y * len;
+                Z = Z * len;
+                W = -W * len;
             }
             else
             {
@@ -376,6 +380,7 @@ namespace OpenMetaverse
         /// Build a quaternion from an axis and an angle of rotation around
         /// that axis
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion CreateFromAxisAngle(float axisX, float axisY, float axisZ, float angle)
         {
             Vector3 axis = new Vector3(axisX, axisY, axisZ);
@@ -388,6 +393,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="axis">Axis of rotation</param>
         /// <param name="angle">Angle of rotation</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion CreateFromAxisAngle(Vector3 axis, float angle)
         {
             axis = Vector3.Normalize(axis);
@@ -399,6 +405,36 @@ namespace OpenMetaverse
             return new Quaternion(axis.X * s, axis.Y * s, axis.Z * s, c);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Quaternion CreateRotationX(float angle)
+        {
+            angle *= 0.5f;
+            float c = (float)Math.Cos(angle);
+            float s = (float)Math.Sin(angle);
+
+            return new Quaternion(s, 0, 0, c);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Quaternion CreateRotationY(float angle)
+        {
+            angle *= 0.5f;
+            float c = (float)Math.Cos(angle);
+            float s = (float)Math.Sin(angle);
+
+            return new Quaternion(0, s, 0, c);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Quaternion CreateRotationZ(float angle)
+        {
+            angle *= 0.5f;
+            float c = (float)Math.Cos(angle);
+            float s = (float)Math.Sin(angle);
+
+            return new Quaternion(0, 0, s, c);
+        }
+
         /// <summary>
         /// Creates a quaternion from a vector containing roll, pitch, and yaw
         /// in radians
@@ -406,6 +442,7 @@ namespace OpenMetaverse
         /// <param name="eulers">Vector representation of the euler angles in
         /// radians</param>
         /// <returns>Quaternion representation of the euler angles</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion CreateFromEulers(Vector3 eulers)
         {
             return CreateFromEulers(eulers.X, eulers.Y, eulers.Z);
@@ -444,48 +481,92 @@ namespace OpenMetaverse
             );
         }
 
-        public static Quaternion CreateFromRotationMatrix(Matrix4 matrix)
+        public static Quaternion CreateFromRotationMatrix(Matrix3x3 matrix)
         {
-            float num8 = (matrix.M11 + matrix.M22) + matrix.M33;
-            if (num8 > 0f)
+            float num = matrix.M11 + matrix.M22 + matrix.M33;
+            float n2;
+            if (num >= 0f)
             {
-                float num = (float)Math.Sqrt((double)(num8 + 1f));
-                float w = num * 0.5f;
-                num = 0.5f / num;
+                num = (float)Math.Sqrt((num + 1f));
+                n2 = 0.5f / num;
                 return new Quaternion(
-                        (matrix.M23 - matrix.M32) * num,
-                        (matrix.M31 - matrix.M13) * num,
-                        (matrix.M12 - matrix.M21) * num,
-                        w);
+                        (matrix.M23 - matrix.M32) * n2,
+                        (matrix.M31 - matrix.M13) * n2,
+                        (matrix.M12 - matrix.M21) * n2,
+                        num * 0.5f);
             }
             if ((matrix.M11 >= matrix.M22) && (matrix.M11 >= matrix.M33))
             {
-                float num7 = (float)Math.Sqrt((double)(((1f + matrix.M11) - matrix.M22) - matrix.M33));
-                float num4 = 0.5f / num7;
+                num = (float)Math.Sqrt((((1f + matrix.M11) - matrix.M22) - matrix.M33));
+                n2 = 0.5f / num;
                 return new Quaternion(
-                        0.5f * num7,
-                        (matrix.M12 + matrix.M21) * num4,
-                        (matrix.M13 + matrix.M31) * num4,
-                        (matrix.M23 - matrix.M32) * num4);
+                        0.5f * num,
+                        (matrix.M12 + matrix.M21) * n2,
+                        (matrix.M13 + matrix.M31) * n2,
+                        (matrix.M23 - matrix.M32) * n2);
             }
             if (matrix.M22 > matrix.M33)
             {
-                float num6 = (float)Math.Sqrt((double)(((1f + matrix.M22) - matrix.M11) - matrix.M33));
-                float num3 = 0.5f / num6;
+                num = (float)Math.Sqrt((((1f + matrix.M22) - matrix.M11) - matrix.M33));
+                n2 = 0.5f / num;
                 return new Quaternion(
-                        (matrix.M21 + matrix.M12) * num3,
-                        0.5f * num6,
-                        (matrix.M32 + matrix.M23) * num3,
-                        (matrix.M31 - matrix.M13) * num3);
+                        (matrix.M21 + matrix.M12) * n2,
+                        0.5f * num,
+                        (matrix.M32 + matrix.M23) * n2,
+                        (matrix.M31 - matrix.M13) * n2);
             }
-            float num5 = (float)Math.Sqrt((double)(((1f + matrix.M33) - matrix.M11) - matrix.M22));
-            float num2 = 0.5f / num5;
 
+            num = (float)Math.Sqrt((((1f + matrix.M33) - matrix.M11) - matrix.M22));
+            n2 = 0.5f / num;
             return new Quaternion(
-                        (matrix.M31 + matrix.M13) * num2,
-                        (matrix.M32 + matrix.M23) * num2,
-                        0.5f * num5,
-                        (matrix.M12 - matrix.M21) * num2);
+                        (matrix.M31 + matrix.M13) * n2,
+                        (matrix.M32 + matrix.M23) * n2,
+                        0.5f * num,
+                        (matrix.M12 - matrix.M21) * n2);
+        }
+
+        public static Quaternion CreateFromRotationMatrix(Matrix4 matrix)
+        {
+            float num = matrix.M11 + matrix.M22 + matrix.M33;
+            float n2;
+            if (num >= 0f)
+            {
+                num = (float)Math.Sqrt((num + 1f));
+                n2 = 0.5f / num;
+                return new Quaternion(
+                        (matrix.M23 - matrix.M32) * n2,
+                        (matrix.M31 - matrix.M13) * n2,
+                        (matrix.M12 - matrix.M21) * n2,
+                        num * 0.5f);
+            }
+            if ((matrix.M11 >= matrix.M22) && (matrix.M11 >= matrix.M33))
+            {
+                num = (float)Math.Sqrt((((1f + matrix.M11) - matrix.M22) - matrix.M33));
+                n2 = 0.5f / num;
+                return new Quaternion(
+                        0.5f * num,
+                        (matrix.M12 + matrix.M21) * n2,
+                        (matrix.M13 + matrix.M31) * n2,
+                        (matrix.M23 - matrix.M32) * n2);
+            }
+            if (matrix.M22 > matrix.M33)
+            {
+                num = (float)Math.Sqrt((((1f + matrix.M22) - matrix.M11) - matrix.M33));
+                n2 = 0.5f / num;
+                return new Quaternion(
+                        (matrix.M21 + matrix.M12) * n2,
+                        0.5f * num,
+                        (matrix.M32 + matrix.M23) * n2,
+                        (matrix.M31 - matrix.M13) * n2);
+            }
+
+            num = (float)Math.Sqrt((((1f + matrix.M33) - matrix.M11) - matrix.M22));
+            n2 = 0.5f / num;
+            return new Quaternion(
+                        (matrix.M31 + matrix.M13) * n2,
+                        (matrix.M32 + matrix.M23) * n2,
+                        0.5f * num,
+                        (matrix.M12 - matrix.M21) * n2);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -581,6 +662,7 @@ namespace OpenMetaverse
                 quaternion1.W - quaternion2.W);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion Multiply(Quaternion a, Quaternion b)
         {
             return new Quaternion(
@@ -710,31 +792,37 @@ namespace OpenMetaverse
 
         #region Operators
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Quaternion quaternion1, Quaternion quaternion2)
         {
             return quaternion1.Equals(quaternion2);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Quaternion quaternion1, Quaternion quaternion2)
         {
             return !quaternion1.Equals(quaternion2);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion operator +(Quaternion quaternion1, Quaternion quaternion2)
         {
             return Add(quaternion1, quaternion2);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion operator -(Quaternion quaternion)
         {
             return Negate(quaternion);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion operator -(Quaternion quaternion1, Quaternion quaternion2)
         {
             return Subtract(quaternion1, quaternion2);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion operator *(Quaternion a, Quaternion b)
         {
             return new Quaternion(
@@ -745,6 +833,7 @@ namespace OpenMetaverse
             );
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion operator *(Quaternion quaternion, float scaleFactor)
         {
             return new Quaternion(
@@ -754,6 +843,7 @@ namespace OpenMetaverse
                 quaternion.W * scaleFactor);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion operator /(Quaternion quaternion1, Quaternion quaternion2)
         {
             return Divide(quaternion1, quaternion2);

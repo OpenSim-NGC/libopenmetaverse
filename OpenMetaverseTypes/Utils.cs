@@ -27,6 +27,7 @@
  */
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace OpenMetaverse
@@ -110,13 +111,16 @@ namespace OpenMetaverse
         /// <param name="min">Minimum allowable value</param>
         /// <param name="max">Maximum allowable value</param>
         /// <returns>A value inclusively between lower and upper</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Clamp(float value, float min, float max)
         {
             // First we check to see if we're greater than the max
-            value = (value > max) ? max : value;
+            if (value > max)
+                return max;
 
             // Then we check to see if we're less than the min.
-            value = (value < min) ? min : value;
+            if (value < min)
+                return min;
 
             // There's no check to see if min > max.
             return value;
@@ -129,13 +133,16 @@ namespace OpenMetaverse
         /// <param name="min">Minimum allowable value</param>
         /// <param name="max">Maximum allowable value</param>
         /// <returns>A value inclusively between lower and upper</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Clamp(double value, double min, double max)
         {
             // First we check to see if we're greater than the max
-            value = (value > max) ? max : value;
+            if (value > max)
+                return max;
 
             // Then we check to see if we're less than the min.
-            value = (value < min) ? min : value;
+            if (value < min)
+                return min;
 
             // There's no check to see if min > max.
             return value;
@@ -148,13 +155,16 @@ namespace OpenMetaverse
         /// <param name="min">Minimum allowable value</param>
         /// <param name="max">Maximum allowable value</param>
         /// <returns>A value inclusively between lower and upper</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Clamp(int value, int min, int max)
         {
             // First we check to see if we're greater than the max
-            value = (value > max) ? max : value;
+            if (value > max)
+                return max;
 
             // Then we check to see if we're less than the min.
-            value = (value < min) ? min : value;
+            if (value < min)
+                return min;
 
             // There's no check to see if min > max.
             return value;
@@ -165,6 +175,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="val">Floating point number to round</param>
         /// <returns>Integer</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Round(float val)
         {
             return (int)Math.Floor(val + 0.5f);
@@ -173,6 +184,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Test if a single precision float is a finite number
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsFinite(float value)
         {
             return !(Single.IsNaN(value) || Single.IsInfinity(value));
@@ -181,6 +193,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Test if a double precision float is a finite number
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsFinite(double value)
         {
             return !(Double.IsNaN(value) || Double.IsInfinity(value));
@@ -192,6 +205,7 @@ namespace OpenMetaverse
         /// <param name="value1">First value</param>
         /// <param name="value2">Second value</param>
         /// <returns>The distance between the two values</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Distance(float value1, float value2)
         {
             return Math.Abs(value1 - value2);
@@ -263,6 +277,7 @@ namespace OpenMetaverse
             return Utils.Hermite(value1, 0f, value2, 0f, result);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float ToDegrees(float radians)
         {
             // This method uses double precission internally,
@@ -271,6 +286,8 @@ namespace OpenMetaverse
             return (float)(radians * 57.295779513082320876798154814105);
         }
 
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float ToRadians(float degrees)
         {
             // This method uses double precission internally,
@@ -284,6 +301,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="data">Byte array to compute the hash for</param>
         /// <returns>MD5 hash of the input data</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] MD5(byte[] data)
         {
             lock (MD5Builder)
@@ -295,6 +313,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="data">Byte array to compute the hash for</param>
         /// <returns>SHA1 hash of the input data</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] SHA1(byte[] data)
         {
             lock (SHA1Builder)
@@ -306,6 +325,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="value">The string to hash</param>
         /// <returns>The SHA1 hash as a string</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string SHA1String(string value)
         {
             StringBuilder digest = new StringBuilder(40);
@@ -323,6 +343,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="data">Byte array to compute the hash for</param>
         /// <returns>SHA256 hash of the input data</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] SHA256(byte[] data)
         {
             lock (SHA256Builder)
@@ -334,6 +355,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="value">The string to hash</param>
         /// <returns>The SHA256 hash as a string</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string SHA256String(string value)
         {
             StringBuilder digest = new StringBuilder(64);
@@ -351,6 +373,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="password">The password to hash</param>
         /// <returns>An MD5 hash in string format, with $1$ prepended</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string MD5(string password)
         {
             StringBuilder digest = new StringBuilder(32);

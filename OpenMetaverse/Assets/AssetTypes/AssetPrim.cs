@@ -416,15 +416,13 @@ namespace OpenMetaverse.Assets
 
         static Vector3 ReadVector(XmlTextReader reader, string name)
         {
-            Vector3 vec;
-
             reader.ReadStartElement(name);
-            vec.X = reader.ReadElementContentAsFloat("X", String.Empty);
-            vec.Y = reader.ReadElementContentAsFloat("Y", String.Empty);
-            vec.Z = reader.ReadElementContentAsFloat("Z", String.Empty);
+            float x = reader.ReadElementContentAsFloat("X", String.Empty);
+            float y = reader.ReadElementContentAsFloat("Y", String.Empty);
+            float z = reader.ReadElementContentAsFloat("Z", String.Empty);
             reader.ReadEndElement();
 
-            return vec;
+            return new Vector3(x,y,z);
         }
 
         static Quaternion ReadQuaternion(XmlTextReader reader, string name)
