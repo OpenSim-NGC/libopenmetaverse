@@ -1169,7 +1169,7 @@ namespace OpenMetaverse.Tests
             TimeSpan duration = DateTime.UtcNow - messageTestTime;
             Console.WriteLine("RemoteParcelRequestReply: OMV Message System Serialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, duration);
 
-            BinaryFormatter formatter = new BinaryFormatter();
+            //BinaryFormatter formatter = new BinaryFormatter();
             DateTime xmlTestTime = DateTime.UtcNow;
             for (int x = 0; x < TEST_ITER; x++)
             {
@@ -1178,10 +1178,13 @@ namespace OpenMetaverse.Tests
 
                 MemoryStream stream = new MemoryStream();
 
-                formatter.Serialize(stream, s);
+                ZeroFormatter.ZeroFormatterSerializer.Serialize(stream, s);
+                //formatter.Serialize(stream, s);
 
                 stream.Seek(0, SeekOrigin.Begin);
-                RemoteParcelRequestReply t = (RemoteParcelRequestReply)formatter.Deserialize(stream);
+                //RemoteParcelRequestReply t = (RemoteParcelRequestReply)formatter.Deserialize(stream);
+                RemoteParcelRequestReply t =
+                    ZeroFormatter.ZeroFormatterSerializer.Deserialize<RemoteParcelRequestReply>(stream);
 
                 Assert.AreEqual(s.ParcelID, t.ParcelID);
             }
@@ -1279,10 +1282,12 @@ namespace OpenMetaverse.Tests
 
                 MemoryStream stream = new MemoryStream();
 
-                formatter.Serialize(stream, s);
+                //formatter.Serialize(stream, s);
+                ZeroFormatter.ZeroFormatterSerializer.Serialize(stream, s);
 
                 stream.Seek(0, SeekOrigin.Begin);
-                DirLandReplyMessage t = (DirLandReplyMessage)formatter.Deserialize(stream);
+                //DirLandReplyMessage t = (DirLandReplyMessage)formatter.Deserialize(stream);
+                DirLandReplyMessage t = ZeroFormatter.ZeroFormatterSerializer.Deserialize<DirLandReplyMessage>(stream);
 
                 Assert.AreEqual(s.AgentID, t.AgentID);
                 Assert.AreEqual(s.QueryID, t.QueryID);
@@ -1555,11 +1560,13 @@ namespace OpenMetaverse.Tests
 
                 MemoryStream stream = new MemoryStream();
 
-                formatter.Serialize(stream, s);
+                //formatter.Serialize(stream, s);
+                ZeroFormatter.ZeroFormatterSerializer.Serialize(stream, s);
 
                 stream.Seek(0, SeekOrigin.Begin);
 
-                ParcelPropertiesMessage t = (ParcelPropertiesMessage)formatter.Deserialize(stream);
+                //ParcelPropertiesMessage t = (ParcelPropertiesMessage)formatter.Deserialize(stream);
+                ParcelPropertiesMessage t = ZeroFormatter.ZeroFormatterSerializer.Deserialize<ParcelPropertiesMessage>(stream);
 
                 Assert.AreEqual(s.AABBMax, t.AABBMax);
                 Assert.AreEqual(s.AABBMin, t.AABBMin);
