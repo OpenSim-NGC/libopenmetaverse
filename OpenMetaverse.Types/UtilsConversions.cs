@@ -1687,11 +1687,15 @@ namespace OpenMetaverse
 
                 if (c >= 0xD800 && c < 0xE000)
                 {
+                    if (c >= 0xDC00)
+                        continue;
+                    if (i == str.Length)
+                        break;
+                    c = str[i++];
                     if (c < 0xDC00 || c > 0xDFFF)
                         continue;
                     lastc = c;
                     nbytes += 4;
-                    ++i;
                     continue;
                 }
                 lastc = c;
@@ -1739,12 +1743,16 @@ namespace OpenMetaverse
 
                 if (c >= 0xD800 && c < 0xE000)
                 {
+                    if (c >= 0xDC00)
+                        continue;
+                    if (i == str.Length)
+                        break;
+                    c = str[i++];
                     if (c < 0xDC00 || c > 0xDFFF)
                         continue;
                     if (nbytes > max4)
                         break;
                     nbytes += 4;
-                    ++i;
                     continue;
                 }
                 if (nbytes > max3)

@@ -255,7 +255,7 @@ namespace OpenMetaverse
         public void LookAt(Vector3 origin, Vector3 target, Vector3 upDirection)
         {
             this.origin = origin;
-            Vector3 at = new Vector3(target - origin);
+            Vector3 at = target - origin;
             at.Normalize();
 
             LookDirection(at, upDirection);

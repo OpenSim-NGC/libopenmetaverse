@@ -295,7 +295,7 @@ namespace OpenMetaverse
                 factor = 1f / (float)Math.Sqrt(factor);
                 return new Vector2(value.X * factor, value.Y * factor);
             }
-            return Vector2.Zero;
+            return new Vector2();
         }
 
         /// <summary>
@@ -321,7 +321,7 @@ namespace OpenMetaverse
             }
             catch (Exception)
             {
-                result = Vector2.Zero;
+                result = new Vector2();
                 return false;
             }
         }

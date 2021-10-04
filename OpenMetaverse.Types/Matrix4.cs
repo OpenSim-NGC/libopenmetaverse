@@ -280,27 +280,27 @@ namespace OpenMetaverse
 
         public bool Decompose(out Vector3 scale, out Quaternion rotation, out Vector3 translation)
         {
-            translation.X = this.M41;
-            translation.Y = this.M42;
-            translation.Z = this.M43;
+            translation = new Vector3(M41, M42,M43);
 
             float xs = (Math.Sign(M11 * M12 * M13 * M14) < 0) ? -1 : 1;
             float ys = (Math.Sign(M21 * M22 * M23 * M24) < 0) ? -1 : 1;
             float zs = (Math.Sign(M31 * M32 * M33 * M34) < 0) ? -1 : 1;
 
-            scale.X = xs * (float)Math.Sqrt(this.M11 * this.M11 + this.M12 * this.M12 + this.M13 * this.M13);
-            scale.Y = ys * (float)Math.Sqrt(this.M21 * this.M21 + this.M22 * this.M22 + this.M23 * this.M23);
-            scale.Z = zs * (float)Math.Sqrt(this.M31 * this.M31 + this.M32 * this.M32 + this.M33 * this.M33);
+            xs *= (float)Math.Sqrt(M11 * M11 + M12 * M12 + M13 * M13);
+            ys *= (float)Math.Sqrt(M21 * M21 + M22 * M22 + M23 * M23);
+            zs *= (float)Math.Sqrt(M31 * M31 + M32 * M32 + M33 * M33);
 
-            if (scale.X == 0.0 || scale.Y == 0.0 || scale.Z == 0.0)
+            scale = new Vector3(xs, ys, zs);
+
+            if (xs == 0.0 || ys == 0.0 || zs == 0.0)
             {
                 rotation = Quaternion.Identity;
                 return false;
             }
 
-            Matrix4 m1 = new Matrix4(this.M11 / scale.X, M12 / scale.X, M13 / scale.X, 0,
-                                     this.M21 / scale.Y, M22 / scale.Y, M23 / scale.Y, 0,
-                                     this.M31 / scale.Z, M32 / scale.Z, M33 / scale.Z, 0,
+            Matrix4 m1 = new Matrix4(M11 / xs, M12 / xs, M13 / xs, 0,
+                                     M21 / ys, M22 / ys, M23 / ys, 0,
+                                     M31 / zs, M32 / zs, M33 / zs, 0,
                                      0, 0, 0, 1);
 
             rotation = Quaternion.CreateFromRotationMatrix(m1);
