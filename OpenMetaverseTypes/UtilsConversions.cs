@@ -595,17 +595,26 @@ namespace OpenMetaverse
         /// <returns>An unsigned short, will be zero if a ushort can't be read
         /// at the given position</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ushort BytesToUInt16(byte[] bytes, int pos)
+        public static unsafe ushort BytesToUInt16(byte[] bytes, int pos)
         {
             //if (bytes.Length < pos + 2) return 0;
-            return (ushort)(bytes[pos] + (bytes[pos + 1] << 8));
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = &bytes[pos])
+                    return *(ushort*)p;
+            }
+            else
+                return (ushort)(bytes[pos] + (bytes[pos + 1] << 8));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe ushort BytesToUInt16(byte* bytes)
         {
             //if (bytes.Length < pos + 2) return 0;
-            return (ushort)(*bytes + (bytes[1] << 8));
+            if (CanDirectCopyLE)
+                return *(ushort*)bytes;
+            else
+                return (ushort)(*bytes + (bytes[1] << 8));
         }
 
         /// <summary>
@@ -615,10 +624,16 @@ namespace OpenMetaverse
         /// <returns>An unsigned short, will be zero if a ushort can't be
         /// read</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ushort BytesToUInt16(byte[] bytes)
+        public static unsafe ushort BytesToUInt16(byte[] bytes)
         {
             //if (bytes.Length < 2) return 0;
-            return (ushort)(bytes[0] + (bytes[1] << 8));
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = bytes)
+                    return *(ushort*)p;
+            }
+            else
+                return (ushort)(bytes[0] + (bytes[1] << 8));
         }
 
         /// <summary>
