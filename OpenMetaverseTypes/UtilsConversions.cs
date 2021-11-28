@@ -109,55 +109,55 @@ namespace OpenMetaverse
             "object",     //  6
             "notecard",   //  7
             "category",   //  8
-            String.Empty, //  9
+            string.Empty, //  9
             "lsltext",    // 10
             "lslbyte",    // 11
             "txtr_tga",   // 12
             "bodypart",   // 13
-            String.Empty, // 14
-            String.Empty, // 15
-            String.Empty, // 16
+            string.Empty, // 14
+            string.Empty, // 15
+            string.Empty, // 16
             "snd_wav",    // 17
             "img_tga",    // 18
             "jpeg",       // 19
             "animatn",    // 20
             "gesture",    // 21
             "simstate",   // 22
-            String.Empty, // 23
+            string.Empty, // 23
             "link",       // 24
             "link_f",     // 25
-            String.Empty, // 26
-            String.Empty, // 27
-            String.Empty, // 28
-            String.Empty, // 29
-            String.Empty, // 30
-            String.Empty, // 31
-            String.Empty, // 32
-            String.Empty, // 33
-            String.Empty, // 34
-            String.Empty, // 35
-            String.Empty, // 36
-            String.Empty, // 37
-            String.Empty, // 38
-            String.Empty, // 39
-            String.Empty, // 40
-            String.Empty, // 41
-            String.Empty, // 42
-            String.Empty, // 43
-            String.Empty, // 44
-            String.Empty, // 45
-            String.Empty, // 46
-            String.Empty, // 47
-            String.Empty, // 48
+            string.Empty, // 26
+            string.Empty, // 27
+            string.Empty, // 28
+            string.Empty, // 29
+            string.Empty, // 30
+            string.Empty, // 31
+            string.Empty, // 32
+            string.Empty, // 33
+            string.Empty, // 34
+            string.Empty, // 35
+            string.Empty, // 36
+            string.Empty, // 37
+            string.Empty, // 38
+            string.Empty, // 39
+            string.Empty, // 40
+            string.Empty, // 41
+            string.Empty, // 42
+            string.Empty, // 43
+            string.Empty, // 44
+            string.Empty, // 45
+            string.Empty, // 46
+            string.Empty, // 47
+            string.Empty, // 48
             "mesh",       // 49
-            String.Empty, // 50
-            String.Empty, // 51
-            String.Empty, // 52
-            String.Empty, // 53
-            String.Empty, // 54
-            String.Empty, // 55
+            string.Empty, // 50
+            string.Empty, // 51
+            string.Empty, // 52
+            string.Empty, // 53
+            string.Empty, // 54
+            string.Empty, // 55
             "settings",   // 56
-            String.Empty, // 57
+            string.Empty, // 57
         };
 
         private static readonly string[] _FolderTypeNames = new string[]
@@ -166,27 +166,27 @@ namespace OpenMetaverse
             "sound",      //  1
             "callcard",   //  2
             "landmark",   //  3
-            String.Empty, //  4
+            string.Empty, //  4
             "clothing",   //  5
             "object",     //  6
             "notecard",   //  7
             "root_inv",   //  8
-            String.Empty, //  9
+            string.Empty, //  9
             "lsltext",    // 10
-            String.Empty, // 11
-            String.Empty, // 12
+            string.Empty, // 11
+            string.Empty, // 12
             "bodypart",   // 13
             "trash",      // 14
             "snapshot",   // 15
             "lstndfnd",   // 16
-            String.Empty, // 17
-            String.Empty, // 18
-            String.Empty, // 19
+            string.Empty, // 17
+            string.Empty, // 18
+            string.Empty, // 19
             "animatn",    // 20
             "gesture",    // 21
-            String.Empty, // 22
+            string.Empty, // 22
             "favorite",   // 23
-            String.Empty, // 24
+            string.Empty, // 24
             "settings",   // 25
             "ensemble",   // 26
             "ensemble",   // 27
@@ -225,29 +225,29 @@ namespace OpenMetaverse
             "sound",      //  1
             "callcard",   //  2
             "landmark",   //  3
-            String.Empty, //  4
-            String.Empty, //  5
+            string.Empty, //  4
+            string.Empty, //  5
             "object",     //  6
             "notecard",   //  7
             "category",   //  8
             "root",       //  9
             "script",     // 10
-            String.Empty, // 11
-            String.Empty, // 12
-            String.Empty, // 13
-            String.Empty, // 14
+            string.Empty, // 11
+            string.Empty, // 12
+            string.Empty, // 13
+            string.Empty, // 14
             "snapshot",   // 15
-            String.Empty, // 16
+            string.Empty, // 16
             "attach",     // 17
             "wearable",   // 18
             "animation",  // 19
             "gesture",    // 20
-            String.Empty, // 21
+            string.Empty, // 21
             "mesh",       // 22
-            String.Empty, // 23
-            String.Empty, // 24
+            string.Empty, // 23
+            string.Empty, // 24
             "settings",   // 25
-            String.Empty, // 26
+            string.Empty, // 26
         };
 
         private static readonly string[] _SaleTypeNames = new string[]
@@ -338,6 +338,7 @@ namespace OpenMetaverse
             return dif <= a * reltolerance;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool ApproxEqual(float a, float b)
         {
             float dif = Math.Abs(a - b);
@@ -365,10 +366,16 @@ namespace OpenMetaverse
         /// <returns>A signed short integer, will be zero if a short can't be
         /// read at the given position</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static short BytesToInt16(byte[] bytes)
+        public static unsafe short BytesToInt16(byte[] bytes)
         {
             //if (bytes.Length < 2 ) return 0;
-            return (short)(bytes[0] | (bytes[1] << 8));
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = bytes)
+                    return *(short*)p;
+            }
+            else
+                return (short)(bytes[0] | (bytes[1] << 8));
         }
 
         /// <summary>
@@ -380,17 +387,28 @@ namespace OpenMetaverse
         /// <returns>A signed short integer, will be zero if a short can't be
         /// read at the given position</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static short BytesToInt16(byte[] bytes, int pos)
+        public static unsafe short BytesToInt16(byte[] bytes, int pos)
         {
             //if (bytes.Length < pos + 2) return 0;
-            return (short)(bytes[pos] | (bytes[pos + 1] << 8));
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = &bytes[pos])
+                    return *(short*)p;
+            }
+            else
+                return (short)(bytes[pos] | (bytes[pos + 1] << 8));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe short BytesToInt16(byte* bytes)
         {
             //if (bytes.Length < pos + 2) return 0;
-            return (short)(*bytes | (bytes[1] << 8));
+            if (CanDirectCopyLE)
+            {
+                return *(short*)bytes;
+            }
+            else
+                return (short)(*bytes | (bytes[1] << 8));
         }
 
         /// <summary>
