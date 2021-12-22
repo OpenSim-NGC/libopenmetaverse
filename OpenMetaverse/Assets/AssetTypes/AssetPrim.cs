@@ -124,6 +124,7 @@ namespace OpenMetaverse.Assets
         {
             using (XmlTextReader reader = new XmlTextReader(new StringReader(xmlData)))
             {
+                reader.DtdProcessing = DtdProcessing.Ignore;
                 reader.Read();
                 reader.ReadStartElement("SceneObjectGroup");
                 Parent = LoadPrim(reader);

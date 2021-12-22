@@ -46,6 +46,7 @@ namespace OpenMetaverse.Assets
 
             using (XmlTextReader xtr = new XmlTextReader(stream))
             {
+                xtr.DtdProcessing = DtdProcessing.Ignore;
                 xtr.ReadStartElement("RegionSettings");
                 xtr.ReadStartElement("General");
 

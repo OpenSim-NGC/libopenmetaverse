@@ -585,7 +585,7 @@ namespace GridProxy
             if (uri == "/")
             {
                 headers["method"] = meth;
-                if (contentType == "application/xml+llsd" || contentType == "application/xml")
+                if (contentType == "application/llsd+xml" || contentType == "application/xml+llsd" || contentType == "application/xml")
                 {
                     ProxyLoginSD(netStream, content);
                 }

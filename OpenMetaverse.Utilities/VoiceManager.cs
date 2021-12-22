@@ -584,6 +584,7 @@ namespace OpenMetaverse.Utilities
         private void _DaemonPipe_OnReceiveLine(string line)
         {
             XmlTextReader reader = new XmlTextReader(new StringReader(line));
+            reader.DtdProcessing = DtdProcessing.Ignore;
 
             while (reader.Read())
             {

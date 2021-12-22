@@ -268,6 +268,7 @@ namespace OpenMetaverse.Assets
 
             using (XmlTextReader reader = new XmlTextReader(new MemoryStream(objectData)))
             {
+                reader.DtdProcessing = DtdProcessing.Ignore;
                 reader.WhitespaceHandling = WhitespaceHandling.None;
                 doc.Load(reader);
             }
