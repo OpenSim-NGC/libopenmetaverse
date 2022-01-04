@@ -101,11 +101,34 @@ namespace OpenMetaverse
         public static readonly byte[] XMLelement_owner_id_Empty = osUTF8.GetASCIIBytes("<key>owner_id</key><uuid />");
         public static readonly byte[] XMLelement_owner_id_Start = osUTF8.GetASCIIBytes("<key>owner_id</key><uuid>");
 
+        public static readonly byte[] XMLelement_creator_id_Empty = osUTF8.GetASCIIBytes("<key>creator_id</key><uuid />");
+        public static readonly byte[] XMLelement_creator_id_Start = osUTF8.GetASCIIBytes("<key>creator_id</key><uuid>");
+
+        public static readonly byte[] XMLelement_group_id_Empty = osUTF8.GetASCIIBytes("<key>group_id</key><uuid />");
+        public static readonly byte[] XMLelement_group_id_Start = osUTF8.GetASCIIBytes("<key>cgroup_id</key><uuid>");
+
         public static readonly byte[] XMLelement_parent_id_Empty = osUTF8.GetASCIIBytes("<key>parent_id</key><uuid />");
         public static readonly byte[] XMLelement_parent_id_Start = osUTF8.GetASCIIBytes("<key>parent_id</key><uuid>");
 
         public static readonly byte[] XMLelement_folder_id_Empty = osUTF8.GetASCIIBytes("<key>folder_id</key><uuid />");
         public static readonly byte[] XMLelement_folder_id_Start = osUTF8.GetASCIIBytes("<key>folder_id</key><uuid>");
+
+        public static readonly byte[] XMLelement_asset_id_Empty = osUTF8.GetASCIIBytes("<key>asset_id</key><uuid />");
+        public static readonly byte[] XMLelement_asset_id_Start = osUTF8.GetASCIIBytes("<key>asset_id</key><uuid>");
+
+        public static readonly byte[] XMLelement_item_id_Empty = osUTF8.GetASCIIBytes("<key>item_id</key><uuid />");
+        public static readonly byte[] XMLelement_item_id_Start = osUTF8.GetASCIIBytes("<key>item_id</key><uuid>");
+
+        public static readonly byte[] XMLelement_category_id_Empty = osUTF8.GetASCIIBytes("<key>category_id</key><uuid />");
+        public static readonly byte[] XMLelement_category_id_Start = osUTF8.GetASCIIBytes("<key>category_id</key><uuid>");
+
+        public static readonly byte[] XMLelement_version_Empty = osUTF8.GetASCIIBytes("<key>version</key><integer />");
+        public static readonly byte[] XMLelement_version_Start = osUTF8.GetASCIIBytes("<key>version</key><integer>");
+
+        public static readonly byte[] XMLelement_sale_info_Empty = osUTF8.GetASCIIBytes("<key>sale_info</key><map><key>sale_price</key><integer /><key>sale_type</key><integer /></map>");
+        public static readonly byte[] XMLelement_sale_info_Start = osUTF8.GetASCIIBytes("<key>sale_info</key><map><key>sale_price</key><integer>");
+        public static readonly byte[] XMLelement_sale_info_Mid = osUTF8.GetASCIIBytes("</integer><key>sale_type</key><integer>");
+        public static readonly byte[] XMLelement_sale_info_End = osUTF8.GetASCIIBytes("</integer></map>");
 
         public static readonly byte[] base64Bytes = {(byte)'A',(byte)'B',(byte)'C',(byte)'D',(byte)'E',(byte)'F',(byte)'G',(byte)'H',(byte)'I',(byte)'J',(byte)'K',(byte)'L',(byte)'M',(byte)'N',(byte)'O',
                                               (byte)'P',(byte)'Q',(byte)'R',(byte)'S',(byte)'T',(byte)'U',(byte)'V',(byte)'W',(byte)'X',(byte)'Y',(byte)'Z',(byte)'a',(byte)'b',(byte)'c',(byte)'d',

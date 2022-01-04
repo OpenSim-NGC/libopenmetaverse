@@ -856,6 +856,93 @@ namespace OpenMetaverse.StructuredData
             }
         }
 
+        public static void AddElem_asset_id(UUID e, osUTF8 sb)
+        {
+            if (e == UUID.Zero)
+                sb.Append(osUTF8Const.XMLelement_asset_id_Empty);
+            else
+            {
+                sb.Append(osUTF8Const.XMLelement_asset_id_Start);
+                sb.AppendUUID(e);
+                sb.Append(osUTF8Const.XMLuuidEnd);
+            }
+        }
+
+        public static void AddElem_item_id(UUID e, osUTF8 sb)
+        {
+            if (e == UUID.Zero)
+                sb.Append(osUTF8Const.XMLelement_item_id_Empty);
+            else
+            {
+                sb.Append(osUTF8Const.XMLelement_item_id_Start);
+                sb.AppendUUID(e);
+                sb.Append(osUTF8Const.XMLuuidEnd);
+            }
+        }
+
+        public static void AddElem_category_id(UUID e, osUTF8 sb)
+        {
+            if (e == UUID.Zero)
+                sb.Append(osUTF8Const.XMLelement_category_id_Empty);
+            else
+            {
+                sb.Append(osUTF8Const.XMLelement_category_id_Start);
+                sb.AppendUUID(e);
+                sb.Append(osUTF8Const.XMLuuidEnd);
+            }
+        }
+
+        public static void AddElem_creator_id(UUID e, osUTF8 sb)
+        {
+            if (e == UUID.Zero)
+                sb.Append(osUTF8Const.XMLelement_creator_id_Empty);
+            else
+            {
+                sb.Append(osUTF8Const.XMLelement_creator_id_Start);
+                sb.AppendUUID(e);
+                sb.Append(osUTF8Const.XMLuuidEnd);
+            }
+        }
+
+        public static void AddElem_group_id(UUID e, osUTF8 sb)
+        {
+            if (e == UUID.Zero)
+                sb.Append(osUTF8Const.XMLelement_group_id_Empty);
+            else
+            {
+                sb.Append(osUTF8Const.XMLelement_group_id_Start);
+                sb.AppendUUID(e);
+                sb.Append(osUTF8Const.XMLuuidEnd);
+            }
+        }
+
+        public static void AddElem_version(int v, osUTF8 sb)
+        {
+            if (v == 0)
+                sb.Append(osUTF8Const.XMLelement_version_Empty);
+            else
+            {
+                sb.Append(osUTF8Const.XMLelement_version_Start);
+                sb.AppendInt(v);
+                sb.Append(osUTF8Const.XMLintegerEnd);
+            }
+        }
+
+        public static void AddElem_sale_info(int price, byte type, osUTF8 sb)
+        {
+            if(price == 0  && type == 0)
+                sb.Append(osUTF8Const.XMLelement_sale_info_Empty);
+            else
+            {
+                sb.Append(osUTF8Const.XMLelement_sale_info_Start);
+                sb.AppendInt(price);
+                sb.Append(osUTF8Const.XMLelement_sale_info_Mid);
+                sb.AppendInt(type);
+                sb.Append(osUTF8Const.XMLelement_sale_info_End);
+            }
+        }     
+
+
         public static byte[] ulongToByteArray(ulong uLongValue)
         {
             return new byte[8]
