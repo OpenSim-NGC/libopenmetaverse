@@ -170,7 +170,7 @@ namespace OpenMetaverse.StructuredData
                     return new JsonData(str);
                 case OSDType.UUID:
                     UUID uuid = osd.AsUUID();
-                    if (uuid == UUID.Zero)
+                    if (uuid.IsZero())
                         return null;
 
                     return new JsonData(uuid.ToString());

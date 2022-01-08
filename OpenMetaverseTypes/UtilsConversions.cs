@@ -2803,71 +2803,109 @@ namespace OpenMetaverse
             return (byte)(b > 9 ? b + 0x57 : b + ASCIIzero);
         }
 
-        public static unsafe void UUIDToByteDashString(UUID u, byte* dst)
+        public static unsafe void UUIDToByteDashString(ref UUID u, byte* dst)
         {
-            byte[] bytes = u.Guid.ToByteArray();
-            //a
-            byte b = bytes[3];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[2];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[1];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[0];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
+            byte b;
+            if (BitConverter.IsLittleEndian)
+            {
+                //a
+                b = u.bytea3;
+                *dst = HighNibbleToHexByteChar(b);
+                *(dst + 1) = LowNibbleToHexByteChar(b);
+                b = u.bytea2;
+                *(dst + 2) = HighNibbleToHexByteChar(b);
+                *(dst + 3) = LowNibbleToHexByteChar(b);
+                b = u.bytea1;
+                *(dst + 4) = HighNibbleToHexByteChar(b);
+                *(dst + 5) = LowNibbleToHexByteChar(b);
+                b = u.bytea0;
+                *(dst + 6) = HighNibbleToHexByteChar(b);
+                *(dst + 7) = LowNibbleToHexByteChar(b);
 
-            *dst++ = ASCIIminus;
-            //b
-            b = bytes[5];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[4];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
+                *(dst + 8) = ASCIIminus;
+                //b
+                b = u.byteb1;
+                *(dst + 9) = HighNibbleToHexByteChar(b);
+                *(dst + 10) = LowNibbleToHexByteChar(b);
+                b = u.byteb0;
+                *(dst + 11) = HighNibbleToHexByteChar(b);
+                *(dst + 12) = LowNibbleToHexByteChar(b);
 
-            *dst++ = ASCIIminus;
+                *(dst + 13) = ASCIIminus;
 
-            //c
-            b = bytes[7];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[6];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
+                //c
+                b = u.bytec1;
+                *(dst + 14) = HighNibbleToHexByteChar(b);
+                *(dst + 15) = LowNibbleToHexByteChar(b);
+                b = u.bytec0;
+                *(dst + 16) = HighNibbleToHexByteChar(b);
+                *(dst + 17) = LowNibbleToHexByteChar(b);
+            }
+            else
+            {
+                //a
+                b = u.bytea0;
+                *dst = HighNibbleToHexByteChar(b);
+                *(dst + 1) = LowNibbleToHexByteChar(b);
+                b = u.bytea1;
+                *(dst + 2) = HighNibbleToHexByteChar(b);
+                *(dst + 3) = LowNibbleToHexByteChar(b);
+                b = u.bytea2;
+                *(dst + 4) = HighNibbleToHexByteChar(b);
+                *(dst + 5) = LowNibbleToHexByteChar(b);
+                b = u.bytea3;
+                *(dst + 6) = HighNibbleToHexByteChar(b);
+                *(dst + 7) = LowNibbleToHexByteChar(b);
 
-            *dst++ = ASCIIminus;
+                *(dst + 8) = ASCIIminus;
+                //b
+                b = u.byteb0;
+                *(dst + 9) = HighNibbleToHexByteChar(b);
+                *(dst + 10) = LowNibbleToHexByteChar(b);
+                b = u.byteb1;
+                *(dst + 11) = HighNibbleToHexByteChar(b);
+                *(dst + 12) = LowNibbleToHexByteChar(b);
 
-            b = bytes[8]; //d
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[9]; //e
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
+                *(dst + 13) = ASCIIminus;
 
-            *dst++ = ASCIIminus;
+                //c
+                b = u.bytec0;
+                *(dst + 14) = HighNibbleToHexByteChar(b);
+                *(dst + 15) = LowNibbleToHexByteChar(b);
+                b = u.bytec1;
+                *(dst + 16) = HighNibbleToHexByteChar(b);
+                *(dst + 17) = LowNibbleToHexByteChar(b);
+            }
 
-            b = bytes[10]; //f
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[11]; //g
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[12]; //h
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[13]; //i
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[14]; //j
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[15]; //k
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst = LowNibbleToHexByteChar(b);
+            *(dst + 18) = ASCIIminus;
+
+            b = u.d; //d
+            *(dst + 19) = HighNibbleToHexByteChar(b);
+            *(dst + 20) = LowNibbleToHexByteChar(b);
+            b = u.e; //e
+            *(dst + 21) = HighNibbleToHexByteChar(b);
+            *(dst + 22) = LowNibbleToHexByteChar(b);
+
+            *(dst + 23) = ASCIIminus;
+
+            b = u.f; //f
+            *(dst + 24) = HighNibbleToHexByteChar(b);
+            *(dst + 25) = LowNibbleToHexByteChar(b);
+            b = u.g; //g
+            *(dst + 26) = HighNibbleToHexByteChar(b);
+            *(dst + 27) = LowNibbleToHexByteChar(b);
+            b = u.h; //h
+            *(dst + 28) = HighNibbleToHexByteChar(b);
+            *(dst + 29) = LowNibbleToHexByteChar(b);
+            b = u.i; //i
+            *(dst + 30) = HighNibbleToHexByteChar(b);
+            *(dst + 31) = LowNibbleToHexByteChar(b);
+            b = u.j; //j
+            *(dst + 32) = HighNibbleToHexByteChar(b);
+            *(dst + 33) = LowNibbleToHexByteChar(b);
+            b = u.k; //k
+            *(dst + 34) = HighNibbleToHexByteChar(b);
+            *(dst + 35) = LowNibbleToHexByteChar(b);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2875,10 +2913,145 @@ namespace OpenMetaverse
         {
             osUTF8 ret = new osUTF8(36);
             fixed (byte* d = ret.m_data)
-                UUIDToByteDashString(v, d);
+                UUIDToByteDashString(ref v, d);
             ret.m_len = 36;
             return ret;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe osUTF8 UUIDToosUTF8(ref UUID v)
+        {
+            osUTF8 ret = new osUTF8(36);
+            fixed (byte* d = ret.m_data)
+                UUIDToByteDashString(ref v, d);
+            ret.m_len = 36;
+            return ret;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static char charLowNibbleToHexChar(byte b)
+        {
+            b &= 0x0f;
+            return (char)(b > 9 ? b + 0x57 : b + ASCIIzero);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static char charHighNibbleToHexChar(byte b)
+        {
+            b >>= 4;
+            return (char)(b > 9 ? b + 0x57 : b + ASCIIzero);
+        }
+
+        public static string UUIDToDashString(ref UUID u)
+        {
+            char[] dst = new char[36];
+            byte b;
+            if (BitConverter.IsLittleEndian)
+            {
+                //a
+                b = u.bytea3;
+                dst[0] = charHighNibbleToHexChar(b);
+                dst[1] = charLowNibbleToHexChar(b);
+                b = u.bytea2;
+                dst[2] = charHighNibbleToHexChar(b);
+                dst[3] = charLowNibbleToHexChar(b);
+                b = u.bytea1;
+                dst[4] = charHighNibbleToHexChar(b);
+                dst[5] = charLowNibbleToHexChar(b);
+                b = u.bytea0;
+                dst[6] = charHighNibbleToHexChar(b);
+                dst[7] = charLowNibbleToHexChar(b);
+
+                dst[8] = '-';
+
+                //b
+                b = u.byteb1;
+                dst[9] = charHighNibbleToHexChar(b);
+                dst[10] = charLowNibbleToHexChar(b);
+                b = u.byteb0;
+                dst[11] = charHighNibbleToHexChar(b);
+                dst[12] = charLowNibbleToHexChar(b);
+
+                dst[13] = '-';
+
+                //c
+                b = u.bytec1;
+                dst[14] = charHighNibbleToHexChar(b);
+                dst[15] = charLowNibbleToHexChar(b);
+                b = u.bytec0;
+                dst[16] = charHighNibbleToHexChar(b);
+                dst[17] = charLowNibbleToHexChar(b);
+            }
+            else
+            {
+                //a
+                b = u.bytea0;
+                dst[0] = charHighNibbleToHexChar(b);
+                dst[1] = charLowNibbleToHexChar(b);
+                b = u.bytea1;
+                dst[2] = charHighNibbleToHexChar(b);
+                dst[3] = charLowNibbleToHexChar(b);
+                b = u.bytea2;
+                dst[4] = charHighNibbleToHexChar(b);
+                dst[5] = charLowNibbleToHexChar(b);
+                b = u.bytea3;
+                dst[6] = charHighNibbleToHexChar(b);
+                dst[7] = charLowNibbleToHexChar(b);
+
+                dst[8] = '-';
+
+                //b
+                b = u.byteb0;
+                dst[9] = charHighNibbleToHexChar(b);
+                dst[10] = charLowNibbleToHexChar(b);
+                b = u.byteb1;
+                dst[11] = charHighNibbleToHexChar(b);
+                dst[12] = charLowNibbleToHexChar(b);
+
+                dst[13] = '-';
+
+                //c
+                b = u.bytec0;
+                dst[14] = charHighNibbleToHexChar(b);
+                dst[15] = charLowNibbleToHexChar(b);
+                b = u.bytec1;
+                dst[16] = charHighNibbleToHexChar(b);
+                dst[17] = charLowNibbleToHexChar(b);
+            }
+
+
+            dst[18] = '-';
+
+            b = u.d; //d
+            dst[19] = charHighNibbleToHexChar(b);
+            dst[20] = charLowNibbleToHexChar(b);
+            b = u.e; //e
+            dst[21] = charHighNibbleToHexChar(b);
+            dst[22] = charLowNibbleToHexChar(b);
+
+            dst[23] = '-';
+
+            b = u.f; //f
+            dst[24] = charHighNibbleToHexChar(b);
+            dst[25] = charLowNibbleToHexChar(b);
+            b = u.g; //g
+            dst[26] = charHighNibbleToHexChar(b);
+            dst[27] = charLowNibbleToHexChar(b);
+            b = u.h; //h
+            dst[28] = charHighNibbleToHexChar(b);
+            dst[29] = charLowNibbleToHexChar(b);
+            b = u.i; //i
+            dst[30] = charHighNibbleToHexChar(b);
+            dst[31] = charLowNibbleToHexChar(b);
+            b = u.j; //j
+            dst[32] = charHighNibbleToHexChar(b);
+            dst[33] = charLowNibbleToHexChar(b);
+            b = u.k; //k
+            dst[34] = charHighNibbleToHexChar(b);
+            dst[35] = charLowNibbleToHexChar(b);
+            return new string(dst);
+        }
+
         #endregion Miscellaneous
     }
 }

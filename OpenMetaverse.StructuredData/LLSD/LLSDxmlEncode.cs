@@ -315,7 +315,7 @@ namespace OpenMetaverse.StructuredData
 
         public static void AddElem(UUID e, osUTF8 sb)
         {
-            if(e == UUID.Zero)
+            if(e.IsZero())
                 sb.Append(osUTF8Const.XMLuuidEmpty);
             else
             {
@@ -678,7 +678,7 @@ namespace OpenMetaverse.StructuredData
             sb.AppendASCII(name);
             sb.Append(osUTF8Const.XMLkeyEnd);
 
-            if (e == UUID.Zero)
+            if (e.IsZero())
                 sb.Append(osUTF8Const.XMLuuidEmpty);
             else
             {
@@ -810,7 +810,7 @@ namespace OpenMetaverse.StructuredData
 
         public static void AddElem_agent_id(UUID e, osUTF8 sb)
         {
-            if (e == UUID.Zero)
+            if (e.IsZero())
                 sb.Append(osUTF8Const.XMLelement_agent_id_Empty);
             else
             {
@@ -822,7 +822,7 @@ namespace OpenMetaverse.StructuredData
 
         public static void AddElem_owner_id(UUID e, osUTF8 sb)
         {
-            if (e == UUID.Zero)
+            if (e.IsZero())
                 sb.Append(osUTF8Const.XMLelement_owner_id_Empty);
             else
             {
@@ -834,7 +834,7 @@ namespace OpenMetaverse.StructuredData
 
         public static void AddElem_parent_id(UUID e, osUTF8 sb)
         {
-            if (e == UUID.Zero)
+            if (e.IsZero())
                 sb.Append(osUTF8Const.XMLelement_parent_id_Empty);
             else
             {
@@ -846,7 +846,7 @@ namespace OpenMetaverse.StructuredData
 
         public static void AddElem_folder_id(UUID e, osUTF8 sb)
         {
-            if (e == UUID.Zero)
+            if (e.IsZero())
                 sb.Append(osUTF8Const.XMLelement_folder_id_Empty);
             else
             {
@@ -858,7 +858,7 @@ namespace OpenMetaverse.StructuredData
 
         public static void AddElem_asset_id(UUID e, osUTF8 sb)
         {
-            if (e == UUID.Zero)
+            if (e.IsZero())
                 sb.Append(osUTF8Const.XMLelement_asset_id_Empty);
             else
             {
@@ -870,7 +870,7 @@ namespace OpenMetaverse.StructuredData
 
         public static void AddElem_item_id(UUID e, osUTF8 sb)
         {
-            if (e == UUID.Zero)
+            if (e.IsZero())
                 sb.Append(osUTF8Const.XMLelement_item_id_Empty);
             else
             {
@@ -882,7 +882,7 @@ namespace OpenMetaverse.StructuredData
 
         public static void AddElem_category_id(UUID e, osUTF8 sb)
         {
-            if (e == UUID.Zero)
+            if (e.IsZero())
                 sb.Append(osUTF8Const.XMLelement_category_id_Empty);
             else
             {
@@ -894,7 +894,7 @@ namespace OpenMetaverse.StructuredData
 
         public static void AddElem_creator_id(UUID e, osUTF8 sb)
         {
-            if (e == UUID.Zero)
+            if (e.IsZero())
                 sb.Append(osUTF8Const.XMLelement_creator_id_Empty);
             else
             {
@@ -906,7 +906,7 @@ namespace OpenMetaverse.StructuredData
 
         public static void AddElem_group_id(UUID e, osUTF8 sb)
         {
-            if (e == UUID.Zero)
+            if (e.IsZero())
                 sb.Append(osUTF8Const.XMLelement_group_id_Empty);
             else
             {
