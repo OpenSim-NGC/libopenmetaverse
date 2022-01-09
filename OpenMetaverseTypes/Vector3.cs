@@ -95,10 +95,10 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector3(byte[] byteArray, int pos)
         {
-            X = Y = Z = 0f;
-            FromBytes(byteArray, pos);
+            X = Utils.BytesToFloatSafepos(byteArray, pos);
+            Y = Utils.BytesToFloatSafepos(byteArray, pos + 4);
+            Z = Utils.BytesToFloatSafepos(byteArray, pos + 8);
         }
-
 
         #endregion Constructors
 
@@ -182,8 +182,45 @@ namespace OpenMetaverse
         public bool ApproxEquals(Vector3 vec, float tolerance)
         {
             return Utils.ApproxEqual(X, vec.X, tolerance) &&
-                    Utils.ApproxEqual(Y, vec.Y, tolerance) &&
-                    Utils.ApproxEqual(Z, vec.Z, tolerance);
+                   Utils.ApproxEqual(Y, vec.Y, tolerance) &&
+                   Utils.ApproxEqual(Z, vec.Z, tolerance);
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool ApproxZero()
+        {
+            if (!Utils.ApproxZero(X))
+                return false;
+            if (!Utils.ApproxZero(Y))
+                return false;
+            if (!Utils.ApproxZero(Z))
+                return false;
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool ApproxZero(float tolerance)
+        {
+            if (!Utils.ApproxZero(X, tolerance))
+                return false;
+            if (!Utils.ApproxZero(Y, tolerance))
+                return false;
+            if (!Utils.ApproxZero(Z, tolerance))
+                return false;
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsZero()
+        {
+            if (X != 0)
+                return false;
+            if (Y != 0)
+                return false;
+            if (Z != 0)
+                return false;
+            return true;
         }
 
         /// <summary>
@@ -496,12 +533,28 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            return (obj is Vector3) ? this == (Vector3)obj : false;
+            if (!(obj is Vector3))
+                return false;
+
+            Vector3 other = (Vector3)obj;
+            if (X != other.X)
+                return false;
+            if (Y != other.Y)
+                return false;
+            if (Z != other.Z)
+                return false;
+            return true;
         }
 
         public bool Equals(Vector3 other)
         {
-            return this == other;
+            if (X != other.X)
+                return false;
+            if (Y != other.Y)
+                return false;
+            if (Z != other.Z)
+                return false;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -539,16 +592,28 @@ namespace OpenMetaverse
 
         #region Operators
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Vector3 value1, Vector3 value2)
         {
-            return value1.X == value2.X
-                && value1.Y == value2.Y
-                && value1.Z == value2.Z;
+            if (value1.X != value2.X)
+                return false;
+            if (value1.Y != value2.Y)
+                return false;
+            if (value1.Z == value2.Z)
+                return false;
+            return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Vector3 value1, Vector3 value2)
         {
-            return !(value1 == value2);
+            if (value1.X != value2.X)
+                return true;
+            if (value1.Y != value2.Y)
+                return true;
+            if (value1.Z == value2.Z)
+                return true;
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -328,14 +328,26 @@ namespace OpenMetaverse
         public static bool ApproxEqual(float a, float b, float tolerance, float reltolerance = float.Epsilon)
         {
             float dif = Math.Abs(a - b);
-            if(dif <= tolerance)
+            if (dif <= tolerance)
                 return true;
 
             a = Math.Abs(a);
             b = Math.Abs(b);
-            if(b > a)
+            if (b > a)
                 a = b;
             return dif <= a * reltolerance;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool ApproxZero(float a, float tolerance)
+        {
+            return Math.Abs(a) <= tolerance;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool ApproxZero(float a)
+        {
+            return Math.Abs(a) <= 1e-6;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

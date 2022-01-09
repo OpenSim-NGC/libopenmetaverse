@@ -384,8 +384,6 @@ namespace OpenMetaverse
             return (uint)a + (uint)intb + (uint)intc + (uint)intd;
         }
 
-
-
         /// <summary>
         /// Create a 64-bit integer representation from the second half of this UUID
         /// </summary>
