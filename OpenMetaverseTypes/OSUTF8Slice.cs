@@ -1594,7 +1594,7 @@ namespace OpenMetaverse
 
         public static bool TryParseUUID(osUTF8Slice inp, out UUID res, bool dashs = true)
         {
-            res = UUID.Zero;
+            res = new UUID();
             osUTF8Slice t = new osUTF8Slice(inp);
 
             t.SelfTrim();
@@ -1616,8 +1616,8 @@ namespace OpenMetaverse
             byte[] data = t.m_data;
             int dataoffset = t.m_offset;
 
-            int _a = 0;
-            if (!Utils.TryHexToInt(data, dataoffset, 8, out _a))
+            UUID utmp = new UUID();
+            if (!Utils.TryHexToInt(data, dataoffset, 8, out utmp.a))
                 return false;
             dataoffset += 8;
 
@@ -1631,7 +1631,7 @@ namespace OpenMetaverse
             int n;
             if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
                 return false;
-            short _b = (short)n;
+            utmp.b = (short)n;
             dataoffset += 4;
 
             if (dashs)
@@ -1643,7 +1643,7 @@ namespace OpenMetaverse
 
             if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
                 return false;
-            short _c = (short)n;
+            utmp.c = (short)n;
             dataoffset += 4;
 
             if (dashs)
@@ -1656,8 +1656,8 @@ namespace OpenMetaverse
             if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
                 return false;
 
-            byte _d = (byte)(n >> 8);
-            byte _e = (byte)n;
+            utmp.d = (byte)(n >> 8);
+            utmp.e = (byte)n;
             dataoffset += 4;
 
             if (dashs)
@@ -1669,19 +1669,18 @@ namespace OpenMetaverse
 
             if (!Utils.TryHexToInt(data, dataoffset, 8, out n))
                 return false;
-            byte _f = (byte)(n >> 24);
-            byte _g = (byte)(n >> 16);
-            byte _h = (byte)(n >> 8);
-            byte _i = (byte)n;
+            utmp.f = (byte)(n >> 24);
+            utmp.g = (byte)(n >> 16);
+            utmp.h = (byte)(n >> 8);
+            utmp.i = (byte)n;
             dataoffset += 8;
 
             if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
                 return false;
-            byte _j = (byte)(n >> 8);
-            byte _k = (byte)n;
+            utmp.j = (byte)(n >> 8);
+            utmp.k = (byte)n;
 
-            Guid g = new Guid(_a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k);
-            res = new UUID(g);
+            res = utmp;
             return true;
         }
     }

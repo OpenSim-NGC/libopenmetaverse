@@ -126,23 +126,37 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe UUID(byte[] source, int pos) : this()
         {
-            if (BitConverter.IsLittleEndian)
+            fixed (byte* ptr = &source[pos])
             {
-                bytea3 = source[pos + 0];
-                bytea2 = source[pos + 1];
-                bytea1 = source[pos + 2];
-                bytea0 = source[pos + 3];
+                if (BitConverter.IsLittleEndian)
+                {
+                    bytea3 = *ptr;
+                    bytea2 = *(ptr + 1);
+                    bytea1 = *(ptr + 2);
+                    bytea0 = *(ptr + 3);
 
-                byteb1 = source[pos + 4];
-                byteb0 = source[pos + 5];
+                    byteb1 = *(ptr + 4);
+                    byteb0 = *(ptr + 5);
 
-                bytec1 = source[pos + 6];
-                bytec0 = source[pos + 7];
+                    bytec1 = *(ptr + 6);
+                    bytec0 = *(ptr + 7);
+
+                    ulongb = *(ulong*)(ptr + 8);
+                }
+                else
+                {
+                    ulonga = *(ulong*)(ptr);
+
+                    d = *(ptr + 8);
+                    e = *(ptr + 9);
+                    f = *(ptr + 10);
+                    g = *(ptr + 11);
+                    h = *(ptr + 12);
+                    i = *(ptr + 13);
+                    j = *(ptr + 14);
+                    k = *(ptr + 15);
+                }
             }
-            else
-                ulonga = Utils.BytesToUInt64(source, pos);
-
-            ulongb = Utils.BytesToUInt64(source, pos + 8);
         }
 
         /// <summary>
@@ -253,23 +267,35 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void FromBytes(byte[] source, int pos)
         {
-            if (BitConverter.IsLittleEndian)
+            fixed (byte* ptr = &source[pos])
             {
-                bytea3 = source[pos + 0];
-                bytea2 = source[pos + 1];
-                bytea1 = source[pos + 2];
-                bytea0 = source[pos + 3];
+                if (BitConverter.IsLittleEndian)
+                {
+                    bytea3 = *ptr;
+                    bytea2 = *(ptr + 1);
+                    bytea1 = *(ptr + 2);
+                    bytea0 = *(ptr + 3);
 
-                byteb1 = source[pos + 4];
-                byteb0 = source[pos + 5];
+                    byteb1 = *(ptr + 4);
+                    byteb0 = *(ptr + 5);
 
-                bytec1 = source[pos + 6];
-                bytec0 = source[pos + 7];
+                    bytec1 = *(ptr + 6);
+                    bytec0 = *(ptr + 7);
+                    ulongb = *(ulong*)(ptr + 8);
+                }
+                else
+                {
+                    ulonga = *(ulong*)(ptr);
+                    d = *(ptr + 8);
+                    e = *(ptr + 9);
+                    f = *(ptr + 10);
+                    g = *(ptr + 11);
+                    h = *(ptr + 12);
+                    i = *(ptr + 13);
+                    j = *(ptr + 14);
+                    k = *(ptr + 15);
+                }
             }
-            else
-                ulonga = Utils.BytesToUInt64(source, pos);
-
-            ulongb = Utils.BytesToUInt64(source, pos + 8);
         }
 
         /// <summary>
@@ -277,26 +303,36 @@ namespace OpenMetaverse
         /// </summary>
         /// <returns>A 16 byte array containing this UUID</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public byte[] GetBytes()
+        public unsafe byte[] GetBytes()
         {
             byte[] dest = new byte[16];
-            if (BitConverter.IsLittleEndian)
+            fixed (byte* ptr = &dest[0])
             {
-                dest[0] = bytea3;
-                dest[1] = bytea2;
-                dest[2] = bytea1;
-                dest[3] = bytea0;
-
-                dest[4] = byteb1;
-                dest[5] = byteb0;
-
-                dest[6] = bytec1;
-                dest[7] = bytec0;
+                if (BitConverter.IsLittleEndian)
+                {
+                    *ptr = bytea3;
+                    *(ptr + 1) = bytea2;
+                    *(ptr + 2) = bytea1;
+                    *(ptr + 3) = bytea0;
+                    *(ptr + 4) = byteb1;
+                    *(ptr + 5) = byteb0;
+                    *(ptr + 6) = bytec1;
+                    *(ptr + 7) = bytec0;
+                    *(ulong*)(ptr + 8) = ulongb;
+                }
+                else
+                {
+                    *(ulong*)(ptr) = ulonga;
+                    *(ptr + 8) = d;
+                    *(ptr + 9) = e;
+                    *(ptr + 10) = f;
+                    *(ptr + 11) = g;
+                    *(ptr + 12) = h;
+                    *(ptr + 13) = i;
+                    *(ptr + 14) = j;
+                    *(ptr + 15) = k;
+                }
             }
-            else
-                Utils.UInt64ToBytesSafepos(ulonga, dest, 0);
-
-            Utils.UInt64ToBytesSafepos(ulongb, dest, 8);
             return dest;
         }
 
@@ -307,23 +343,35 @@ namespace OpenMetaverse
         /// <param name="pos">Position in the destination array to start
         /// writing. Must be at least 16 bytes before the end of the array</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ToBytes(byte[] dest, int pos)
+        public unsafe void ToBytes(byte[] dest, int pos)
         {
-            if (BitConverter.IsLittleEndian)
+            fixed(byte* ptr = &dest[pos])
             {
-                dest[pos + 0] = bytea3;
-                dest[pos + 1] = bytea2;
-                dest[pos + 2] = bytea1;
-                dest[pos + 3] = bytea0;
-                dest[pos + 4] = byteb1;
-                dest[pos + 5] = byteb0;
-                dest[pos + 6] = bytec1;
-                dest[pos + 7] = bytec0;
+                if (BitConverter.IsLittleEndian)
+                {
+                    *ptr = bytea3;
+                    *(ptr + 1) = bytea2;
+                    *(ptr + 2) = bytea1;
+                    *(ptr + 3) = bytea0;
+                    *(ptr + 4) = byteb1;
+                    *(ptr + 5) = byteb0;
+                    *(ptr + 6) = bytec1;
+                    *(ptr + 7) = bytec0;
+                    *(ulong*)(ptr + 8) = ulongb;
+                }
+                else
+                {
+                    *(ulong*)(ptr) = ulonga;
+                    *(ptr + 8) = d;
+                    *(ptr + 9) = e;
+                    *(ptr + 10) = f;
+                    *(ptr + 11) = g;
+                    *(ptr + 12) = h;
+                    *(ptr + 13) = i;
+                    *(ptr + 14) = j;
+                    *(ptr + 15) = k;
+                }
             }
-            else
-                Utils.UInt64ToBytesSafepos(ulonga, dest, pos);
-
-            Utils.UInt64ToBytesSafepos(ulongb, dest, pos + 8);
         }
 
         /// <summary>
@@ -336,15 +384,7 @@ namespace OpenMetaverse
             return (uint)a + (uint)intb + (uint)intc + (uint)intd;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsZero()
-        {
-            if (ulonga != 0)
-                return false;
-            if (ulongb != 0)
-                return false;
-            return  true;
-        }
+
 
         /// <summary>
         /// Create a 64-bit integer representation from the second half of this UUID
@@ -485,11 +525,31 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsZero()
+        {
+            if (ulonga != 0)
+                return false;
+            if (ulongb != 0)
+                return false;
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool NotEqual(UUID uuid)
         {
             if (ulonga != uuid.ulonga)
                 return true;
             if (ulongb != uuid.ulongb)
+                return true;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsNotZero()
+        {
+            if (ulonga != 0)
+                return true;
+            if (ulongb != 0)
                 return true;
             return false;
         }
