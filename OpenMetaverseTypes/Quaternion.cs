@@ -113,7 +113,7 @@ namespace OpenMetaverse
         public bool ApproxEquals(Quaternion quat)
         {
             // assume normalized
-            return  Math.Abs(quat.X - X) < 1e-6f &&
+            return Math.Abs(quat.X - X) < 1e-6f &&
                     Math.Abs(quat.Y - Y) < 1e-6f &&
                     Math.Abs(quat.Z - Z) < 1e-6f;
         }
@@ -125,6 +125,30 @@ namespace OpenMetaverse
             return Math.Abs(quat.X - X) < tolerance &&
                     Math.Abs(quat.Y - Y) < tolerance &&
                     Math.Abs(quat.Z - Z) < tolerance;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsIdentity()
+        {
+            // assume normalized
+            if(W > (1.0f - 1e-6f))
+                return true;
+            if (W < -(1.0f - 1e-6f))
+                return true;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsIdentityOrZero()
+        {
+            // assume normalized
+            if (X != 0)
+                return false;
+            if (Y != 0)
+                return false;
+            if (Z != 0)
+                return false;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -324,8 +348,8 @@ namespace OpenMetaverse
         /// <param name="angle">Angle around the axis, in radians</param>
         public void GetAxisAngle(out Vector3 axis, out float angle)
         {
-            Quaternion q = Normalize(this);
-            float ww = q.W * q.W;
+            Normalize();
+            float ww = W * W;
             if (ww > 0.9999f)
             {
                 axis = Vector3.UnitX;
@@ -334,21 +358,21 @@ namespace OpenMetaverse
             }
             if(ww < 0.0001f)
             {
-                if (q.W < 0f)
-                    axis = new Vector3(-q.X, -q.Y, -q.Z);
+                if (W < 0f)
+                    axis = new Vector3(-X, -Y, -Z);
                 else
-                    axis = new Vector3(q.X, q.Y, q.Z);
+                    axis = new Vector3(X, Y, Z);
                 angle = (float)Math.PI;
                 return;
             }
 
             float sin = (float)Math.Sqrt(1.0f - ww);
             float invSin = 1.0f / sin;
-            if (q.W < 0)
+            if (W < 0)
                 invSin = -invSin;
-            axis = new Vector3(q.X, q.Y, q.Z) * invSin;
+            axis = new Vector3(X, Y, Z) * invSin;
 
-            angle = 2.0f * (float)Math.Acos(q.W);
+            angle = 2.0f * (float)Math.Acos(W);
             if (angle > Math.PI)
                 angle = 2.0f * (float)Math.PI - angle;
         }
@@ -396,7 +420,7 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion CreateFromAxisAngle(Vector3 axis, float angle)
         {
-            axis = Vector3.Normalize(axis);
+            axis.Normalize();
 
             angle *= 0.5f;
             float c = (float)Math.Cos(angle);
@@ -750,15 +774,31 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            return (obj is Quaternion) ? this == (Quaternion)obj : false;
+            if(!(obj is Quaternion))
+                return false;
+            Quaternion other = (Quaternion)obj;
+            if (X != other.X)
+                return false;
+            if (Y != other.Y)
+                return false;
+            if (Z != other.Z)
+                return false;
+            if (W != other.W)
+                return false;
+            return true;
         }
 
         public bool Equals(Quaternion other)
         {
-            return W == other.W
-                && X == other.X
-                && Y == other.Y
-                && Z == other.Z;
+            if (X != other.X)
+                return false;
+            if (Y != other.Y)
+                return false;
+            if (Z != other.Z)
+                return false;
+            if (W != other.W)
+                return false;
+            return true;
         }
 
         public override int GetHashCode()
@@ -795,13 +835,29 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(Quaternion quaternion1, Quaternion quaternion2)
         {
-            return quaternion1.Equals(quaternion2);
+            if (quaternion1.X != quaternion2.X)
+                return false;
+            if (quaternion1.Y != quaternion2.Y)
+                return false;
+            if (quaternion1.Z != quaternion2.Z)
+                return false;
+            if (quaternion1.W != quaternion2.W)
+                return false;
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Quaternion quaternion1, Quaternion quaternion2)
         {
-            return !quaternion1.Equals(quaternion2);
+            if (quaternion1.X != quaternion2.X)
+                return true;
+            if (quaternion1.Y != quaternion2.Y)
+                return true;
+            if (quaternion1.Z != quaternion2.Z)
+                return true;
+            if (quaternion1.W != quaternion2.W)
+                return true;
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

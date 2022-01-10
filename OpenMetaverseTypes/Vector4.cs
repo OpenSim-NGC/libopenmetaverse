@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Globalization;
 
@@ -84,8 +85,10 @@ namespace OpenMetaverse
         /// <param name="pos">Beginning position in the byte array</param>
         public Vector4(byte[] byteArray, int pos)
         {
-            X = Y = Z = W = 0f;
-            FromBytes(byteArray, pos);
+            X = Utils.BytesToFloatSafepos(byteArray, pos);
+            Y = Utils.BytesToFloatSafepos(byteArray, pos + 4);
+            Z = Utils.BytesToFloatSafepos(byteArray, pos + 8);
+            W = Utils.BytesToFloatSafepos(byteArray, pos + 12);
         }
 
         public Vector4(Vector4 value)
@@ -99,7 +102,7 @@ namespace OpenMetaverse
         #endregion Constructors
 
         #region Public Methods
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Abs()
         {
             X = Math.Abs(X);
@@ -108,7 +111,7 @@ namespace OpenMetaverse
             W = Math.Abs(W);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Min(Vector4 v)
         {
             if (v.X < X) X = v.X;
@@ -126,11 +129,13 @@ namespace OpenMetaverse
             if (v.W > W) W = v.W;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Length()
         {
             return (float)Math.Sqrt(X * X + Y * Y + Z * Z + W * W);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float LengthSquared()
         {
             return (X * X) + (Y * Y) + (Z * Z) + (W * W);
@@ -138,7 +143,17 @@ namespace OpenMetaverse
 
         public void Normalize()
         {
-            this = Normalize(this);
+            float factor = LengthSquared();
+            if (factor > 1e-6)
+            {
+                factor = 1f / (float)Math.Sqrt(factor);
+                X *= factor;
+                Y *= factor;
+                Z *= factor;
+                W *= factor;
+            }
+            else
+                this = new Vector4();
         }
 
         /// <summary>
@@ -150,6 +165,7 @@ namespace OpenMetaverse
         /// between the two vectors</param>
         /// <returns>True if the magnitude of difference between the two vectors
         /// is less than the given tolerance, otherwise false</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ApproxEquals(Vector4 vec, float tolerance)
         {
             return Utils.ApproxEqual(X, vec.X, tolerance) &&
@@ -158,6 +174,7 @@ namespace OpenMetaverse
                     Utils.ApproxEqual(W, vec.W, tolerance);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ApproxEquals(Vector4 vec)
         {
             return Utils.ApproxEqual(X, vec.X) &&
@@ -166,6 +183,19 @@ namespace OpenMetaverse
                     Utils.ApproxEqual(W, vec.W);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsZero()
+        {
+            if (X != 0)
+                return false;
+            if (Y != 0)
+                return false;
+            if (Z != 0)
+                return false;
+            if (W != 0)
+                return false;
+            return true;
+        }
         /// <summary>
         /// IComparable.CompareTo implementation
         /// </summary>
@@ -431,15 +461,32 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            return (obj is Vector4) ? this == (Vector4)obj : false;
+            if (!(obj is Vector4))
+                return false;
+
+            Vector4 other = (Vector4)obj;
+            if (X != other.X)
+                return false;
+            if (Y != other.Y)
+                return false;
+            if (Z != other.Z)
+                return false;
+            if (W != other.W)
+                return false;
+            return true;
         }
 
         public bool Equals(Vector4 other)
         {
-            return W == other.W
-                && X == other.X
-                && Y == other.Y
-                && Z == other.Z;
+            if (X != other.X)
+                return false;
+            if (Y != other.Y)
+                return false;
+            if (Z != other.Z)
+                return false;
+            if (W != other.W)
+                return false;
+            return true;
         }
 
         public override int GetHashCode()
@@ -471,16 +518,28 @@ namespace OpenMetaverse
 
         public static bool operator ==(Vector4 value1, Vector4 value2)
         {
-            return 
-                   value1.X == value2.X
-                && value1.Y == value2.Y
-                && value1.Z == value2.Z
-                && value1.W == value2.W;
+            if (value1.X != value2.X)
+                return false;
+            if (value1.Y != value2.Y)
+                return false;
+            if (value1.Z != value2.Z)
+                return false;
+            if (value1.W != value2.W)
+                return false;
+            return true;
         }
 
         public static bool operator !=(Vector4 value1, Vector4 value2)
         {
-            return !(value1 == value2);
+            if (value1.X != value2.X)
+                return true;
+            if (value1.Y != value2.Y)
+                return true;
+            if (value1.Z != value2.Z)
+                return true;
+            if (value1.W != value2.W)
+                return true;
+            return false;
         }
 
         public static Vector4 operator +(Vector4 value1, Vector4 value2)
