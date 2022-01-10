@@ -599,7 +599,7 @@ namespace OpenMetaverse
                 return false;
             if (value1.Y != value2.Y)
                 return false;
-            if (value1.Z == value2.Z)
+            if (value1.Z != value2.Z)
                 return false;
             return true;
         }
@@ -611,7 +611,7 @@ namespace OpenMetaverse
                 return true;
             if (value1.Y != value2.Y)
                 return true;
-            if (value1.Z == value2.Z)
+            if (value1.Z != value2.Z)
                 return true;
             return false;
         }
