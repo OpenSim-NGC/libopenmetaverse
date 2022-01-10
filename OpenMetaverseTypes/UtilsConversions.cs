@@ -507,6 +507,15 @@ namespace OpenMetaverse
                    bytes[3];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BytesToIntBig(byte[] bytes, int pos)
+        {
+            return (bytes[pos] << 24) |
+                   (bytes[pos + 1] << 16) |
+                   (bytes[pos + 2] << 8) |
+                   bytes[pos + 3];
+        }
+
         /// <summary>
         /// Convert the first eight bytes of the given array in little endian
         /// ordering to a signed long integer

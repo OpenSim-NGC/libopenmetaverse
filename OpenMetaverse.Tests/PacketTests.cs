@@ -134,7 +134,7 @@ namespace OpenMetaverse.Tests
             for (int i = 0; i < splitPackets.Length; i++)
             {
                 byte[] packetData = splitPackets[i];
-                int len = packetData.Length - 1;
+                int len = packetData.Length;
                 DirPlacesReplyPacket packet = (DirPlacesReplyPacket)Packet.BuildPacket(packetData, ref len, packetData);
 
                 Assert.IsTrue(packet.AgentData.AgentID == bigPacket.AgentData.AgentID);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace mapgenerator
 {
@@ -1032,37 +1033,41 @@ namespace mapgenerator
                 "            return PacketType.Default;" + Environment.NewLine + "        }" + Environment.NewLine);
 
             // Write the Packet.BuildPacket(PacketType) function
-            writer.WriteLine("        public static Packet BuildPacket(PacketType type)");
-            writer.WriteLine("        {");
+            writer.WriteLine("      public static Packet BuildPacket(PacketType type)");
+            writer.WriteLine("      {");
+            writer.WriteLine("          switch(type)");
+            writer.WriteLine("          {");
             foreach (MapPacket packet in protocol.HighMaps)
                 if (packet != null)
-                    writer.WriteLine("            if(type == PacketType." + packet.Name + ") return new " + packet.Name + "Packet();");
+                    writer.WriteLine("              case PacketType." + packet.Name + ": return new " + packet.Name + "Packet();");
+
             foreach (MapPacket packet in protocol.MediumMaps)
                 if (packet != null)
-                    writer.WriteLine("            if(type == PacketType." + packet.Name + ") return new " + packet.Name + "Packet();");
+                    writer.WriteLine("              case PacketType." + packet.Name + ": return new " + packet.Name + "Packet();");
             foreach (MapPacket packet in protocol.LowMaps)
                 if (packet != null)
-                    writer.WriteLine("            if(type == PacketType." + packet.Name + ") return new " + packet.Name + "Packet();");
-            writer.WriteLine("            return null;" + Environment.NewLine);
-            writer.WriteLine("        }");
+                    writer.WriteLine("              case PacketType." + packet.Name + ": return new " + packet.Name + "Packet();");
+            writer.WriteLine("          }");
+            writer.WriteLine("          return null;");
+            writer.WriteLine("      }");
 
             // Write the Packet.BuildPacket() function
             writer.WriteLine(@"
-        public static Packet BuildPacket(byte[] packetBuffer, ref int packetEnd, byte[] zeroBuffer)
+        public static Packet BuildPacket(byte[] packetBuffer, ref int packetLength, byte[] zeroBuffer)
         {
             byte[] bytes;
             int i = 0;
-            Header header = Header.BuildHeader(packetBuffer, ref i, ref packetEnd);
+            Header header = Header.BuildHeader(packetBuffer, ref i, ref packetLength);
             if (header.Zerocoded)
             {
-                packetEnd = Helpers.ZeroDecode(packetBuffer, packetEnd + 1, zeroBuffer) - 1;
+                packetLength = Helpers.ZeroDecode(packetBuffer, packetLength, zeroBuffer);
                 bytes = zeroBuffer;
             }
             else
             {
                 bytes = packetBuffer;
             }
-            Array.Clear(bytes, packetEnd + 1, bytes.Length - packetEnd - 1);
+            //Array.Clear(bytes, packetEnd + 1, bytes.Length - packetEnd - 1);
 
             switch (header.Frequency)
             {

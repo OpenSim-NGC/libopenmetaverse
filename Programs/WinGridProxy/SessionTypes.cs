@@ -175,7 +175,7 @@ namespace WinGridProxy
             byte[] packetData = map["PacketBytes"].AsBinary();
             this.Length = packetData.Length;
 
-            int packetEnd = packetData.Length - 1;
+            int packetEnd = packetData.Length;
             this.Packet = Packet.BuildPacket(packetData, ref packetEnd, null);
             this.Name = this.Packet.Type.ToString();
             return this;

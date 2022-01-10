@@ -1384,7 +1384,7 @@ namespace GridProxy
 
                         // interpret the packet according to the SL protocol
                         Packet packet;
-                        int end = length - 1;
+                        int end = length;
 
                         packet = Packet.BuildPacket(receiveBuffer, ref end, zeroBuffer);
 
@@ -1722,7 +1722,7 @@ namespace GridProxy
                         if (length != 0)
                         {
                             // interpret the packet according to the SL protocol
-                            int end = length - 1;
+                            int end = length;
                             Packet packet = OpenMetaverse.Packets.Packet.BuildPacket(receiveBuffer, ref end, zeroBuffer);
 
                             //OpenMetaverse.Logger.Log("-> " + packet.Type + " #" + packet.Header.Sequence, Helpers.LogLevel.Debug);
