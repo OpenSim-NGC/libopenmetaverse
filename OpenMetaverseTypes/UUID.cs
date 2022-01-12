@@ -27,6 +27,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Xml.Serialization;
 
 namespace OpenMetaverse
 {
@@ -36,41 +37,41 @@ namespace OpenMetaverse
     /// </summary>
 
     [StructLayout(LayoutKind.Explicit)]
-    [Serializable]
+    [Serializable()]
     public struct UUID : IComparable,IComparable<UUID>, IEquatable<UUID>
     {
         // still a big piece of *** because how stupid .net structs are.
         // .net5 unsafe may remove the need for this union
-        [FieldOffset(0)] public int a;
-        [FieldOffset(4)] public short b;
-        [FieldOffset(6)] public short c;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(0)] public int a;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(4)] public short b;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(6)] public short c;
 
-        [FieldOffset(8)] public byte d;
-        [FieldOffset(9)] public byte e;      
-        [FieldOffset(10)] public byte f;
-        [FieldOffset(11)] public byte g;
-        [FieldOffset(12)] public byte h;
-        [FieldOffset(13)] public byte i;
-        [FieldOffset(14)] public byte j;
-        [FieldOffset(15)] public byte k;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(8)] public byte d;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(9)] public byte e;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(10)] public byte f;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(11)] public byte g;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(12)] public byte h;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(13)] public byte i;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(14)] public byte j;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(15)] public byte k;
 
-        [FieldOffset(0)] public byte bytea0;
-        [FieldOffset(1)] public byte bytea1;
-        [FieldOffset(2)] public byte bytea2;
-        [FieldOffset(3)] public byte bytea3;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(0)] public byte bytea0;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(1)] public byte bytea1;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(2)] public byte bytea2;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(3)] public byte bytea3;
 
-        [FieldOffset(4)] public byte byteb0;
-        [FieldOffset(5)] public byte byteb1;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(4)] public byte byteb0;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(5)] public byte byteb1;
 
-        [FieldOffset(6)] public byte bytec0;
-        [FieldOffset(7)] public byte bytec1;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(6)] public byte bytec0;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(7)] public byte bytec1;
 
-        [FieldOffset(4)] public int intb;
-        [FieldOffset(8)] public int intc;
-        [FieldOffset(12)] public int intd;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(4)] public int intb;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(8)] public int intc;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(12)] public int intd;
 
-        [FieldOffset(0)] public ulong ulonga;
-        [FieldOffset(8)] public ulong ulongb;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(0)] public ulong ulonga;
+        [XmlIgnore] [NonSerialized()] [FieldOffset(8)] public ulong ulongb;
 
         [FieldOffset(0)] public Guid Guid;
 
