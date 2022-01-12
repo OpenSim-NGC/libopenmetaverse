@@ -639,7 +639,7 @@ namespace OpenMetaverse.Packets
         public PacketType Type;
         public abstract int Length { get; }
         public abstract void FromBytes(byte[] bytes, ref int i, ref int packetEnd, byte[] zeroBuffer);
-        public abstract void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd);
+        public abstract void FromBytes(Header header, byte[] bytes, ref int i);
         public abstract byte[] ToBytes();
         public abstract byte[][] ToBytesMultiple();
 
@@ -2012,11 +2012,10 @@ namespace OpenMetaverse.Packets
 
         public TestMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TestBlock1.FromBytes(bytes, ref i);
@@ -2138,11 +2137,10 @@ namespace OpenMetaverse.Packets
 
         public UseCircuitCodePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             CircuitCode.FromBytes(bytes, ref i);
@@ -2314,11 +2312,10 @@ namespace OpenMetaverse.Packets
 
         public TelehubInfoPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TelehubBlock.FromBytes(bytes, ref i);
@@ -2448,11 +2445,10 @@ namespace OpenMetaverse.Packets
 
         public EconomyDataRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
         }
@@ -2605,11 +2601,10 @@ namespace OpenMetaverse.Packets
 
         public EconomyDataPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -2770,11 +2765,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPickerRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -2953,11 +2947,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPickerReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -3239,11 +3232,10 @@ namespace OpenMetaverse.Packets
 
         public PlacesQueryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -3502,11 +3494,10 @@ namespace OpenMetaverse.Packets
 
         public PlacesReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -3744,11 +3735,10 @@ namespace OpenMetaverse.Packets
 
         public DirFindQueryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -3929,11 +3919,10 @@ namespace OpenMetaverse.Packets
 
         public DirPlacesQueryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -4212,11 +4201,10 @@ namespace OpenMetaverse.Packets
 
         public DirPlacesReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -4570,11 +4558,10 @@ namespace OpenMetaverse.Packets
 
         public DirPeopleReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -4919,11 +4906,10 @@ namespace OpenMetaverse.Packets
 
         public DirEventsReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -5238,11 +5224,10 @@ namespace OpenMetaverse.Packets
 
         public DirGroupsReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -5483,11 +5468,10 @@ namespace OpenMetaverse.Packets
 
         public DirClassifiedQueryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -5761,11 +5745,10 @@ namespace OpenMetaverse.Packets
 
         public DirClassifiedReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -6034,11 +6017,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarClassifiedReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -6256,11 +6238,10 @@ namespace OpenMetaverse.Packets
 
         public ClassifiedInfoRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -6473,11 +6454,10 @@ namespace OpenMetaverse.Packets
 
         public ClassifiedInfoReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -6670,11 +6650,10 @@ namespace OpenMetaverse.Packets
 
         public ClassifiedInfoUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -6829,11 +6808,10 @@ namespace OpenMetaverse.Packets
 
         public ClassifiedDeletePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -6991,11 +6969,10 @@ namespace OpenMetaverse.Packets
 
         public ClassifiedGodDeletePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -7166,11 +7143,10 @@ namespace OpenMetaverse.Packets
 
         public DirLandQueryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -7394,11 +7370,10 @@ namespace OpenMetaverse.Packets
 
         public DirLandReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -7624,11 +7599,10 @@ namespace OpenMetaverse.Packets
 
         public DirPopularQueryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -7843,11 +7817,10 @@ namespace OpenMetaverse.Packets
 
         public DirPopularReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -8069,11 +8042,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelInfoRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -8282,11 +8254,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelInfoReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -8441,11 +8412,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelObjectOwnersRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -8573,11 +8543,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelObjectOwnersReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -8789,11 +8758,10 @@ namespace OpenMetaverse.Packets
 
         public GroupNoticesListRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -8983,11 +8951,10 @@ namespace OpenMetaverse.Packets
 
         public GroupNoticesListReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -9204,11 +9171,10 @@ namespace OpenMetaverse.Packets
 
         public GroupNoticeRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -9369,11 +9335,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -9534,11 +9499,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportLocationRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -9660,11 +9624,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportLocalPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -9778,11 +9741,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportLandmarkRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -9940,11 +9902,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportProgressPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -10083,11 +10044,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportFinishPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -10298,11 +10258,10 @@ namespace OpenMetaverse.Packets
 
         public StartLurePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -10488,11 +10447,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportLureRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -10602,11 +10560,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportCancelPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -10713,11 +10670,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportStartPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -10896,11 +10852,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportFailedPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -11128,11 +11083,10 @@ namespace OpenMetaverse.Packets
 
         public UndoPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -11360,11 +11314,10 @@ namespace OpenMetaverse.Packets
 
         public RedoPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -11539,11 +11492,10 @@ namespace OpenMetaverse.Packets
 
         public UndoLandPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -11656,11 +11608,10 @@ namespace OpenMetaverse.Packets
 
         public AgentPausePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -11773,11 +11724,10 @@ namespace OpenMetaverse.Packets
 
         public AgentResumePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -11943,11 +11893,10 @@ namespace OpenMetaverse.Packets
 
         public ChatFromViewerPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -12115,11 +12064,10 @@ namespace OpenMetaverse.Packets
 
         public AgentThrottlePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -12280,11 +12228,10 @@ namespace OpenMetaverse.Packets
 
         public AgentFOVPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -12448,11 +12395,10 @@ namespace OpenMetaverse.Packets
 
         public AgentHeightWidthPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -12724,11 +12670,10 @@ namespace OpenMetaverse.Packets
 
         public AgentSetAppearancePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -12907,11 +12852,10 @@ namespace OpenMetaverse.Packets
 
         public AgentQuitCopyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -13021,11 +12965,10 @@ namespace OpenMetaverse.Packets
 
         public ImageNotInDatabasePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ImageID.FromBytes(bytes, ref i);
@@ -13132,11 +13075,10 @@ namespace OpenMetaverse.Packets
 
         public RebakeAvatarTexturesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TextureData.FromBytes(bytes, ref i);
@@ -13249,11 +13191,10 @@ namespace OpenMetaverse.Packets
 
         public SetAlwaysRunPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -13417,11 +13358,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDeletePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -13695,11 +13635,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDuplicatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -13957,11 +13896,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDuplicateOnRayPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -14190,11 +14128,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectScalePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -14423,11 +14360,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectRotationPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -14680,11 +14616,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectFlagUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -14913,11 +14848,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectClickActionPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -15160,11 +15094,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectImagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -15393,11 +15326,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectMaterialPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -15677,11 +15609,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectShapePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -15925,11 +15856,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectExtraParamsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -16203,11 +16133,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectOwnerPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -16441,11 +16370,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectGroupPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -16683,11 +16611,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectBuyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -16911,11 +16838,10 @@ namespace OpenMetaverse.Packets
 
         public BuyObjectInventoryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -17029,11 +16955,10 @@ namespace OpenMetaverse.Packets
 
         public DerezContainerPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -17245,11 +17170,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectPermissionsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -17486,11 +17410,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectSaleInfoPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -17725,11 +17648,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectNamePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -17964,11 +17886,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDescriptionPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -18197,11 +18118,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectCategoryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -18427,11 +18347,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectSelectPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -18657,11 +18576,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDeselectPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -18893,11 +18811,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectAttachPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -19122,11 +19039,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDetachPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -19351,11 +19267,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDropPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -19580,11 +19495,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectLinkPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -19809,11 +19723,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDelinkPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -20099,11 +20012,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectGrabPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -20400,11 +20312,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectGrabUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -20691,11 +20602,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDeGrabPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -20918,11 +20828,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectSpinStartPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -21081,11 +20990,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectSpinUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -21241,11 +21149,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectSpinStopPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -21412,11 +21319,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectExportSelectedPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -21755,11 +21661,10 @@ namespace OpenMetaverse.Packets
 
         public ModifyLandPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -21969,11 +21874,10 @@ namespace OpenMetaverse.Packets
 
         public VelocityInterpolateOnPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -22083,11 +21987,10 @@ namespace OpenMetaverse.Packets
 
         public VelocityInterpolateOffPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -22245,11 +22148,10 @@ namespace OpenMetaverse.Packets
 
         public StateSavePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -22362,11 +22264,10 @@ namespace OpenMetaverse.Packets
 
         public ReportAutosaveCrashPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AutosaveData.FromBytes(bytes, ref i);
@@ -22521,11 +22422,10 @@ namespace OpenMetaverse.Packets
 
         public SimWideDeletesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -22680,11 +22580,10 @@ namespace OpenMetaverse.Packets
 
         public TrackAgentPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -23067,11 +22966,10 @@ namespace OpenMetaverse.Packets
 
         public ViewerStatsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -23315,11 +23213,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptAnswerYesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -23527,11 +23424,10 @@ namespace OpenMetaverse.Packets
 
         public UserReportPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -23710,11 +23606,10 @@ namespace OpenMetaverse.Packets
 
         public AlertMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AlertData.FromBytes(bytes, ref i);
@@ -23937,11 +23832,10 @@ namespace OpenMetaverse.Packets
 
         public AgentAlertMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -24072,11 +23966,10 @@ namespace OpenMetaverse.Packets
 
         public MeanCollisionAlertPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -24243,11 +24136,10 @@ namespace OpenMetaverse.Packets
 
         public ViewerFrozenMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             FrozenData.FromBytes(bytes, ref i);
@@ -24355,11 +24247,10 @@ namespace OpenMetaverse.Packets
 
         public HealthMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             HealthData.FromBytes(bytes, ref i);
@@ -24498,11 +24389,10 @@ namespace OpenMetaverse.Packets
 
         public ChatFromSimulatorPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ChatData.FromBytes(bytes, ref i);
@@ -24763,11 +24653,10 @@ namespace OpenMetaverse.Packets
 
         public SimStatsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Region.FromBytes(bytes, ref i);
@@ -24904,11 +24793,10 @@ namespace OpenMetaverse.Packets
 
         public RequestRegionInfoPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -25226,11 +25114,10 @@ namespace OpenMetaverse.Packets
 
         public RegionInfoPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -25535,11 +25422,10 @@ namespace OpenMetaverse.Packets
 
         public GodUpdateRegionInfoPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -25955,11 +25841,10 @@ namespace OpenMetaverse.Packets
 
         public RegionHandshakePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RegionInfo.FromBytes(bytes, ref i);
@@ -26187,11 +26072,10 @@ namespace OpenMetaverse.Packets
 
         public RegionHandshakeReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -26316,11 +26200,10 @@ namespace OpenMetaverse.Packets
 
         public SimulatorViewerTimeMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TimeInfo.FromBytes(bytes, ref i);
@@ -26434,11 +26317,10 @@ namespace OpenMetaverse.Packets
 
         public EnableSimulatorPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             SimulatorInfo.FromBytes(bytes, ref i);
@@ -26503,11 +26385,10 @@ namespace OpenMetaverse.Packets
 
         public DisableSimulatorPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
         }
@@ -26631,11 +26512,10 @@ namespace OpenMetaverse.Packets
 
         public TransferRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TransferInfo.FromBytes(bytes, ref i);
@@ -26765,11 +26645,10 @@ namespace OpenMetaverse.Packets
 
         public TransferInfoPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TransferInfo.FromBytes(bytes, ref i);
@@ -26880,11 +26759,10 @@ namespace OpenMetaverse.Packets
 
         public TransferAbortPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TransferInfo.FromBytes(bytes, ref i);
@@ -27016,11 +26894,10 @@ namespace OpenMetaverse.Packets
 
         public RequestXferPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             XferID.FromBytes(bytes, ref i);
@@ -27130,11 +27007,10 @@ namespace OpenMetaverse.Packets
 
         public AbortXferPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             XferID.FromBytes(bytes, ref i);
@@ -27450,11 +27326,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarAppearancePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Sender.FromBytes(bytes, ref i);
@@ -27744,11 +27619,10 @@ namespace OpenMetaverse.Packets
 
         public SetFollowCamPropertiesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -27920,11 +27794,10 @@ namespace OpenMetaverse.Packets
 
         public ClearFollowCamPropertiesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -28031,11 +27904,10 @@ namespace OpenMetaverse.Packets
 
         public RequestPayPricePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -28195,11 +28067,10 @@ namespace OpenMetaverse.Packets
 
         public PayPriceReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -28430,11 +28301,10 @@ namespace OpenMetaverse.Packets
 
         public KickUserPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TargetBlock.FromBytes(bytes, ref i);
@@ -28563,11 +28433,10 @@ namespace OpenMetaverse.Packets
 
         public GodKickUserPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             UserInfo.FromBytes(bytes, ref i);
@@ -28722,11 +28591,10 @@ namespace OpenMetaverse.Packets
 
         public EjectUserPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -28884,11 +28752,10 @@ namespace OpenMetaverse.Packets
 
         public FreezeUserPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -29004,11 +28871,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPropertiesRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -29208,11 +29074,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPropertiesReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -29394,11 +29259,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarInterestsReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -29629,11 +29493,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarGroupsReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -29834,11 +29697,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPropertiesUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30020,11 +29882,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarInterestsUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30186,11 +30047,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarNotesReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30355,11 +30215,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarNotesUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30531,11 +30390,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPicksReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30752,11 +30610,10 @@ namespace OpenMetaverse.Packets
 
         public EventInfoRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30971,11 +30828,10 @@ namespace OpenMetaverse.Packets
 
         public EventInfoReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -31130,11 +30986,10 @@ namespace OpenMetaverse.Packets
 
         public EventNotificationAddRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -31289,11 +31144,10 @@ namespace OpenMetaverse.Packets
 
         public EventNotificationRemoveRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -31505,11 +31359,10 @@ namespace OpenMetaverse.Packets
 
         public EventGodDeletePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -31723,11 +31576,10 @@ namespace OpenMetaverse.Packets
 
         public PickInfoReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -31920,11 +31772,10 @@ namespace OpenMetaverse.Packets
 
         public PickInfoUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -32079,11 +31930,10 @@ namespace OpenMetaverse.Packets
 
         public PickDeletePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -32241,11 +32091,10 @@ namespace OpenMetaverse.Packets
 
         public PickGodDeletePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -32419,11 +32268,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptQuestionPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -32547,11 +32395,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptControlChangePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -32862,11 +32709,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptDialogPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -33129,11 +32975,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptDialogReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -33246,11 +33091,10 @@ namespace OpenMetaverse.Packets
 
         public ForceScriptControlReleasePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -33405,11 +33249,10 @@ namespace OpenMetaverse.Packets
 
         public RevokePermissionsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -33548,11 +33391,10 @@ namespace OpenMetaverse.Packets
 
         public LoadURLPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -33678,11 +33520,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptTeleportRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -33800,11 +33641,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelOverlayPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ParcelData.FromBytes(bytes, ref i);
@@ -33960,11 +33800,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelPropertiesRequestByIDPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -34192,11 +34031,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelPropertiesUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -34455,11 +34293,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelReturnObjectsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -34715,11 +34552,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelSetOtherCleanTimePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -34978,11 +34814,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelDisableObjectsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -35288,11 +35123,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelSelectObjectsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -35472,11 +35306,10 @@ namespace OpenMetaverse.Packets
 
         public EstateCovenantRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -35598,11 +35431,10 @@ namespace OpenMetaverse.Packets
 
         public EstateCovenantReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -35759,11 +35591,10 @@ namespace OpenMetaverse.Packets
 
         public ForceObjectSelectPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             _Header.FromBytes(bytes, ref i);
@@ -35980,11 +35811,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelBuyPassPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -36142,11 +35972,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelDeedToGroupPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -36301,11 +36130,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelReclaimPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -36526,11 +36354,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelClaimPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -36761,11 +36588,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelJoinPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -36929,11 +36755,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelDividePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -37088,11 +36913,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelReleasePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -37305,11 +37129,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelBuyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -37471,11 +37294,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelGodForceOwnerPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -37637,11 +37459,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelAccessListRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -37817,11 +37638,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelAccessListReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -38107,11 +37927,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelAccessListUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -38336,11 +38155,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelDwellRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -38498,11 +38316,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelDwellReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -38657,11 +38474,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelGodMarkAsContentPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -38819,11 +38635,10 @@ namespace OpenMetaverse.Packets
 
         public ViewerStartAuctionPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -38941,11 +38756,10 @@ namespace OpenMetaverse.Packets
 
         public UUIDNameRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -39136,11 +38950,10 @@ namespace OpenMetaverse.Packets
 
         public UUIDNameReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -39315,11 +39128,10 @@ namespace OpenMetaverse.Packets
 
         public UUIDGroupNameRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -39503,11 +39315,10 @@ namespace OpenMetaverse.Packets
 
         public UUIDGroupNameReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -39678,11 +39489,10 @@ namespace OpenMetaverse.Packets
 
         public ChildAgentDyingPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -39792,11 +39602,10 @@ namespace OpenMetaverse.Packets
 
         public ChildAgentUnknownPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -39906,11 +39715,10 @@ namespace OpenMetaverse.Packets
 
         public GetScriptRunningPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Script.FromBytes(bytes, ref i);
@@ -40023,11 +39831,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptRunningReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Script.FromBytes(bytes, ref i);
@@ -40185,11 +39992,10 @@ namespace OpenMetaverse.Packets
 
         public SetScriptRunningPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -40347,11 +40153,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptResetPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -40498,11 +40303,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptSensorRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Requester.FromBytes(bytes, ref i);
@@ -40690,11 +40494,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptSensorReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Requester.FromBytes(bytes, ref i);
@@ -40872,11 +40675,10 @@ namespace OpenMetaverse.Packets
 
         public CompleteAgentMovementPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -41086,11 +40888,10 @@ namespace OpenMetaverse.Packets
 
         public AgentMovementCompletePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -41206,11 +41007,10 @@ namespace OpenMetaverse.Packets
 
         public LogoutRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -41371,11 +41171,10 @@ namespace OpenMetaverse.Packets
 
         public LogoutReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -41642,11 +41441,10 @@ namespace OpenMetaverse.Packets
 
         public ImprovedInstantMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -41759,11 +41557,10 @@ namespace OpenMetaverse.Packets
 
         public RetrieveInstantMessagesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -41929,11 +41726,10 @@ namespace OpenMetaverse.Packets
 
         public FindAgentPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentBlock.FromBytes(bytes, ref i);
@@ -42153,11 +41949,10 @@ namespace OpenMetaverse.Packets
 
         public RequestGodlikePowersPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -42315,11 +42110,10 @@ namespace OpenMetaverse.Packets
 
         public GrantGodlikePowersPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -42543,11 +42337,10 @@ namespace OpenMetaverse.Packets
 
         public GodlikeMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -42838,11 +42631,10 @@ namespace OpenMetaverse.Packets
 
         public EstateOwnerMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -43133,11 +42925,10 @@ namespace OpenMetaverse.Packets
 
         public GenericMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -43359,11 +43150,10 @@ namespace OpenMetaverse.Packets
 
         public MuteListRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -43533,11 +43323,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateMuteListEntryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -43701,11 +43490,10 @@ namespace OpenMetaverse.Packets
 
         public RemoveMuteListEntryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -43917,11 +43705,10 @@ namespace OpenMetaverse.Packets
 
         public CopyInventoryFromNotecardPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -44228,11 +44015,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateInventoryItemPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -44534,11 +44320,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateCreateInventoryItemPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -44779,11 +44564,10 @@ namespace OpenMetaverse.Packets
 
         public MoveInventoryItemPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -45027,11 +44811,10 @@ namespace OpenMetaverse.Packets
 
         public CopyInventoryItemPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -45256,11 +45039,10 @@ namespace OpenMetaverse.Packets
 
         public RemoveInventoryItemPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -45488,11 +45270,10 @@ namespace OpenMetaverse.Packets
 
         public ChangeInventoryItemFlagsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -45709,11 +45490,10 @@ namespace OpenMetaverse.Packets
 
         public SaveAssetIntoInventoryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -45883,11 +45663,10 @@ namespace OpenMetaverse.Packets
 
         public CreateInventoryFolderPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -46065,11 +45844,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateInventoryFolderPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -46301,11 +46079,10 @@ namespace OpenMetaverse.Packets
 
         public MoveInventoryFolderPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -46530,11 +46307,10 @@ namespace OpenMetaverse.Packets
 
         public RemoveInventoryFolderPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -46764,11 +46540,10 @@ namespace OpenMetaverse.Packets
 
         public FetchInventoryDescendentsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -47076,11 +46851,10 @@ namespace OpenMetaverse.Packets
 
         public InventoryDescendentsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -47339,11 +47113,10 @@ namespace OpenMetaverse.Packets
 
         public FetchInventoryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -47636,11 +47409,10 @@ namespace OpenMetaverse.Packets
 
         public FetchInventoryReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -48004,11 +47776,10 @@ namespace OpenMetaverse.Packets
 
         public BulkUpdateInventoryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -48313,11 +48084,10 @@ namespace OpenMetaverse.Packets
 
         public RemoveInventoryObjectsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -48565,11 +48335,10 @@ namespace OpenMetaverse.Packets
 
         public PurgeInventoryDescendentsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -48840,11 +48609,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateTaskInventoryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -49006,11 +48774,10 @@ namespace OpenMetaverse.Packets
 
         public RemoveTaskInventoryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -49171,11 +48938,10 @@ namespace OpenMetaverse.Packets
 
         public MoveTaskInventoryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -49330,11 +49096,10 @@ namespace OpenMetaverse.Packets
 
         public RequestTaskInventoryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -49457,11 +49222,10 @@ namespace OpenMetaverse.Packets
 
         public ReplyTaskInventoryPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             InventoryData.FromBytes(bytes, ref i);
@@ -49679,11 +49443,10 @@ namespace OpenMetaverse.Packets
 
         public DeRezObjectPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -49863,11 +49626,10 @@ namespace OpenMetaverse.Packets
 
         public DeRezAckPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TransactionData.FromBytes(bytes, ref i);
@@ -50168,11 +49930,10 @@ namespace OpenMetaverse.Packets
 
         public RezObjectPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -50462,11 +50223,10 @@ namespace OpenMetaverse.Packets
 
         public RezObjectFromNotecardPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -50743,11 +50503,10 @@ namespace OpenMetaverse.Packets
 
         public AcceptFriendshipPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -50969,11 +50728,10 @@ namespace OpenMetaverse.Packets
 
         public DeclineFriendshipPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -51128,11 +50886,10 @@ namespace OpenMetaverse.Packets
 
         public TerminateFriendshipPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -51290,11 +51047,10 @@ namespace OpenMetaverse.Packets
 
         public OfferCallingCardPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -51499,11 +51255,10 @@ namespace OpenMetaverse.Packets
 
         public AcceptCallingCardPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -51725,11 +51480,10 @@ namespace OpenMetaverse.Packets
 
         public DeclineCallingCardPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -52003,11 +51757,10 @@ namespace OpenMetaverse.Packets
 
         public RezScriptPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -52200,11 +51953,10 @@ namespace OpenMetaverse.Packets
 
         public CreateInventoryItemPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -52411,11 +52163,10 @@ namespace OpenMetaverse.Packets
 
         public CreateLandmarkForEventPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -52528,11 +52279,10 @@ namespace OpenMetaverse.Packets
 
         public RegionHandleRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RequestBlock.FromBytes(bytes, ref i);
@@ -52642,11 +52392,10 @@ namespace OpenMetaverse.Packets
 
         public RegionIDAndHandleReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ReplyBlock.FromBytes(bytes, ref i);
@@ -52826,11 +52575,10 @@ namespace OpenMetaverse.Packets
 
         public MoneyTransferRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -52986,11 +52734,10 @@ namespace OpenMetaverse.Packets
 
         public MoneyBalanceRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -53191,11 +52938,10 @@ namespace OpenMetaverse.Packets
 
         public MoneyBalanceReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             MoneyData.FromBytes(bytes, ref i);
@@ -53442,11 +53188,10 @@ namespace OpenMetaverse.Packets
 
         public RoutedMoneyBalanceReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TargetBlock.FromBytes(bytes, ref i);
@@ -53621,11 +53366,10 @@ namespace OpenMetaverse.Packets
 
         public ActivateGesturesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -53856,11 +53600,10 @@ namespace OpenMetaverse.Packets
 
         public DeactivateGesturesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -54041,11 +53784,10 @@ namespace OpenMetaverse.Packets
 
         public MuteListUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             MuteData.FromBytes(bytes, ref i);
@@ -54152,11 +53894,10 @@ namespace OpenMetaverse.Packets
 
         public UseCachedMuteListPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -54319,11 +54060,10 @@ namespace OpenMetaverse.Packets
 
         public GrantUserRightsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -54548,11 +54288,10 @@ namespace OpenMetaverse.Packets
 
         public ChangeUserRightsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -54732,11 +54471,10 @@ namespace OpenMetaverse.Packets
 
         public OnlineNotificationPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -54911,11 +54649,10 @@ namespace OpenMetaverse.Packets
 
         public OfflineNotificationPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -55143,11 +54880,10 @@ namespace OpenMetaverse.Packets
 
         public SetStartLocationRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -55276,11 +55012,10 @@ namespace OpenMetaverse.Packets
 
         public AssetUploadRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AssetBlock.FromBytes(bytes, ref i);
@@ -55393,11 +55128,10 @@ namespace OpenMetaverse.Packets
 
         public AssetUploadCompletePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AssetBlock.FromBytes(bytes, ref i);
@@ -55582,11 +55316,10 @@ namespace OpenMetaverse.Packets
 
         public CreateGroupRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -55750,11 +55483,10 @@ namespace OpenMetaverse.Packets
 
         public CreateGroupReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -55938,11 +55670,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateGroupInfoPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -56114,11 +55845,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleChangesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -56336,11 +56066,10 @@ namespace OpenMetaverse.Packets
 
         public JoinGroupRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -56495,11 +56224,10 @@ namespace OpenMetaverse.Packets
 
         public JoinGroupReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -56704,11 +56432,10 @@ namespace OpenMetaverse.Packets
 
         public EjectGroupMemberRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -56969,11 +56696,10 @@ namespace OpenMetaverse.Packets
 
         public EjectGroupMemberReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -57131,11 +56857,10 @@ namespace OpenMetaverse.Packets
 
         public LeaveGroupRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -57290,11 +57015,10 @@ namespace OpenMetaverse.Packets
 
         public LeaveGroupReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -57502,11 +57226,10 @@ namespace OpenMetaverse.Packets
 
         public InviteGroupRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -57728,11 +57451,10 @@ namespace OpenMetaverse.Packets
 
         public GroupProfileRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -57945,11 +57667,10 @@ namespace OpenMetaverse.Packets
 
         public GroupProfileReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -58114,11 +57835,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountSummaryRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -58345,11 +58065,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountSummaryReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -58514,11 +58233,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountDetailsRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -58748,11 +58466,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountDetailsReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -58984,11 +58701,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountTransactionsRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -59235,11 +58951,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountTransactionsReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -59503,11 +59218,10 @@ namespace OpenMetaverse.Packets
 
         public GroupActiveProposalsRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -59768,11 +59482,10 @@ namespace OpenMetaverse.Packets
 
         public GroupActiveProposalItemReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -60036,11 +59749,10 @@ namespace OpenMetaverse.Packets
 
         public GroupVoteHistoryRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -60360,11 +60072,10 @@ namespace OpenMetaverse.Packets
 
         public GroupVoteHistoryItemReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -60610,11 +60321,10 @@ namespace OpenMetaverse.Packets
 
         public StartGroupProposalPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -60781,11 +60491,10 @@ namespace OpenMetaverse.Packets
 
         public GroupProposalBallotPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -60943,11 +60652,10 @@ namespace OpenMetaverse.Packets
 
         public GroupMembersRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -61181,11 +60889,10 @@ namespace OpenMetaverse.Packets
 
         public GroupMembersReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -61369,11 +61076,10 @@ namespace OpenMetaverse.Packets
 
         public ActivateGroupPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -61528,11 +61234,10 @@ namespace OpenMetaverse.Packets
 
         public SetGroupContributionPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -61732,11 +61437,10 @@ namespace OpenMetaverse.Packets
 
         public SetGroupAcceptNoticesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -61897,11 +61601,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleDataRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -62138,11 +61841,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleDataReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -62367,11 +62069,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleMembersRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -62543,11 +62244,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleMembersReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -62728,11 +62428,10 @@ namespace OpenMetaverse.Packets
 
         public GroupTitlesRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -62908,11 +62607,10 @@ namespace OpenMetaverse.Packets
 
         public GroupTitlesReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -63093,11 +62791,10 @@ namespace OpenMetaverse.Packets
 
         public GroupTitleUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -63289,11 +62986,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -63468,11 +63164,10 @@ namespace OpenMetaverse.Packets
 
         public LiveHelpGroupRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RequestData.FromBytes(bytes, ref i);
@@ -63591,11 +63286,10 @@ namespace OpenMetaverse.Packets
 
         public LiveHelpGroupReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ReplyData.FromBytes(bytes, ref i);
@@ -63705,11 +63399,10 @@ namespace OpenMetaverse.Packets
 
         public AgentWearablesRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -63879,11 +63572,10 @@ namespace OpenMetaverse.Packets
 
         public AgentWearablesUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -64112,11 +63804,10 @@ namespace OpenMetaverse.Packets
 
         public AgentIsNowWearingPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -64347,11 +64038,10 @@ namespace OpenMetaverse.Packets
 
         public AgentCachedTexturePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -64591,11 +64281,10 @@ namespace OpenMetaverse.Packets
 
         public AgentCachedTextureResponsePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -64770,11 +64459,10 @@ namespace OpenMetaverse.Packets
 
         public AgentDataUpdateRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -64918,11 +64606,10 @@ namespace OpenMetaverse.Packets
 
         public AgentDataUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -65053,11 +64740,10 @@ namespace OpenMetaverse.Packets
 
         public GroupDataUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -65296,11 +64982,10 @@ namespace OpenMetaverse.Packets
 
         public AgentGroupDataUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -65476,11 +65161,10 @@ namespace OpenMetaverse.Packets
 
         public AgentDropGroupPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -65667,11 +65351,10 @@ namespace OpenMetaverse.Packets
 
         public RezSingleAttachmentFromInvPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -65917,11 +65600,10 @@ namespace OpenMetaverse.Packets
 
         public RezMultipleAttachmentsFromInvPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -66101,11 +65783,10 @@ namespace OpenMetaverse.Packets
 
         public DetachAttachmentIntoInvPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -66310,11 +65991,10 @@ namespace OpenMetaverse.Packets
 
         public CreateNewOutfitAttachmentsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -66494,11 +66174,10 @@ namespace OpenMetaverse.Packets
 
         public UserInfoRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -66664,11 +66343,10 @@ namespace OpenMetaverse.Packets
 
         public UserInfoReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -66832,11 +66510,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateUserInfoPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -67001,11 +66678,10 @@ namespace OpenMetaverse.Packets
 
         public InitiateDownloadPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -67127,11 +66803,10 @@ namespace OpenMetaverse.Packets
 
         public MapLayerRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -67303,11 +66978,10 @@ namespace OpenMetaverse.Packets
 
         public MapLayerReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -67542,11 +67216,10 @@ namespace OpenMetaverse.Packets
 
         public MapBlockRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -67716,11 +67389,10 @@ namespace OpenMetaverse.Packets
 
         public MapNameRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -67963,11 +67635,10 @@ namespace OpenMetaverse.Packets
 
         public MapBlockReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -68226,11 +67897,10 @@ namespace OpenMetaverse.Packets
 
         public MapItemRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -68456,11 +68126,10 @@ namespace OpenMetaverse.Packets
 
         public MapItemReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -68690,11 +68359,10 @@ namespace OpenMetaverse.Packets
 
         public SendPostcardPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -68807,11 +68475,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelMediaCommandMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             CommandBlock.FromBytes(bytes, ref i);
@@ -68994,11 +68661,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelMediaUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             DataBlock.FromBytes(bytes, ref i);
@@ -69168,11 +68834,10 @@ namespace OpenMetaverse.Packets
 
         public LandStatRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -69369,11 +69034,10 @@ namespace OpenMetaverse.Packets
 
         public LandStatReplyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RequestData.FromBytes(bytes, ref i);
@@ -69623,11 +69287,10 @@ namespace OpenMetaverse.Packets
 
         public ErrorPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -69793,11 +69456,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectIncludeInSearchPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -70084,11 +69746,10 @@ namespace OpenMetaverse.Packets
 
         public RezRestoreToWorldPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -70275,11 +69936,10 @@ namespace OpenMetaverse.Packets
 
         public LinkInventoryItemPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -70503,11 +70163,10 @@ namespace OpenMetaverse.Packets
 
         public LargeGenericMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -70692,11 +70351,10 @@ namespace OpenMetaverse.Packets
 
         public PacketAckPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -70867,11 +70525,10 @@ namespace OpenMetaverse.Packets
 
         public OpenCircuitPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             CircuitInfo.FromBytes(bytes, ref i);
@@ -70936,11 +70593,10 @@ namespace OpenMetaverse.Packets
 
         public CloseCircuitPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
         }
@@ -71177,11 +70833,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectAddPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -71357,11 +71012,10 @@ namespace OpenMetaverse.Packets
 
         public MultipleObjectUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -71590,11 +71244,10 @@ namespace OpenMetaverse.Packets
 
         public RequestMultipleObjectsPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -71823,11 +71476,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectPositionPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -72048,11 +71700,10 @@ namespace OpenMetaverse.Packets
 
         public RequestObjectPropertiesFamilyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -72271,11 +71922,10 @@ namespace OpenMetaverse.Packets
 
         public CoarseLocationUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -72513,11 +72163,10 @@ namespace OpenMetaverse.Packets
 
         public CrossedRegionPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -72633,11 +72282,10 @@ namespace OpenMetaverse.Packets
 
         public ConfirmEnableSimulatorPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -72853,11 +72501,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectPropertiesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -73080,11 +72727,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectPropertiesFamilyPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -73252,11 +72898,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelPropertiesRequestPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -73378,11 +73023,10 @@ namespace OpenMetaverse.Packets
 
         public AttachedSoundPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             DataBlock.FromBytes(bytes, ref i);
@@ -73492,11 +73136,10 @@ namespace OpenMetaverse.Packets
 
         public AttachedSoundGainChangePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             DataBlock.FromBytes(bytes, ref i);
@@ -73617,11 +73260,10 @@ namespace OpenMetaverse.Packets
 
         public PreloadSoundPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -73864,11 +73506,10 @@ namespace OpenMetaverse.Packets
 
         public ViewerEffectPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -74043,11 +73684,10 @@ namespace OpenMetaverse.Packets
 
         public StartPingCheckPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             PingID.FromBytes(bytes, ref i);
@@ -74154,11 +73794,10 @@ namespace OpenMetaverse.Packets
 
         public CompletePingCheckPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             PingID.FromBytes(bytes, ref i);
@@ -74299,11 +73938,10 @@ namespace OpenMetaverse.Packets
 
         public AgentUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -74522,11 +74160,10 @@ namespace OpenMetaverse.Packets
 
         public AgentAnimationPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -74777,11 +74414,10 @@ namespace OpenMetaverse.Packets
 
         public AgentRequestSitPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -74894,11 +74530,10 @@ namespace OpenMetaverse.Packets
 
         public AgentSitPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -75070,11 +74705,10 @@ namespace OpenMetaverse.Packets
 
         public RequestImagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -75304,11 +74938,10 @@ namespace OpenMetaverse.Packets
 
         public ImageDataPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ImageID.FromBytes(bytes, ref i);
@@ -75470,11 +75103,10 @@ namespace OpenMetaverse.Packets
 
         public ImagePacketPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ImageID.FromBytes(bytes, ref i);
@@ -75633,11 +75265,10 @@ namespace OpenMetaverse.Packets
 
         public LayerDataPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             LayerID.FromBytes(bytes, ref i);
@@ -75978,11 +75609,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RegionData.FromBytes(bytes, ref i);
@@ -76217,11 +75847,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectUpdateCompressedPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RegionData.FromBytes(bytes, ref i);
@@ -76452,11 +76081,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectUpdateCachedPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RegionData.FromBytes(bytes, ref i);
@@ -76695,11 +76323,10 @@ namespace OpenMetaverse.Packets
 
         public ImprovedTerseObjectUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RegionData.FromBytes(bytes, ref i);
@@ -76879,11 +76506,10 @@ namespace OpenMetaverse.Packets
 
         public KillObjectPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -77069,11 +76695,10 @@ namespace OpenMetaverse.Packets
 
         public TransferPacketPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TransferData.FromBytes(bytes, ref i);
@@ -77232,11 +76857,10 @@ namespace OpenMetaverse.Packets
 
         public SendXferPacketPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             XferID.FromBytes(bytes, ref i);
@@ -77349,11 +76973,10 @@ namespace OpenMetaverse.Packets
 
         public ConfirmXferPacketPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             XferID.FromBytes(bytes, ref i);
@@ -77619,11 +77242,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarAnimationPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Sender.FromBytes(bytes, ref i);
@@ -77913,11 +77535,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarSitResponsePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             SitObject.FromBytes(bytes, ref i);
@@ -78028,11 +77649,10 @@ namespace OpenMetaverse.Packets
 
         public CameraConstraintPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             CameraCollidePlane.FromBytes(bytes, ref i);
@@ -78436,11 +78056,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelPropertiesPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ParcelData.FromBytes(bytes, ref i);
@@ -79012,11 +78631,10 @@ namespace OpenMetaverse.Packets
 
         public ChildAgentUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -79377,11 +78995,10 @@ namespace OpenMetaverse.Packets
 
         public ChildAgentAlivePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -79521,11 +79138,10 @@ namespace OpenMetaverse.Packets
 
         public ChildAgentPositionUpdatePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -79650,11 +79266,10 @@ namespace OpenMetaverse.Packets
 
         public SoundTriggerPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             SoundData.FromBytes(bytes, ref i);
@@ -79814,11 +79429,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectAnimationPacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Sender.FromBytes(bytes, ref i);

@@ -557,11 +557,10 @@ namespace mapgenerator
             //writer.WriteLine("        /// <summary>Constructor that takes a byte array and a prebuilt header</summary>");
             writer.WriteLine("        public " + packet.Name + "Packet(Header head, byte[] bytes, ref int i): this()" + Environment.NewLine +
                 "        {" + Environment.NewLine +
-                "            int packetEnd = bytes.Length - 1;" + Environment.NewLine +
-                "            FromBytes(head, bytes, ref i, ref packetEnd);" + Environment.NewLine +
+                "            FromBytes(head, bytes, ref i);" + Environment.NewLine +
                 "        }" + Environment.NewLine);
 
-            writer.WriteLine("        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)" + Environment.NewLine +
+            writer.WriteLine("        override public void FromBytes(Header header, byte[] bytes, ref int i)" + Environment.NewLine +
                 "        {");
             writer.WriteLine("            Header = header;");
             foreach (MapBlock block in packet.Blocks)
@@ -996,7 +995,7 @@ namespace mapgenerator
                 "        public PacketType Type;" + Environment.NewLine +
                 "        public abstract int Length { get; }" + Environment.NewLine +
                 "        public abstract void FromBytes(byte[] bytes, ref int i, ref int packetEnd, byte[] zeroBuffer);" + Environment.NewLine +
-                "        public abstract void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd);" + Environment.NewLine +
+                "        public abstract void FromBytes(Header header, byte[] bytes, ref int i);" + Environment.NewLine +
                 "        public abstract byte[] ToBytes();" + Environment.NewLine +
                 "        public abstract byte[][] ToBytesMultiple();"
             );
