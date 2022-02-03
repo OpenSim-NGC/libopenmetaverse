@@ -151,7 +151,7 @@ namespace OpenMetaverse.Packets
         /// <param name="pos"></param>
         /// <param name="packetEnd"></param>
         /// <returns></returns>
-        public static Header BuildHeader(byte[] bytes, ref int pos, ref int packetEnd)
+        public static Header BuildHeader(byte[] bytes, ref int pos, ref int packetLength)
         {
             Header header;
             byte flags = bytes[pos];
@@ -160,8 +160,9 @@ namespace OpenMetaverse.Packets
             header.Reliable = (flags & Helpers.MSG_RELIABLE) != 0;
             header.Resent = (flags & Helpers.MSG_RESENT) != 0;
             header.Zerocoded = (flags & Helpers.MSG_ZEROCODED) != 0;
-            header.Sequence = (uint)((bytes[pos + 1] << 24) + (bytes[pos + 2] << 16) + (bytes[pos + 3] << 8) + bytes[pos + 4]);
+            header.Sequence = (uint)Utils.BytesToIntBig(bytes, 1);
 
+            pos += bytes[pos + 5];
             // Set the frequency and packet ID number
             if (bytes[pos + 6] == 0xFF)
             {
@@ -191,36 +192,21 @@ namespace OpenMetaverse.Packets
                 pos += 7;
             }
 
-            header.AckList = null;
-            CreateAckList(ref header, bytes, ref packetEnd);
-
-            return header;
-        }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="header"></param>
-        /// <param name="bytes"></param>
-        /// <param name="packetEnd"></param>
-        static void CreateAckList(ref Header header, byte[] bytes, ref int packetEnd)
-        {
             if (header.AppendedAcks)
             {
-                int count = bytes[packetEnd--];
+                --packetLength;
+                int count = bytes[packetLength];
                 header.AckList = new uint[count];
-                
                 for (int i = 0; i < count; i++)
                 {
-                    header.AckList[i] = (uint)(
-                        (bytes[(packetEnd - i * 4) - 3] << 24) |
-                        (bytes[(packetEnd - i * 4) - 2] << 16) |
-                        (bytes[(packetEnd - i * 4) - 1] <<  8) |
-                        (bytes[(packetEnd - i * 4)    ]));
+                    packetLength -= 4;
+                    header.AckList[i] = (uint)Utils.BytesToIntBig(bytes, packetLength);
                 }
-
-                packetEnd -= (count * 4);
             }
+            else
+                header.AckList = null;
+
+            return header;
         }
     }
 

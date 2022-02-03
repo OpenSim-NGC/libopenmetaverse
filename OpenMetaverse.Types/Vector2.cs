@@ -25,7 +25,7 @@
  */
 
 using System;
-using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace OpenMetaverse
@@ -65,7 +65,7 @@ namespace OpenMetaverse
         #endregion Constructors
 
         #region Public Methods
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Abs()
         {
             if (X < 0f)
@@ -74,14 +74,14 @@ namespace OpenMetaverse
                 Y = -Y;
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Min(Vector2 v)
         {
             if (v.X < X) X = v.X;
             if (v.Y < Y) Y = v.Y;
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Max(Vector2 v)
         {
             if (v.X > X) X = v.X;
@@ -97,18 +97,48 @@ namespace OpenMetaverse
         /// between the two vectors</param>
         /// <returns>True if the magnitude of difference between the two vectors
         /// is less than the given tolerance, otherwise false</returns>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ApproxEquals(Vector2 vec, float tolerance)
         {
             return Utils.ApproxEqual(X, vec.X, tolerance) &&
                     Utils.ApproxEqual(Y, vec.Y, tolerance);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ApproxEquals(Vector2 vec)
         {
             return Utils.ApproxEqual(X, vec.X) &&
                     Utils.ApproxEqual(Y, vec.Y);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool ApproxZero()
+        {
+            if (!Utils.ApproxZero(X))
+                return false;
+            if (!Utils.ApproxZero(Y))
+                return false;
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool ApproxZero(float tolerance)
+        {
+            if (!Utils.ApproxZero(X, tolerance))
+                return false;
+            if (!Utils.ApproxZero(Y, tolerance))
+                return false;
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsZero()
+        {
+            if (X != 0)
+                return false;
+            if (Y != 0)
+                return false;
+            return true;
         }
 
         /// <summary>
@@ -362,12 +392,24 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            return (obj is Vector2) ? this == ((Vector2)obj) : false;
+            if (!(obj is Vector2))
+                return false;
+
+            Vector2 other = (Vector2)obj;
+            if (X != other.X)
+                return false;
+            if (Y != other.Y)
+                return false;
+            return true;
         }
 
         public bool Equals(Vector2 other)
         {
-            return this == other;
+            if (X != other.X)
+                return false;
+            if (Y != other.Y)
+                return false;
+            return true;
         }
 
         public override int GetHashCode()
@@ -405,12 +447,20 @@ namespace OpenMetaverse
 
         public static bool operator ==(Vector2 value1, Vector2 value2)
         {
-            return value1.X == value2.X && value1.Y == value2.Y;
+            if (value1.X != value2.X)
+                return false;
+            if (value1.Y != value2.Y)
+                return false;
+            return true;
         }
 
         public static bool operator !=(Vector2 value1, Vector2 value2)
         {
-            return value1.X != value2.X || value1.Y != value2.Y;
+            if (value1.X != value2.X)
+                return true;
+            if (value1.Y != value2.Y)
+                return true;
+            return false;
         }
 
         public static Vector2 operator +(Vector2 value1, Vector2 value2)

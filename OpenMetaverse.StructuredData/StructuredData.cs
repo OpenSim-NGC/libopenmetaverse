@@ -109,7 +109,7 @@ namespace OpenMetaverse.StructuredData
                         return false;
                     return true;
                 case OSDType.UUID:
-                    return (((OSDUUID)this).value == UUID.Zero) ? false : true;
+                    return (((OSDUUID)this).value.IsZero()) ? false : true;
                 case OSDType.Map:
                     return ((OSDMap)this).dicvalue.Count > 0;
                 case OSDType.Array:
@@ -1453,7 +1453,7 @@ namespace OpenMetaverse.StructuredData
         }
 
         public override OSD Copy() { return new OSDUUID(value); }
-        public override bool AsBoolean() { return (value == UUID.Zero) ? false : true; }
+        public override bool AsBoolean() { return (value.IsZero()) ? false : true; }
         public override string AsString() { return value.ToString(); }
         public override UUID AsUUID() { return value; }
         public override byte[] AsBinary() { return value.GetBytes(); }

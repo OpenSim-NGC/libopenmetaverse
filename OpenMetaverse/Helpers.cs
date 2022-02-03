@@ -317,17 +317,13 @@ namespace OpenMetaverse
             if (srclen > src.Length)
                 throw new ArgumentException("srclen cannot be greater than src.Length");
 
-            uint zerolen = 0;
-            int bodylen = 0;
+            uint zerolen = 6;
             uint i = 0;
 
             try
             {
                 Buffer.BlockCopy(src, 0, dest, 0, 6);
-                zerolen = 6;
-                bodylen = srclen;
-
-                for (i = zerolen; i < bodylen; i++)
+                for (i = zerolen; i < srclen; i++)
                 {
                     if (src[i] == 0x00)
                     {
@@ -342,23 +338,16 @@ namespace OpenMetaverse
                     {
                         dest[zerolen++] = src[i];
                     }
-                }
-
-                // Copy appended ACKs
-                for (; i < srclen; i++)
-                {
-                    dest[zerolen++] = src[i];
-                }
-
+                }               
                 return (int)zerolen;
             }
             catch (Exception ex)
             {
-                Logger.Log(String.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
-                    i, srclen, bodylen, zerolen, Utils.BytesToHexString(src, srclen, null), ex), LogLevel.Error);
+                Logger.Log(String.Format("Zerodecoding error: i={0}, srclen={1}, zerolen={2}\n{3}\n{4}",
+                    i, srclen, zerolen, Utils.BytesToHexString(src, srclen, null), ex), LogLevel.Error);
 
-                throw new IndexOutOfRangeException(String.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
-                    i, srclen, bodylen, zerolen, Utils.BytesToHexString(src, srclen, null), ex.InnerException));
+                throw new IndexOutOfRangeException(String.Format("Zerodecoding error: i={0}, srclen={1}, zerolen={2}\n{3}\n{4}",
+                    i, srclen, zerolen, Utils.BytesToHexString(src, srclen, null), ex.InnerException));
             }
         }
 

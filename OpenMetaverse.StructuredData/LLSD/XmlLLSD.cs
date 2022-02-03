@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) OpenSimulator Contributors, http://opensimulator.org/
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -40,11 +41,6 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public static partial class OSDParser
     {
-        private static XmlSchema XmlSchema;
-        private static XmlTextReader XmlTextReader;
-        private static string LastXmlErrors = String.Empty;
-        private static object XmlValidationLock = new object();
-
         /// <summary>
         /// 
         /// </summary>
@@ -82,6 +78,8 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(XmlTextReader xmlData)
         {
+            xmlData.DtdProcessing = DtdProcessing.Ignore;
+ 
             try
             {
                 xmlData.Read();
@@ -581,54 +579,7 @@ namespace OpenMetaverse.StructuredData
         }
 
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="xmlData"></param>
-        /// <param name="error"></param>
-        /// <returns></returns>
-        public static bool TryValidateLLSDXml(XmlTextReader xmlData, out string error)
-        {
-            lock (XmlValidationLock)
-            {
-                LastXmlErrors = String.Empty;
-                XmlTextReader = xmlData;
-
-                CreateLLSDXmlSchema();
-
-                XmlReaderSettings readerSettings = new XmlReaderSettings();
-                readerSettings.ValidationType = ValidationType.Schema;
-                readerSettings.Schemas.Add(XmlSchema);
-                readerSettings.ValidationEventHandler += new ValidationEventHandler(LLSDXmlSchemaValidationHandler);
-
-                using (XmlReader reader = XmlReader.Create(xmlData, readerSettings))
-                {
-
-                    try
-                    {
-                        while (reader.Read()) { }
-                    }
-                    catch (XmlException)
-                    {
-                        error = LastXmlErrors;
-                        return false;
-                    }
-
-                    if (LastXmlErrors == String.Empty)
-                    {
-                        error = null;
-                        return true;
-                    }
-                    else
-                    {
-                        error = LastXmlErrors;
-                        return false;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
+   /// <summary>
         /// 
         /// </summary>
         /// <param name="reader"></param>
@@ -912,120 +863,6 @@ namespace OpenMetaverse.StructuredData
                 reader.Read();
             }
         }
-
-        private static void CreateLLSDXmlSchema()
-        {
-            if (XmlSchema == null)
-            {
-                #region XSD
-                string schemaText = @"
-<?xml version=""1.0"" encoding=""utf-8""?>
-<xs:schema elementFormDefault=""qualified"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"">
-  <xs:import schemaLocation=""xml.xsd"" namespace=""http://www.w3.org/XML/1998/namespace"" />
-  <xs:element name=""uri"" type=""xs:string"" />
-  <xs:element name=""uuid"" type=""xs:string"" />
-  <xs:element name=""KEYDATA"">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref=""key"" />
-        <xs:element ref=""DATA"" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""date"" type=""xs:string"" />
-  <xs:element name=""key"" type=""xs:string"" />
-  <xs:element name=""boolean"" type=""xs:string"" />
-  <xs:element name=""undef"">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref=""EMPTY"" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""map"">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element minOccurs=""0"" maxOccurs=""unbounded"" ref=""KEYDATA"" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""real"" type=""xs:string"" />
-  <xs:element name=""ATOMIC"">
-    <xs:complexType>
-      <xs:choice>
-        <xs:element ref=""undef"" />
-        <xs:element ref=""boolean"" />
-        <xs:element ref=""integer"" />
-        <xs:element ref=""real"" />
-        <xs:element ref=""uuid"" />
-        <xs:element ref=""string"" />
-        <xs:element ref=""date"" />
-        <xs:element ref=""uri"" />
-        <xs:element ref=""binary"" />
-      </xs:choice>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""DATA"">
-    <xs:complexType>
-      <xs:choice>
-        <xs:element ref=""ATOMIC"" />
-        <xs:element ref=""map"" />
-        <xs:element ref=""array"" />
-      </xs:choice>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""llsd"">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref=""DATA"" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""binary"">
-    <xs:complexType>
-      <xs:simpleContent>
-        <xs:extension base=""xs:string"">
-          <xs:attribute default=""base64"" name=""encoding"" type=""xs:string"" />
-        </xs:extension>
-      </xs:simpleContent>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""array"">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element minOccurs=""0"" maxOccurs=""unbounded"" ref=""DATA"" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""integer"" type=""xs:string"" />
-  <xs:element name=""string"">
-    <xs:complexType>
-      <xs:simpleContent>
-        <xs:extension base=""xs:string"">
-          <xs:attribute ref=""xml:space"" />
-        </xs:extension>
-      </xs:simpleContent>
-    </xs:complexType>
-  </xs:element>
-</xs:schema>
-";
-                #endregion XSD
-
-                XmlSchema = new XmlSchema();
-                using (MemoryStream stream = new MemoryStream(Encoding.ASCII.GetBytes(schemaText)))
-                    XmlSchema = XmlSchema.Read(stream, new ValidationEventHandler(LLSDXmlSchemaValidationHandler));
-            }
-        }
-
-        private static void LLSDXmlSchemaValidationHandler(object sender, ValidationEventArgs args)
-        {
-            string error = String.Format("Line: {0} - Position: {1} - {2}", XmlTextReader.LineNumber, XmlTextReader.LinePosition,
-                args.Message);
-
-            if (LastXmlErrors == String.Empty)
-                LastXmlErrors = error;
-            else
-                LastXmlErrors += Environment.NewLine + error;
-        }
     }
 }
+ 

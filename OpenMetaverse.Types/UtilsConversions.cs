@@ -109,55 +109,55 @@ namespace OpenMetaverse
             "object",     //  6
             "notecard",   //  7
             "category",   //  8
-            String.Empty, //  9
+            string.Empty, //  9
             "lsltext",    // 10
             "lslbyte",    // 11
             "txtr_tga",   // 12
             "bodypart",   // 13
-            String.Empty, // 14
-            String.Empty, // 15
-            String.Empty, // 16
+            string.Empty, // 14
+            string.Empty, // 15
+            string.Empty, // 16
             "snd_wav",    // 17
             "img_tga",    // 18
             "jpeg",       // 19
             "animatn",    // 20
             "gesture",    // 21
             "simstate",   // 22
-            String.Empty, // 23
+            string.Empty, // 23
             "link",       // 24
             "link_f",     // 25
-            String.Empty, // 26
-            String.Empty, // 27
-            String.Empty, // 28
-            String.Empty, // 29
-            String.Empty, // 30
-            String.Empty, // 31
-            String.Empty, // 32
-            String.Empty, // 33
-            String.Empty, // 34
-            String.Empty, // 35
-            String.Empty, // 36
-            String.Empty, // 37
-            String.Empty, // 38
-            String.Empty, // 39
-            String.Empty, // 40
-            String.Empty, // 41
-            String.Empty, // 42
-            String.Empty, // 43
-            String.Empty, // 44
-            String.Empty, // 45
-            String.Empty, // 46
-            String.Empty, // 47
-            String.Empty, // 48
+            string.Empty, // 26
+            string.Empty, // 27
+            string.Empty, // 28
+            string.Empty, // 29
+            string.Empty, // 30
+            string.Empty, // 31
+            string.Empty, // 32
+            string.Empty, // 33
+            string.Empty, // 34
+            string.Empty, // 35
+            string.Empty, // 36
+            string.Empty, // 37
+            string.Empty, // 38
+            string.Empty, // 39
+            string.Empty, // 40
+            string.Empty, // 41
+            string.Empty, // 42
+            string.Empty, // 43
+            string.Empty, // 44
+            string.Empty, // 45
+            string.Empty, // 46
+            string.Empty, // 47
+            string.Empty, // 48
             "mesh",       // 49
-            String.Empty, // 50
-            String.Empty, // 51
-            String.Empty, // 52
-            String.Empty, // 53
-            String.Empty, // 54
-            String.Empty, // 55
+            string.Empty, // 50
+            string.Empty, // 51
+            string.Empty, // 52
+            string.Empty, // 53
+            string.Empty, // 54
+            string.Empty, // 55
             "settings",   // 56
-            String.Empty, // 57
+            string.Empty, // 57
         };
 
         private static readonly string[] _FolderTypeNames = new string[]
@@ -166,27 +166,27 @@ namespace OpenMetaverse
             "sound",      //  1
             "callcard",   //  2
             "landmark",   //  3
-            String.Empty, //  4
+            string.Empty, //  4
             "clothing",   //  5
             "object",     //  6
             "notecard",   //  7
             "root_inv",   //  8
-            String.Empty, //  9
+            string.Empty, //  9
             "lsltext",    // 10
-            String.Empty, // 11
-            String.Empty, // 12
+            string.Empty, // 11
+            string.Empty, // 12
             "bodypart",   // 13
             "trash",      // 14
             "snapshot",   // 15
             "lstndfnd",   // 16
-            String.Empty, // 17
-            String.Empty, // 18
-            String.Empty, // 19
+            string.Empty, // 17
+            string.Empty, // 18
+            string.Empty, // 19
             "animatn",    // 20
             "gesture",    // 21
-            String.Empty, // 22
+            string.Empty, // 22
             "favorite",   // 23
-            String.Empty, // 24
+            string.Empty, // 24
             "settings",   // 25
             "ensemble",   // 26
             "ensemble",   // 27
@@ -225,29 +225,29 @@ namespace OpenMetaverse
             "sound",      //  1
             "callcard",   //  2
             "landmark",   //  3
-            String.Empty, //  4
-            String.Empty, //  5
+            string.Empty, //  4
+            string.Empty, //  5
             "object",     //  6
             "notecard",   //  7
             "category",   //  8
             "root",       //  9
             "script",     // 10
-            String.Empty, // 11
-            String.Empty, // 12
-            String.Empty, // 13
-            String.Empty, // 14
+            string.Empty, // 11
+            string.Empty, // 12
+            string.Empty, // 13
+            string.Empty, // 14
             "snapshot",   // 15
-            String.Empty, // 16
+            string.Empty, // 16
             "attach",     // 17
             "wearable",   // 18
             "animation",  // 19
             "gesture",    // 20
-            String.Empty, // 21
+            string.Empty, // 21
             "mesh",       // 22
-            String.Empty, // 23
-            String.Empty, // 24
+            string.Empty, // 23
+            string.Empty, // 24
             "settings",   // 25
-            String.Empty, // 26
+            string.Empty, // 26
         };
 
         private static readonly string[] _SaleTypeNames = new string[]
@@ -328,16 +328,29 @@ namespace OpenMetaverse
         public static bool ApproxEqual(float a, float b, float tolerance, float reltolerance = float.Epsilon)
         {
             float dif = Math.Abs(a - b);
-            if(dif <= tolerance)
+            if (dif <= tolerance)
                 return true;
 
             a = Math.Abs(a);
             b = Math.Abs(b);
-            if(b > a)
+            if (b > a)
                 a = b;
             return dif <= a * reltolerance;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool ApproxZero(float a, float tolerance)
+        {
+            return Math.Abs(a) <= tolerance;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool ApproxZero(float a)
+        {
+            return Math.Abs(a) <= 1e-6;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool ApproxEqual(float a, float b)
         {
             float dif = Math.Abs(a - b);
@@ -365,10 +378,16 @@ namespace OpenMetaverse
         /// <returns>A signed short integer, will be zero if a short can't be
         /// read at the given position</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static short BytesToInt16(byte[] bytes)
+        public static unsafe short BytesToInt16(byte[] bytes)
         {
             //if (bytes.Length < 2 ) return 0;
-            return (short)(bytes[0] | (bytes[1] << 8));
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = bytes)
+                    return *(short*)p;
+            }
+            else
+                return (short)(bytes[0] | (bytes[1] << 8));
         }
 
         /// <summary>
@@ -380,17 +399,28 @@ namespace OpenMetaverse
         /// <returns>A signed short integer, will be zero if a short can't be
         /// read at the given position</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static short BytesToInt16(byte[] bytes, int pos)
+        public static unsafe short BytesToInt16(byte[] bytes, int pos)
         {
             //if (bytes.Length < pos + 2) return 0;
-            return (short)(bytes[pos] | (bytes[pos + 1] << 8));
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = &bytes[pos])
+                    return *(short*)p;
+            }
+            else
+                return (short)(bytes[pos] | (bytes[pos + 1] << 8));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe short BytesToInt16(byte* bytes)
         {
             //if (bytes.Length < pos + 2) return 0;
-            return (short)(*bytes | (bytes[1] << 8));
+            if (CanDirectCopyLE)
+            {
+                return *(short*)bytes;
+            }
+            else
+                return (short)(*bytes | (bytes[1] << 8));
         }
 
         /// <summary>
@@ -475,6 +505,15 @@ namespace OpenMetaverse
                    (bytes[1] << 16) |
                    (bytes[2] << 8) |
                    bytes[3];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BytesToIntBig(byte[] bytes, int pos)
+        {
+            return (bytes[pos] << 24) |
+                   (bytes[pos + 1] << 16) |
+                   (bytes[pos + 2] << 8) |
+                   bytes[pos + 3];
         }
 
         /// <summary>
@@ -595,17 +634,26 @@ namespace OpenMetaverse
         /// <returns>An unsigned short, will be zero if a ushort can't be read
         /// at the given position</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ushort BytesToUInt16(byte[] bytes, int pos)
+        public static unsafe ushort BytesToUInt16(byte[] bytes, int pos)
         {
             //if (bytes.Length < pos + 2) return 0;
-            return (ushort)(bytes[pos] + (bytes[pos + 1] << 8));
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = &bytes[pos])
+                    return *(ushort*)p;
+            }
+            else
+                return (ushort)(bytes[pos] + (bytes[pos + 1] << 8));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe ushort BytesToUInt16(byte* bytes)
         {
             //if (bytes.Length < pos + 2) return 0;
-            return (ushort)(*bytes + (bytes[1] << 8));
+            if (CanDirectCopyLE)
+                return *(ushort*)bytes;
+            else
+                return (ushort)(*bytes + (bytes[1] << 8));
         }
 
         /// <summary>
@@ -615,10 +663,16 @@ namespace OpenMetaverse
         /// <returns>An unsigned short, will be zero if a ushort can't be
         /// read</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ushort BytesToUInt16(byte[] bytes)
+        public static unsafe ushort BytesToUInt16(byte[] bytes)
         {
             //if (bytes.Length < 2) return 0;
-            return (ushort)(bytes[0] + (bytes[1] << 8));
+            if (CanDirectCopyLE)
+            {
+                fixed (byte* p = bytes)
+                    return *(ushort*)p;
+            }
+            else
+                return (ushort)(bytes[0] + (bytes[1] << 8));
         }
 
         /// <summary>
@@ -2770,71 +2824,109 @@ namespace OpenMetaverse
             return (byte)(b > 9 ? b + 0x57 : b + ASCIIzero);
         }
 
-        public static unsafe void UUIDToByteDashString(UUID u, byte* dst)
+        public static unsafe void UUIDToByteDashString(ref UUID u, byte* dst)
         {
-            byte[] bytes = u.Guid.ToByteArray();
-            //a
-            byte b = bytes[3];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[2];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[1];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[0];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
+            byte b;
+            if (BitConverter.IsLittleEndian)
+            {
+                //a
+                b = u.bytea3;
+                *dst = HighNibbleToHexByteChar(b);
+                *(dst + 1) = LowNibbleToHexByteChar(b);
+                b = u.bytea2;
+                *(dst + 2) = HighNibbleToHexByteChar(b);
+                *(dst + 3) = LowNibbleToHexByteChar(b);
+                b = u.bytea1;
+                *(dst + 4) = HighNibbleToHexByteChar(b);
+                *(dst + 5) = LowNibbleToHexByteChar(b);
+                b = u.bytea0;
+                *(dst + 6) = HighNibbleToHexByteChar(b);
+                *(dst + 7) = LowNibbleToHexByteChar(b);
 
-            *dst++ = ASCIIminus;
-            //b
-            b = bytes[5];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[4];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
+                *(dst + 8) = ASCIIminus;
+                //b
+                b = u.byteb1;
+                *(dst + 9) = HighNibbleToHexByteChar(b);
+                *(dst + 10) = LowNibbleToHexByteChar(b);
+                b = u.byteb0;
+                *(dst + 11) = HighNibbleToHexByteChar(b);
+                *(dst + 12) = LowNibbleToHexByteChar(b);
 
-            *dst++ = ASCIIminus;
+                *(dst + 13) = ASCIIminus;
 
-            //c
-            b = bytes[7];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[6];
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
+                //c
+                b = u.bytec1;
+                *(dst + 14) = HighNibbleToHexByteChar(b);
+                *(dst + 15) = LowNibbleToHexByteChar(b);
+                b = u.bytec0;
+                *(dst + 16) = HighNibbleToHexByteChar(b);
+                *(dst + 17) = LowNibbleToHexByteChar(b);
+            }
+            else
+            {
+                //a
+                b = u.bytea0;
+                *dst = HighNibbleToHexByteChar(b);
+                *(dst + 1) = LowNibbleToHexByteChar(b);
+                b = u.bytea1;
+                *(dst + 2) = HighNibbleToHexByteChar(b);
+                *(dst + 3) = LowNibbleToHexByteChar(b);
+                b = u.bytea2;
+                *(dst + 4) = HighNibbleToHexByteChar(b);
+                *(dst + 5) = LowNibbleToHexByteChar(b);
+                b = u.bytea3;
+                *(dst + 6) = HighNibbleToHexByteChar(b);
+                *(dst + 7) = LowNibbleToHexByteChar(b);
 
-            *dst++ = ASCIIminus;
+                *(dst + 8) = ASCIIminus;
+                //b
+                b = u.byteb0;
+                *(dst + 9) = HighNibbleToHexByteChar(b);
+                *(dst + 10) = LowNibbleToHexByteChar(b);
+                b = u.byteb1;
+                *(dst + 11) = HighNibbleToHexByteChar(b);
+                *(dst + 12) = LowNibbleToHexByteChar(b);
 
-            b = bytes[8]; //d
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[9]; //e
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
+                *(dst + 13) = ASCIIminus;
 
-            *dst++ = ASCIIminus;
+                //c
+                b = u.bytec0;
+                *(dst + 14) = HighNibbleToHexByteChar(b);
+                *(dst + 15) = LowNibbleToHexByteChar(b);
+                b = u.bytec1;
+                *(dst + 16) = HighNibbleToHexByteChar(b);
+                *(dst + 17) = LowNibbleToHexByteChar(b);
+            }
 
-            b = bytes[10]; //f
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[11]; //g
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[12]; //h
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[13]; //i
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[14]; //j
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst++ = LowNibbleToHexByteChar(b);
-            b = bytes[15]; //k
-            *dst++ = HighNibbleToHexByteChar(b);
-            *dst = LowNibbleToHexByteChar(b);
+            *(dst + 18) = ASCIIminus;
+
+            b = u.d; //d
+            *(dst + 19) = HighNibbleToHexByteChar(b);
+            *(dst + 20) = LowNibbleToHexByteChar(b);
+            b = u.e; //e
+            *(dst + 21) = HighNibbleToHexByteChar(b);
+            *(dst + 22) = LowNibbleToHexByteChar(b);
+
+            *(dst + 23) = ASCIIminus;
+
+            b = u.f; //f
+            *(dst + 24) = HighNibbleToHexByteChar(b);
+            *(dst + 25) = LowNibbleToHexByteChar(b);
+            b = u.g; //g
+            *(dst + 26) = HighNibbleToHexByteChar(b);
+            *(dst + 27) = LowNibbleToHexByteChar(b);
+            b = u.h; //h
+            *(dst + 28) = HighNibbleToHexByteChar(b);
+            *(dst + 29) = LowNibbleToHexByteChar(b);
+            b = u.i; //i
+            *(dst + 30) = HighNibbleToHexByteChar(b);
+            *(dst + 31) = LowNibbleToHexByteChar(b);
+            b = u.j; //j
+            *(dst + 32) = HighNibbleToHexByteChar(b);
+            *(dst + 33) = LowNibbleToHexByteChar(b);
+            b = u.k; //k
+            *(dst + 34) = HighNibbleToHexByteChar(b);
+            *(dst + 35) = LowNibbleToHexByteChar(b);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2842,10 +2934,145 @@ namespace OpenMetaverse
         {
             osUTF8 ret = new osUTF8(36);
             fixed (byte* d = ret.m_data)
-                UUIDToByteDashString(v, d);
+                UUIDToByteDashString(ref v, d);
             ret.m_len = 36;
             return ret;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe osUTF8 UUIDToosUTF8(ref UUID v)
+        {
+            osUTF8 ret = new osUTF8(36);
+            fixed (byte* d = ret.m_data)
+                UUIDToByteDashString(ref v, d);
+            ret.m_len = 36;
+            return ret;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static char charLowNibbleToHexChar(byte b)
+        {
+            b &= 0x0f;
+            return (char)(b > 9 ? b + 0x57 : b + ASCIIzero);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static char charHighNibbleToHexChar(byte b)
+        {
+            b >>= 4;
+            return (char)(b > 9 ? b + 0x57 : b + ASCIIzero);
+        }
+
+        public static string UUIDToDashString(ref UUID u)
+        {
+            char[] dst = new char[36];
+            byte b;
+            if (BitConverter.IsLittleEndian)
+            {
+                //a
+                b = u.bytea3;
+                dst[0] = charHighNibbleToHexChar(b);
+                dst[1] = charLowNibbleToHexChar(b);
+                b = u.bytea2;
+                dst[2] = charHighNibbleToHexChar(b);
+                dst[3] = charLowNibbleToHexChar(b);
+                b = u.bytea1;
+                dst[4] = charHighNibbleToHexChar(b);
+                dst[5] = charLowNibbleToHexChar(b);
+                b = u.bytea0;
+                dst[6] = charHighNibbleToHexChar(b);
+                dst[7] = charLowNibbleToHexChar(b);
+
+                dst[8] = '-';
+
+                //b
+                b = u.byteb1;
+                dst[9] = charHighNibbleToHexChar(b);
+                dst[10] = charLowNibbleToHexChar(b);
+                b = u.byteb0;
+                dst[11] = charHighNibbleToHexChar(b);
+                dst[12] = charLowNibbleToHexChar(b);
+
+                dst[13] = '-';
+
+                //c
+                b = u.bytec1;
+                dst[14] = charHighNibbleToHexChar(b);
+                dst[15] = charLowNibbleToHexChar(b);
+                b = u.bytec0;
+                dst[16] = charHighNibbleToHexChar(b);
+                dst[17] = charLowNibbleToHexChar(b);
+            }
+            else
+            {
+                //a
+                b = u.bytea0;
+                dst[0] = charHighNibbleToHexChar(b);
+                dst[1] = charLowNibbleToHexChar(b);
+                b = u.bytea1;
+                dst[2] = charHighNibbleToHexChar(b);
+                dst[3] = charLowNibbleToHexChar(b);
+                b = u.bytea2;
+                dst[4] = charHighNibbleToHexChar(b);
+                dst[5] = charLowNibbleToHexChar(b);
+                b = u.bytea3;
+                dst[6] = charHighNibbleToHexChar(b);
+                dst[7] = charLowNibbleToHexChar(b);
+
+                dst[8] = '-';
+
+                //b
+                b = u.byteb0;
+                dst[9] = charHighNibbleToHexChar(b);
+                dst[10] = charLowNibbleToHexChar(b);
+                b = u.byteb1;
+                dst[11] = charHighNibbleToHexChar(b);
+                dst[12] = charLowNibbleToHexChar(b);
+
+                dst[13] = '-';
+
+                //c
+                b = u.bytec0;
+                dst[14] = charHighNibbleToHexChar(b);
+                dst[15] = charLowNibbleToHexChar(b);
+                b = u.bytec1;
+                dst[16] = charHighNibbleToHexChar(b);
+                dst[17] = charLowNibbleToHexChar(b);
+            }
+
+
+            dst[18] = '-';
+
+            b = u.d; //d
+            dst[19] = charHighNibbleToHexChar(b);
+            dst[20] = charLowNibbleToHexChar(b);
+            b = u.e; //e
+            dst[21] = charHighNibbleToHexChar(b);
+            dst[22] = charLowNibbleToHexChar(b);
+
+            dst[23] = '-';
+
+            b = u.f; //f
+            dst[24] = charHighNibbleToHexChar(b);
+            dst[25] = charLowNibbleToHexChar(b);
+            b = u.g; //g
+            dst[26] = charHighNibbleToHexChar(b);
+            dst[27] = charLowNibbleToHexChar(b);
+            b = u.h; //h
+            dst[28] = charHighNibbleToHexChar(b);
+            dst[29] = charLowNibbleToHexChar(b);
+            b = u.i; //i
+            dst[30] = charHighNibbleToHexChar(b);
+            dst[31] = charLowNibbleToHexChar(b);
+            b = u.j; //j
+            dst[32] = charHighNibbleToHexChar(b);
+            dst[33] = charLowNibbleToHexChar(b);
+            b = u.k; //k
+            dst[34] = charHighNibbleToHexChar(b);
+            dst[35] = charLowNibbleToHexChar(b);
+            return new string(dst);
+        }
+
         #endregion Miscellaneous
     }
 }

@@ -499,6 +499,7 @@ namespace OpenMetaverse
                 m_len += Utils.LongToByteString(v, d + m_len);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void AppendInt(ulong v)
         {
             CheckCapacity(32);
@@ -506,11 +507,12 @@ namespace OpenMetaverse
                 m_len += Utils.ULongToByteString(v, d + m_len);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void AppendUUID(UUID u)
         {
             CheckCapacity(36);
             fixed (byte* d = m_data)
-                Utils.UUIDToByteDashString(u, d + m_len);
+                Utils.UUIDToByteDashString(ref u, d + m_len);
             m_len += 36;
         }
 
