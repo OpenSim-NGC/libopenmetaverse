@@ -32,6 +32,11 @@ ifeq ($(OSNAME), Linux)
     ARCHFLAGS=-m64
     ARCHSET=1
   endif
+  ifeq ($(ARCH), aarch64)
+    ARCH=-aarch64
+    ARCHFLAGS=
+    ARCHSET=1
+  endif
   ifeq ($(ARCHSET), 0)
     ARCH=-i686
     ARCHFLAGS=-m32
