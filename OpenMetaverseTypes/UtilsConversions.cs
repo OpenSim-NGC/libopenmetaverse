@@ -2811,6 +2811,13 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte NibbleToHexUpper(byte b)
+        {
+            b &= 0x0f;
+            return (byte)(b > 9 ? b + 0x37 : b + ASCIIzero);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte LowNibbleToHexByteChar(byte b)
         {
             b &= 0x0f;
@@ -2947,6 +2954,13 @@ namespace OpenMetaverse
                 UUIDToByteDashString(ref v, d);
             ret.m_len = 36;
             return ret;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static char charNibbleToHexUpper(byte b)
+        {
+            b &= 0x0f;
+            return (char)(b > 9 ? b + 0x37 : b + ASCIIzero);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

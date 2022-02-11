@@ -14,7 +14,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
-
+using OpenMetaverse;
 
 namespace LitJson
 {
@@ -172,23 +172,6 @@ namespace LitJson
             ctx_stack.Push(context);
         }
 
-        private static void IntToHex(int n, char[] hex)
-        {
-            int num;
-
-            for (int i = 0; i < 4; i++)
-            {
-                num = n % 16;
-
-                if (num < 10)
-                    hex[3 - i] = (char)('0' + num);
-                else
-                    hex[3 - i] = (char)('A' + (num - 10));
-
-                n >>= 4;
-            }
-        }
-
         private void Indent()
         {
             if (pretty_print)
@@ -221,52 +204,54 @@ namespace LitJson
 
         private void PutString(string str)
         {
-            Put(String.Empty);
+            Put(string.Empty);
 
             writer.Write('"');
-
-            int n = str.Length;
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < str.Length; i++)
             {
-                switch (str[i])
+                char c = str[i];
+                if (c >= 32 && c <= 126)
+                {
+                    writer.Write(c);
+                    continue;
+                }
+                writer.Write('\\');
+                switch (c)
                 {
                     case '\n':
-                        writer.Write("\\n");
-                        continue;
+                        writer.Write('n');
+                        break;
 
                     case '\r':
-                        writer.Write("\\r");
-                        continue;
+                        writer.Write('r');
+                        break;
 
                     case '\t':
-                        writer.Write("\\t");
-                        continue;
+                        writer.Write('t');
+                        break;
 
                     case '"':
                     case '\\':
-                        writer.Write('\\');
-                        writer.Write(str[i]);
-                        continue;
+                        writer.Write(c);
+                        break;
 
                     case '\f':
-                        writer.Write("\\f");
-                        continue;
+                        writer.Write('f');
+                        break;
 
                     case '\b':
-                        writer.Write("\\b");
-                        continue;
-                }
+                        writer.Write('b');
+                        break;
 
-                if (str[i] >= 32 && str[i] <= 126)
-                {
-                    writer.Write(str[i]);
-                    continue;
+                    default:
+                        // Default, turn into a \uXXXX sequence
+                        writer.Write('u');
+                        writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 12)));
+                        writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 8)));
+                        writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 4)));
+                        writer.Write(Utils.charNibbleToHexUpper((byte)c));
+                        break;
                 }
-
-                // Default, turn into a \uXXXX sequence
-                IntToHex((int)str[i], hex_seq);
-                writer.Write("\\u");
-                writer.Write(hex_seq);
             }
 
             writer.Write('"');
