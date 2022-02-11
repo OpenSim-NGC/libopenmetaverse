@@ -100,6 +100,8 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.Date:
                 case OSDType.URI:
                 case OSDType.UUID:
+                case OSDType.OSDUTF8:
+                case OSDType.LLSDxml:
                     return new JsonData(osd.AsString());
                 case OSDType.Binary:
                     byte[] binary = osd.AsBinary();
@@ -163,6 +165,8 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.String:
                 case OSDType.Date:
                 case OSDType.URI:
+                case OSDType.OSDUTF8:
+                case OSDType.LLSDxml:
                     string str = osd.AsString();
                     if (String.IsNullOrEmpty(str))
                         return null;
