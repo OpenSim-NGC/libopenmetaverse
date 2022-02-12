@@ -210,46 +210,48 @@ namespace LitJson
             for (int i = 0; i < str.Length; i++)
             {
                 char c = str[i];
-                if (c >= 32 && c <= 126)
-                {
-                    writer.Write(c);
-                    continue;
-                }
-                writer.Write('\\');
                 switch (c)
                 {
                     case '\n':
-                        writer.Write('n');
+                        writer.Write("\\n");
                         break;
 
                     case '\r':
-                        writer.Write('r');
+                        writer.Write("\\r");
                         break;
 
                     case '\t':
-                        writer.Write('t');
+                        writer.Write("\\t");
                         break;
 
                     case '"':
                     case '\\':
+                        writer.Write('\\');
                         writer.Write(c);
                         break;
 
                     case '\f':
-                        writer.Write('f');
+                        writer.Write("\\f");
                         break;
 
                     case '\b':
-                        writer.Write('b');
+                        writer.Write("\\b");
                         break;
 
                     default:
                         // Default, turn into a \uXXXX sequence
-                        writer.Write('u');
-                        writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 12)));
-                        writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 8)));
-                        writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 4)));
-                        writer.Write(Utils.charNibbleToHexUpper((byte)c));
+                        if (c >= 32 && c <= 126)
+                        {
+                            writer.Write(c);
+                        }
+                        else
+                        {
+                            writer.Write("\\u");
+                            writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 12)));
+                            writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 8)));
+                            writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 4)));
+                            writer.Write(Utils.charNibbleToHexUpper((byte)c));
+                        }
                         break;
                 }
             }
