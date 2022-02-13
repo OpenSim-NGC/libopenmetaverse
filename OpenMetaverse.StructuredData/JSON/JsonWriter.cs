@@ -315,8 +315,7 @@ namespace LitJson
             string str = Convert.ToString(number, number_format);
             Put(str);
 
-            if (str.IndexOf('.') == -1 &&
-                str.IndexOf('E') == -1)
+            if (str.IndexOfAny(new char[] { '.', 'E' }) == -1)
                 writer.Write(".0");
 
             context.ExpectingValue = false;
