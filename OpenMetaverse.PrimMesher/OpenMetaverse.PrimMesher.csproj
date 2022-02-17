@@ -15,6 +15,6 @@
     <DefineConstants>TRACE;VERTEX_INDEXER</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="5.0.0" />
+    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
   </ItemGroup>
 </Project>
