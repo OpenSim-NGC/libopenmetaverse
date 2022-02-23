@@ -14,7 +14,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
-
+using OpenMetaverse;
 
 namespace LitJson
 {
@@ -125,40 +125,34 @@ namespace LitJson
                 return;
 
             if (has_reached_end)
-                throw new JsonException(
-                    "A complete JSON symbol has already been written");
+                throw new JsonException("A complete JSON symbol has already been written");
 
             switch (cond)
             {
                 case Condition.InArray:
                     if (!context.InArray)
-                        throw new JsonException(
-                            "Can't close an array here");
+                        throw new JsonException("Can't close an array here");
                     break;
 
                 case Condition.InObject:
                     if (!context.InObject || context.ExpectingValue)
-                        throw new JsonException(
-                            "Can't close an object here");
+                        throw new JsonException("Can't close an object here");
                     break;
 
                 case Condition.NotAProperty:
                     if (context.InObject && !context.ExpectingValue)
-                        throw new JsonException(
-                            "Expected a property");
+                        throw new JsonException("Expected a property");
                     break;
 
                 case Condition.Property:
                     if (!context.InObject || context.ExpectingValue)
-                        throw new JsonException(
-                            "Can't add a property here");
+                        throw new JsonException("Can't add a property here");
                     break;
 
                 case Condition.Value:
                     if (!context.InArray &&
                         (!context.InObject || !context.ExpectingValue))
-                        throw new JsonException(
-                            "Can't add a value here");
+                        throw new JsonException("Can't add a value here");
 
                     break;
             }
@@ -176,23 +170,6 @@ namespace LitJson
             ctx_stack = new Stack<WriterContext>();
             context = new WriterContext();
             ctx_stack.Push(context);
-        }
-
-        private static void IntToHex(int n, char[] hex)
-        {
-            int num;
-
-            for (int i = 0; i < 4; i++)
-            {
-                num = n % 16;
-
-                if (num < 10)
-                    hex[3 - i] = (char)('0' + num);
-                else
-                    hex[3 - i] = (char)('A' + (num - 10));
-
-                n >>= 4;
-            }
         }
 
         private void Indent()
@@ -218,8 +195,7 @@ namespace LitJson
 
         private void PutNewline(bool add_comma)
         {
-            if (add_comma && !context.ExpectingValue &&
-                context.Count > 1)
+            if (add_comma && !context.ExpectingValue && context.Count > 1)
                 writer.Write(',');
 
             if (pretty_print && !context.ExpectingValue)
@@ -228,52 +204,56 @@ namespace LitJson
 
         private void PutString(string str)
         {
-            Put(String.Empty);
+            Put(string.Empty);
 
             writer.Write('"');
-
-            int n = str.Length;
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < str.Length; i++)
             {
-                switch (str[i])
+                char c = str[i];
+                switch (c)
                 {
                     case '\n':
                         writer.Write("\\n");
-                        continue;
+                        break;
 
                     case '\r':
                         writer.Write("\\r");
-                        continue;
+                        break;
 
                     case '\t':
                         writer.Write("\\t");
-                        continue;
+                        break;
 
                     case '"':
                     case '\\':
                         writer.Write('\\');
-                        writer.Write(str[i]);
-                        continue;
+                        writer.Write(c);
+                        break;
 
                     case '\f':
                         writer.Write("\\f");
-                        continue;
+                        break;
 
                     case '\b':
                         writer.Write("\\b");
-                        continue;
-                }
+                        break;
 
-                if ((int)str[i] >= 32 && (int)str[i] <= 126)
-                {
-                    writer.Write(str[i]);
-                    continue;
+                    default:
+                        // Default, turn into a \uXXXX sequence
+                        if (c >= 32 && c <= 126)
+                        {
+                            writer.Write(c);
+                        }
+                        else
+                        {
+                            writer.Write("\\u");
+                            writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 12)));
+                            writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 8)));
+                            writer.Write(Utils.charNibbleToHexUpper((byte)(c >> 4)));
+                            writer.Write(Utils.charNibbleToHexUpper((byte)c));
+                        }
+                        break;
                 }
-
-                // Default, turn into a \uXXXX sequence
-                IntToHex((int)str[i], hex_seq);
-                writer.Write("\\u");
-                writer.Write(hex_seq);
             }
 
             writer.Write('"');
@@ -304,7 +284,7 @@ namespace LitJson
             ctx_stack.Push(context);
 
             if (inst_string_builder != null)
-                inst_string_builder.Remove(0, inst_string_builder.Length);
+                inst_string_builder.Clear();
         }
 
         public void Write(bool boolean)
@@ -335,8 +315,7 @@ namespace LitJson
             string str = Convert.ToString(number, number_format);
             Put(str);
 
-            if (str.IndexOf('.') == -1 &&
-                str.IndexOf('E') == -1)
+            if (str.IndexOfAny(new char[] { '.', 'E' }) == -1)
                 writer.Write(".0");
 
             context.ExpectingValue = false;

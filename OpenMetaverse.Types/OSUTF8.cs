@@ -66,6 +66,12 @@ namespace OpenMetaverse
             m_len = source.Length;
         }
 
+        public osUTF8(byte[] source, int len)
+        {
+            m_data = source;
+            m_len = len;
+        }
+
         public osUTF8(osUTF8Slice source)
         {
             m_data = source.ToArray();
@@ -290,6 +296,7 @@ namespace OpenMetaverse
             return true;
         }
 
+
         public unsafe bool ACSIILowerEquals(osUTF8Slice o)
         {
             if (o == null || m_len != o.m_len)
@@ -300,6 +307,30 @@ namespace OpenMetaverse
                 byte* ptr = a;
                 byte* end = ptr + m_len;
                 byte* ptrb = b + o.m_offset;
+                while (ptr < end)
+                {
+                    byte c = *ptr;
+                    if (c >= 0x41 && c <= 0x5a)
+                        c |= 0x20;
+                    if (c != *ptrb)
+                        return false;
+                    ++ptr;
+                    ++ptrb;
+                }
+            }
+            return true;
+        }
+
+        public unsafe bool ACSIILowerEquals(byte[] o)
+        {
+            if (o == null || m_len != o.Length)
+                return false;
+
+            fixed (byte* a = m_data, b = o)
+            {
+                byte* ptr = a;
+                byte* end = a + m_len;
+                byte* ptrb = b;
                 while (ptr < end)
                 {
                     byte c = *ptr;

@@ -179,6 +179,27 @@ namespace OpenMetaverse
                 m_len = m_data.Length - m_offset;
         }
 
+        public void FromBytesSafe(byte[] source, int offset, int len)
+        {
+            m_data = source;
+            m_offset = offset;
+            m_len = len;
+        }
+
+        public void FromBytes(byte[] source, int offset, int len)
+        {
+            if (source == null || offset >= source.Length || offset + len >= source.Length)
+            {
+                m_offset = 0;
+                m_len = 0;
+            }
+            if (len < 0)
+                len = 0;
+            m_data = source;
+            m_offset = offset;
+            m_len = len;
+        }
+
         public static bool IsNullOrEmpty(osUTF8Slice u)
         {
             return (u == null || u.m_len == 0);
@@ -1547,6 +1568,48 @@ namespace OpenMetaverse
             return o;
         }
 
+        public bool TryParseInt(out int res)
+        {
+            res = 0;
+
+            SelfTrim();
+            if (m_len == 0)
+                return false;
+
+            int len = m_len;
+            int start = m_offset;
+            len += start;
+
+            bool neg = false;
+            if (m_data[start] == (byte)'-')
+            {
+                neg = true;
+                ++start;
+            }
+            else if (m_data[start] == (byte)'+')
+                ++start;
+
+            int b;
+            try
+            {
+                while (start < len)
+                {
+                    b = m_data[start];
+                    b -= (byte)'0';
+                    if (b < 0 || b > 9)
+                        break;
+
+                    res *= 10;
+                    res += b;
+                    ++start;
+                }
+                if (neg)
+                    res = -res;
+                return true;
+            }
+            catch { }
+            return false;
+        }
         public static bool TryParseInt(osUTF8Slice t, out int res)
         {
             res = 0;
