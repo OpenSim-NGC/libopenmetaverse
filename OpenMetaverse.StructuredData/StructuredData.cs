@@ -139,9 +139,9 @@ namespace OpenMetaverse.StructuredData
                     double v = ((OSDReal)this).value;
                     if (Double.IsNaN(v))
                         return 0;
-                    if (v > Int32.MaxValue)
+                    if (v >= Int32.MaxValue)
                         return Int32.MaxValue;
-                    if (v < Int32.MinValue)
+                    if (v <= Int32.MinValue)
                         return Int32.MinValue;
                     return (int)Math.Round(v);
                 case OSDType.String:
