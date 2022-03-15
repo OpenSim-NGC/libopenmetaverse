@@ -17,7 +17,7 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
 		{
-			if (fromAgentID == UUID.Zero)
+			if (fromAgentID.IsZero())
 				return "Unable to send money to console.  This command only works when IMed.";
 
 		    int amount = Client.Self.Balance;

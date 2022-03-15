@@ -30,7 +30,7 @@ namespace OpenMetaverse.TestClient
 
             UUID folder = Client.Inventory.FindObjectByPath(Client.Inventory.Store.RootFolder.UUID, Client.Self.AgentID, target, 20 * 1000);
 
-            if (folder == UUID.Zero)
+            if (folder.IsZero())
             {
                 return "Outfit path " + target + " not found";
             }

@@ -412,7 +412,7 @@ namespace OpenMetaverse.Voice
         {
             string result = null;
 
-            if (id == UUID.Zero)
+            if (id.IsZero())
                 return result;
 
             // Prepending this apparently prevents conflicts with reserved names inside the vivox and diamondware code.

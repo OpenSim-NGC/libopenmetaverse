@@ -187,7 +187,7 @@ namespace OpenMetaverse
             Client = client;
             //Manager = manager;
             _Owner = owner;
-            if (owner == UUID.Zero)
+            if (owner.IsZero())
                 Logger.Log("Inventory owned by nobody!", Helpers.LogLevel.Warning, Client);
             Items = new Dictionary<UUID, InventoryNode>();
         }
@@ -423,7 +423,7 @@ namespace OpenMetaverse
                 foreach (InventoryNode node in nodes)
                 {
                     InventoryNode pnode;
-                    if (node.ParentID == UUID.Zero)
+                    if (node.ParentID.IsZero())
                     {
                         //We don't need the root nodes "My Inventory" etc as they will already exist for the correct
                         // user of this cache.

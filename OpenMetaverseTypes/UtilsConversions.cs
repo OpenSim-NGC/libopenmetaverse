@@ -1495,11 +1495,11 @@ namespace OpenMetaverse
         public static byte[] StringToBytes(string str)
         {
             if (string.IsNullOrEmpty(str))
-                return EmptyBytes;
+                return Array.Empty<byte>();
 
             int nbytes = osUTF8GetBytesCount(str, out int sourcelen);
             if (nbytes == 0)
-                return EmptyBytes;
+                return Array.Empty<byte>(); ;
             byte[] dstarray = new byte[nbytes + 1];
             osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
             dstarray[nbytes] = 0;
@@ -1509,11 +1509,11 @@ namespace OpenMetaverse
         public static byte[] StringToBytes(string str, int maxlen)
         {
             if (string.IsNullOrEmpty(str))
-                return EmptyBytes;
+                return Array.Empty<byte>();
 
             int nbytes = osUTF8GetBytesCount(str, maxlen -1, out int sourcelen);
             if (nbytes == 0)
-                return EmptyBytes;
+                return Array.Empty<byte>();
             byte[] dstarray = new byte[nbytes + 1];
             osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
             dstarray[nbytes] = 0;
@@ -1523,11 +1523,11 @@ namespace OpenMetaverse
         public static byte[] StringToBytesNoTerm(string str)
         {
             if (string.IsNullOrEmpty(str))
-                return EmptyBytes;
+                return Array.Empty<byte>();
 
             int nbytes = osUTF8GetBytesCount(str, out int sourcelen);
             if (nbytes == 0)
-                return EmptyBytes;
+                return Array.Empty<byte>();
             byte[] dstarray = new byte[nbytes];
             osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
             return dstarray;
@@ -1536,11 +1536,11 @@ namespace OpenMetaverse
         public static byte[] StringToBytesNoTerm(string str, int maxlen)
         {
             if (string.IsNullOrEmpty(str))
-                return EmptyBytes;
+                return Array.Empty<byte>();
 
             int nbytes = osUTF8GetBytesCount(str, maxlen, out int sourcelen);
             if (nbytes == 0)
-                return EmptyBytes;
+                return Array.Empty<byte>();
             byte[] dstarray = new byte[nbytes];
             osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
             return dstarray;
@@ -1830,7 +1830,7 @@ namespace OpenMetaverse
             if (handleDirty)
             {
                 if (String.IsNullOrEmpty(hexString))
-                    return Utils.EmptyBytes;
+                    return Array.Empty<byte>();
 
                 StringBuilder stripped = new StringBuilder(hexString.Length);
                 char c;

@@ -291,7 +291,7 @@ namespace OpenMetaverse
         /// from the beginning of the request</param>
         public void RequestTexture(UUID textureID, ImageType imageType, float priority, int discardLevel, uint packetStart, TextureDownloadCallback callback, bool progressive)
         {
-            if (textureID == UUID.Zero)
+            if (textureID.IsZero())
                 return;
 
             if (callback != null)

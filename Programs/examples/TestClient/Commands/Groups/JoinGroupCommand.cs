@@ -57,7 +57,7 @@ namespace OpenMetaverse.TestClient
                 GetGroupsSearchEvent.Reset();
             }
 
-            if (resolvedGroupID == UUID.Zero)
+            if (resolvedGroupID.IsZero())
             {
                 if (string.IsNullOrEmpty(resolvedGroupName))
                     return "Unable to obtain UUID for group " + groupName;

@@ -39,7 +39,7 @@ namespace OpenMetaverse
             Land            = 0x4C, // 'L'
             LandExtended    = 0x4D, // 'M'
             Water           = 0x57, // 'W'
-            WaterExtended   = 0x57, // 'X'
+            WaterExtended   = 0x58, // 'X'
             Wind            = 0x37, // '7'
             WindExtended    = 0x39, // '9'
             Cloud           = 0x38, // '8'

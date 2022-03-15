@@ -584,7 +584,7 @@ namespace OpenMetaverse
             request.TransferInfo.SourceType = (int)transfer.Source;
             request.TransferInfo.TransferID = transfer.ID;
 
-            byte[] paramField = taskID == UUID.Zero ? new byte[20] : new byte[96];
+            byte[] paramField = taskID.IsZero() ? new byte[20] : new byte[96];
             Buffer.BlockCopy(assetID.GetBytes(), 0, paramField, 0, 16);
             Buffer.BlockCopy(Utils.IntToBytes((int)type), 0, paramField, 16, 4);
 
@@ -1108,7 +1108,7 @@ namespace OpenMetaverse
         /// <param name="callback">Callback when the request completes</param>
         public void RequestMesh(UUID meshID, MeshDownloadCallback callback)
         {
-            if (meshID == UUID.Zero || callback == null)
+            if (meshID.IsZero() || callback == null)
                 return;
 
             if (Client.Network.CurrentSim.Caps != null &&
@@ -1165,7 +1165,7 @@ namespace OpenMetaverse
         /// <param name="callback">Callback invoked on operation completion</param>
         public void RequestServerBakedImage(UUID avatarID, UUID textureID, string bakeName, TextureDownloadCallback callback)
         {
-            if (avatarID == UUID.Zero || textureID == UUID.Zero || callback == null)
+            if (avatarID.IsZero() || textureID.IsZero() || callback == null)
                 return;
 
             if (string.IsNullOrEmpty(Client.Network.AgentAppearanceServiceURL))
@@ -1256,7 +1256,7 @@ namespace OpenMetaverse
         private void HttpRequestTexture(UUID textureID, ImageType imageType, float priority, int discardLevel,
     uint packetStart, TextureDownloadCallback callback, bool progress)
         {
-            if (textureID == UUID.Zero || callback == null)
+            if (textureID.IsZero() || callback == null)
                 return;
 
             byte[] assetData;

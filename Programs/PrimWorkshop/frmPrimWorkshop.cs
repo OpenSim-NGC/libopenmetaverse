@@ -277,7 +277,7 @@ namespace PrimWorkshop
             {
                 FacetedMesh mesh = null;
 
-                if (parent.Sculpt == null || parent.Sculpt.SculptTexture == UUID.Zero)
+                if (parent.Sculpt == null || parent.Sculpt.SculptTexture.IsZero())
                     mesh = Render.Plugin.GenerateFacetedMesh(parent, DetailLevel.Highest);
                 if (mesh != null)
                     LoadMesh(mesh, null);
@@ -288,7 +288,7 @@ namespace PrimWorkshop
                 Primitive child = linkset.Children[i].ToPrimitive();
                 FacetedMesh mesh = null;
 
-                if (parent.Sculpt == null || child.Sculpt.SculptTexture == UUID.Zero)
+                if (parent.Sculpt == null || child.Sculpt.SculptTexture.IsZero())
                     mesh = Render.Plugin.GenerateFacetedMesh(child, DetailLevel.Highest);
                 if (mesh != null)
                     LoadMesh(mesh, null);

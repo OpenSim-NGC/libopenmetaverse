@@ -131,7 +131,7 @@ namespace OpenMetaverse.Assets
 
                 if (Parent != null)
                 {
-                    if (this.AssetID == UUID.Zero)
+                    if (this.AssetID.IsZero())
                         this.AssetID = Parent.ID;
 
                     List<PrimObject> children = new List<PrimObject>();

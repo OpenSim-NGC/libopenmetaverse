@@ -546,7 +546,7 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.LLSDxml:
                     return Encoding.UTF8.GetBytes(((OSDllsdxml)this).value);
                 default:
-                    return Utils.EmptyBytes;
+                    return Array.Empty<byte>();
             }
         }
 
@@ -1558,7 +1558,7 @@ namespace OpenMetaverse.StructuredData
             if (value != null)
                 this.value = value;
             else
-                this.value = Utils.EmptyBytes;
+                this.value = Array.Empty<byte>();
         }
 
         public OSDBinary(uint value)

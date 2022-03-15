@@ -177,7 +177,7 @@ namespace OpenMetaverse.StructuredData
                     return new JsonData(uuid.ToString());
                 case OSDType.Binary:
                     byte[] binary = osd.AsBinary();
-                    if (binary == Utils.EmptyBytes)
+                    if (binary.Length == 0)
                         return null;
 
                     JsonData jsonbinarray = new JsonData();
@@ -250,9 +250,12 @@ namespace OpenMetaverse.StructuredData
                     break;
                 case OSDType.String:
                 case OSDType.URI:
-                case OSDType.OSDUTF8:
                 case OSDType.LLSDxml:
                     appendJsonString((OSDString)osd, sb);
+                    break;
+                case OSDType.OSDUTF8:
+                    osUTF8 ou8 = ((OSDUTF8)osd).value;
+                    appendJsonOSUTF8(ou8, sb);
                     break;
                 case OSDType.UUID:
                     sb.AppendASCII('"');
@@ -358,7 +361,6 @@ namespace OpenMetaverse.StructuredData
                     break;
                 case OSDType.String:
                 case OSDType.URI:
-                case OSDType.OSDUTF8:
                 case OSDType.LLSDxml:
                     OSDString ostr = (OSDString)osd;
                     if (!string.IsNullOrEmpty(ostr.value))
@@ -368,6 +370,17 @@ namespace OpenMetaverse.StructuredData
                         appendJsonString(name, sb);
                         sb.AppendASCII(':');
                         appendJsonString(ostr.value, sb);
+                    }
+                    break;
+                case OSDType.OSDUTF8:
+                    osUTF8 ou8 = ((OSDUTF8)osd).value;
+                    if (ou8 != null && ou8.Length > 0)
+                    {
+                        if (mapcont++ > 0)
+                            sb.AppendASCII(',');
+                        appendJsonString(name, sb);
+                        sb.AppendASCII(':');
+                        appendJsonOSUTF8(ou8, sb);
                     }
                     break;
                 case OSDType.UUID:
@@ -382,7 +395,6 @@ namespace OpenMetaverse.StructuredData
                         sb.AppendASCII('"');
                     }
                     break;
-
                 case OSDType.Date:
                     if (mapcont++ > 0)
                         sb.AppendASCII(',');
@@ -406,7 +418,6 @@ namespace OpenMetaverse.StructuredData
                         }
                         if (i < binary.Length)
                             sb.AppendInt(binary[i]);
-
                     }
                     sb.AppendASCII(']');
                     break;
@@ -472,6 +483,7 @@ namespace OpenMetaverse.StructuredData
                         break;
 
                     case '"':
+                    //case '/':
                     case '\\':
                         sb.AppendASCII('\\');
                         sb.AppendASCII(c);
@@ -498,6 +510,117 @@ namespace OpenMetaverse.StructuredData
                             sb.Append(Utils.NibbleToHexUpper((byte)c));
                         }
                         break;
+                }
+            }
+            sb.AppendASCII('"');
+        }
+
+        public static void appendJsonOSUTF8(osUTF8 str, osUTF8 sb)
+        {
+            int code;
+            sb.AppendASCII('"');
+            for (int i = 0; i < str.Length; i++)
+            {
+                byte c = str[i];
+                if (c < 0x80)
+                {
+                    switch (c)
+                    {
+                        case (byte)'\n':
+                            sb.AppendASCII("\\n");
+                            break;
+
+                        case (byte)'\r':
+                            sb.AppendASCII("\\r");
+                            break;
+
+                        case (byte)'\t':
+                            sb.AppendASCII("\\t");
+                            break;
+
+                        case (byte)'"':
+                        case (byte)'/':
+                        case (byte)'\\':
+                            sb.AppendASCII('\\');
+                            sb.Append(c);
+                            break;
+
+                        case (byte)'\f':
+                            sb.AppendASCII("\\f");
+                            break;
+
+                        case (byte)'\b':
+                            sb.AppendASCII("\\b");
+                            break;
+
+                        default:
+                            // Default, turn into a \uXXXX sequence
+                            if (c >= 32 && c <= 126)
+                                sb.Append(c);
+                            else
+                            {
+                                sb.AppendASCII("\\u00");
+                                sb.Append(Utils.NibbleToHexUpper((byte)(c >> 4)));
+                                sb.Append(Utils.NibbleToHexUpper((byte)c));
+                            }
+                            break;
+                    }
+                }
+                if(c < 0xc0)
+                    continue; // invalid
+                if (c < 0xe0)
+                {
+                    // 2 bytes
+                    if (i + 1 >= str.Length)
+                        return;
+
+                    code = (c & 0x1f) << 6;
+                    code |= str[++i] & 0x3f;
+
+                    sb.AppendASCII("\\u0");
+                    sb.Append(Utils.NibbleToHexUpper((byte)(code >> 8)));
+                    sb.Append(Utils.NibbleToHexUpper((byte)(code >> 4)));
+                    sb.Append(Utils.NibbleToHexUpper((byte)code));
+                }
+                else if (c < 0xF0)
+                {
+                    // 3 bytes
+                    if (i + 2 >= str.Length)
+                        return;
+
+                    // 1110aaaa 10bbbbcc 10ccdddd
+                    sb.AppendASCII("\\u");
+                    sb.Append(Utils.NibbleToHexUpper(c));
+                    c = str[++i];
+                    sb.Append(Utils.NibbleToHexUpper((byte)(c >> 2)));
+                    code = (c & 3) << 2;
+                    c = str[++i];
+                    code |= (c & 0x30) >> 4;
+                    sb.Append(Utils.NibbleToHexUpper((byte)code));
+                    sb.Append(Utils.NibbleToHexUpper(c));
+                }
+                else if (c < 0xf8 )
+                {
+                    if (i + 3 >= str.Length)
+                        return;
+
+                    code = (c & 0x07) << 18;
+                    code |= (str[++i] & 0x3f) << 6;
+                    code |= (str[++i] & 0x3f) << 6;
+                    code |= str[++i] & 0x3f;
+                    int a = (code >> 10) + 0xd7c0;
+                    code &= (code & 0x3ff) + 0xdc00;
+
+                    sb.AppendASCII("\\u");
+                    sb.Append(Utils.NibbleToHexUpper((byte)(a >> 12)));
+                    sb.Append(Utils.NibbleToHexUpper((byte)(a >> 8)));
+                    sb.Append(Utils.NibbleToHexUpper((byte)(a >> 4)));
+                    sb.Append(Utils.NibbleToHexUpper((byte)a));
+                    sb.AppendASCII("\\u");
+                    sb.Append(Utils.NibbleToHexUpper((byte)(code >> 12)));
+                    sb.Append(Utils.NibbleToHexUpper((byte)(code >> 8)));
+                    sb.Append(Utils.NibbleToHexUpper((byte)(code >> 4)));
+                    sb.Append(Utils.NibbleToHexUpper((byte)code));
                 }
             }
             sb.AppendASCII('"');

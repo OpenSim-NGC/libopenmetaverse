@@ -137,7 +137,7 @@ namespace OpenMetaverse.TestClient
                     {
                         Clients[client.Self.AgentID] = client;
 
-                        if (client.MasterKey == UUID.Zero)
+                        if (client.MasterKey.IsZero())
                         {
                             UUID query = UUID.Zero;
                             EventHandler<DirPeopleReplyEventArgs> peopleDirCallback =

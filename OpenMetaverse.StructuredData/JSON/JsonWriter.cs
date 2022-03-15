@@ -226,6 +226,7 @@ namespace LitJson
 
                     case '"':
                     case '\\':
+                    //case '/':
                         writer.Write('\\');
                         writer.Write(c);
                         break;
