@@ -235,6 +235,14 @@ namespace OpenMetaverse
             return new Vector2(value1.X + value2.X, value1.Y + value2.Y);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Clamp(Vector3 value1, float min, float max)
+        {
+            return new Vector2(
+                Utils.Clamp(value1.X, min, max),
+                Utils.Clamp(value1.Y, min, max));
+        }
+
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 Clamp(Vector2 value1, Vector2 min, Vector2 max)
         {

@@ -131,6 +131,14 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clamp(float min, float max)
+        {
+            X = Utils.Clamp(X, min, max);
+            Y = Utils.Clamp(Y, min, max);
+            Z = Utils.Clamp(Z, min, max);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Length()
         {
             return (float)Math.Sqrt(X * X + Y * Y + Z * Z);
@@ -289,6 +297,15 @@ namespace OpenMetaverse
         public static Vector3 Add(Vector3 value1, Vector3 value2)
         {
             return new Vector3(value1.X + value2.X, value1.Y + value2.Y, value1.Z + value2.Z);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Clamp(Vector3 value1, float min, float max)
+        {
+            return new Vector3(
+                Utils.Clamp(value1.X, min, max),
+                Utils.Clamp(value1.Y, min, max),
+                Utils.Clamp(value1.Z, min, max));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
