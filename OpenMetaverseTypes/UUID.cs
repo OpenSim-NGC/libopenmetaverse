@@ -26,6 +26,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Xml.Serialization;
 
@@ -38,7 +39,7 @@ namespace OpenMetaverse
 
     [StructLayout(LayoutKind.Explicit)]
     [Serializable()]
-    public struct UUID : IComparable,IComparable<UUID>, IEquatable<UUID>
+    public struct UUID : IComparable,IComparable<UUID>, IEquatable<UUID>, IEqualityComparer<UUID>
     {
         // still a big piece of *** because how stupid .net structs are.
         // .net5 unsafe may remove the need for this union
@@ -109,15 +110,26 @@ namespace OpenMetaverse
             if (string.IsNullOrEmpty(sval))
                 throw new System.FormatException("Invalid UUID");
 
+            int len = sval.Length;
             try
             {
                 fixed (char* bval = sval)
                 {
                     char *val = bval;
-                    while (*val == ' ') ++val;
+                    while (*val == ' ')
+                    {
+                        ++val;
+                        --len;
+                    }
 
                     if (val[8] == '-')
                     {
+                        while (--len > 35)
+                        {
+                            if (val[len] != ' ')
+                                throw new Exception();
+                        }
+
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             throw new Exception();
 
@@ -163,6 +175,12 @@ namespace OpenMetaverse
                     }
                     else
                     {
+                        while (--len > 31)
+                        {
+                            if (val[len] != ' ')
+                                throw new Exception();
+                        }
+
                         if (BitConverter.IsLittleEndian)
                         {
                             bytea3 = Utils.HexToByte(val, 0);
@@ -534,15 +552,27 @@ namespace OpenMetaverse
             UUID result = new UUID();
             if (string.IsNullOrEmpty(sval))
                 throw new System.FormatException("Invalid UUID");
+            int len = sval.Length;
+
             try
             {
                 fixed (char* bval = sval)
                 {
                     char* val = bval;
+                    while (*val == ' ')
+                    {
+                        ++val;
+                        --len;
+                    }
 
-                    while (*val == ' ') ++val;
                     if (val[8] == '-')
                     {
+                        while (--len > 35)
+                        {
+                            if (val[len] != ' ')
+                                throw new Exception();
+                        }
+
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             throw new Exception();
 
@@ -587,6 +617,12 @@ namespace OpenMetaverse
                     }
                     else
                     {
+                        while (--len > 31)
+                        {
+                            if (val[len] != ' ')
+                                throw new Exception();
+                        }
+
                         if (BitConverter.IsLittleEndian)
                         {
                             result.bytea3 = Utils.HexToByte(val, 0);
@@ -648,15 +684,27 @@ namespace OpenMetaverse
             if (string.IsNullOrEmpty(sval))
                 return false;
 
+            int len = sval.Length;
             try
             {
                 fixed (char* bval = sval)
                 {
                     char* val = bval;
 
-                    while (*val == ' ') ++val;
+                    while (*val == ' ')
+                    {
+                        ++val;
+                        --len;
+                    }
+
                     if (val[8] == '-')
                     {
+                        while (--len > 35)
+                        {
+                            if (val[len] != ' ')
+                                return false;
+                        }
+
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             return false;
 
@@ -701,6 +749,11 @@ namespace OpenMetaverse
                     }
                     else
                     {
+                        while (--len > 31)
+                        {
+                            if (val[len] != ' ')
+                                return false;
+                        }
                         if (BitConverter.IsLittleEndian)
                         {
                             result.bytea3 = Utils.HexToByte(val, 0);
@@ -788,6 +841,12 @@ namespace OpenMetaverse
             return a ^ intb ^ intc ^ intd;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetHashCode(UUID u)
+        {
+            return u.a ^ u.intb ^ u.intc ^ u.intd;
+        }
+
         /// <summary>
         /// Comparison function
         /// </summary>
@@ -818,6 +877,16 @@ namespace OpenMetaverse
             if (ulonga != uuid.ulonga)
                 return false;
             if (ulongb != uuid.ulongb)
+                return false;
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(UUID a, UUID b)
+        {
+            if (a.ulonga != b.ulonga)
+                return false;
+            if (a.ulongb != b.ulongb)
                 return false;
             return true;
         }
