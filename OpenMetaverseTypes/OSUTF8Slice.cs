@@ -1658,7 +1658,7 @@ namespace OpenMetaverse
         public unsafe static bool TryParseUUID(osUTF8Slice inp, out UUID result)
         {
             result = new UUID();
-            if (inp.m_len == 0)
+            if (inp.m_len < 32)
                 return false;
 
             try

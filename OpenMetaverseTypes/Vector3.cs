@@ -131,6 +131,22 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Add(Vector3 v)
+        {
+            X += v.X;
+            Y += v.Y;
+            Z += v.Z;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Sub(Vector3 v)
+        {
+            X -= v.X;
+            Y -= v.Y;
+            Z -= v.Z;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clamp(float min, float max)
         {
             X = Utils.Clamp(X, min, max);
@@ -238,6 +254,12 @@ namespace OpenMetaverse
         public int CompareTo(Vector3 vector)
         {
             return LengthSquared().CompareTo(vector.LengthSquared());
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Dot(Vector3 value2)
+        {
+            return (X * value2.X) + (Y * value2.Y) + (Z * value2.Z);
         }
 
         /// <summary>
@@ -563,6 +585,7 @@ namespace OpenMetaverse
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Vector3 other)
         {
             if (X != other.X)
@@ -572,6 +595,18 @@ namespace OpenMetaverse
             if (Z != other.Z)
                 return false;
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool NotEqual(Vector3 other)
+        {
+            if (X != other.X)
+                return true;
+            if (Y != other.Y)
+                return true;
+            if (Z != other.Z)
+                return true;
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

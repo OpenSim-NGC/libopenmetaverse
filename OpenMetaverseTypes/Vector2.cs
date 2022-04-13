@@ -89,6 +89,20 @@ namespace OpenMetaverse
             if (v.Y > Y) Y = v.Y;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Add(Vector3 v)
+        {
+            X += v.X;
+            Y += v.Y;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Sub(Vector3 v)
+        {
+            X -= v.X;
+            Y -= v.Y;
+        }
+
         /// <summary>
         /// Test if this vector is equal to another vector, within a given
         /// tolerance range
@@ -156,6 +170,12 @@ namespace OpenMetaverse
         public int CompareTo(Vector2 vector)
         {
             return LengthSquared().CompareTo(vector.LengthSquared());
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Dot(Vector3 value2)
+        {
+            return (X * value2.X) + (Y * value2.Y);
         }
 
         /// <summary>
@@ -412,6 +432,7 @@ namespace OpenMetaverse
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Vector2 other)
         {
             if (X != other.X)
@@ -421,6 +442,17 @@ namespace OpenMetaverse
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool NotEqual(Vector3 other)
+        {
+            if (X != other.X)
+                return true;
+            if (Y != other.Y)
+                return true;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             int hash = X.GetHashCode();

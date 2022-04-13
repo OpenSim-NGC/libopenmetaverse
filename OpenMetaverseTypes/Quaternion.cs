@@ -216,6 +216,36 @@ namespace OpenMetaverse
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Dot(Quaternion q2)
+        {
+            return (X * q2.X) + (Y * q2.Y) + (Z * q2.Z) + (W * q2.W);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Dot(ref Quaternion q2)
+        {
+            return (X * q2.X) + (Y * q2.Y) + (Z * q2.Z) + (W * q2.W);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Add(Quaternion quaternion2)
+        {
+            X += quaternion2.X;
+            Y += quaternion2.Y;
+            Z += quaternion2.Z;
+            W += quaternion2.W;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Sub(Quaternion quaternion2)
+        {
+            X -= quaternion2.X;
+            Y -= quaternion2.Y;
+            Z -= quaternion2.Z;
+            W -= quaternion2.W;
+        }
+
         /// <summary>
         /// Builds a quaternion object from a byte array
         /// </summary>
@@ -801,6 +831,21 @@ namespace OpenMetaverse
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool NotEqual(Quaternion other)
+        {
+            if (X != other.X)
+                return true;
+            if (Y != other.Y)
+                return true;
+            if (Z != other.Z)
+                return true;
+            if (W != other.W)
+                return true;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             int hash = X.GetHashCode();
