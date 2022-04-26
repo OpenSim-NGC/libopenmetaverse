@@ -135,12 +135,7 @@ namespace LitJson
                 EnsureDictionary();
                 IList<string> keys = new List<string>();
 
-<<<<<<< HEAD
-                foreach (KeyValuePair<string, JsonData> entry in
-                         object_list)
-=======
                 foreach (KeyValuePair<string, JsonData> entry in object_list)
->>>>>>> upstream/master
                 {
                     keys.Add(entry.Key);
                 }
@@ -156,12 +151,7 @@ namespace LitJson
                 EnsureDictionary();
                 IList<JsonData> values = new List<JsonData>();
 
-<<<<<<< HEAD
-                foreach (KeyValuePair<string, JsonData> entry in
-                         object_list)
-=======
                 foreach (KeyValuePair<string, JsonData> entry in object_list)
->>>>>>> upstream/master
                 {
                     values.Add(entry.Value);
                 }
@@ -270,12 +260,7 @@ namespace LitJson
 
                 inst_object[old_entry.Key] = data;
 
-<<<<<<< HEAD
-                KeyValuePair<string, JsonData> entry =
-                    new KeyValuePair<string, JsonData>(old_entry.Key, data);
-=======
                 KeyValuePair<string, JsonData> entry = new KeyValuePair<string, JsonData>(old_entry.Key, data);
->>>>>>> upstream/master
 
                 object_list[idx] = entry;
             }
@@ -315,12 +300,7 @@ namespace LitJson
             {
                 EnsureDictionary();
 
-<<<<<<< HEAD
-                KeyValuePair<string, JsonData> entry =
-                    new KeyValuePair<string, JsonData>(prop_name, value);
-=======
                 KeyValuePair<string, JsonData> entry = new KeyValuePair<string, JsonData>(prop_name, value);
->>>>>>> upstream/master
 
                 if (inst_object.ContainsKey(prop_name))
                 {
@@ -363,12 +343,7 @@ namespace LitJson
                 else
                 {
                     KeyValuePair<string, JsonData> entry = object_list[index];
-<<<<<<< HEAD
-                    KeyValuePair<string, JsonData> new_entry =
-                        new KeyValuePair<string, JsonData>(entry.Key, value);
-=======
                     KeyValuePair<string, JsonData> new_entry = new KeyValuePair<string, JsonData>(entry.Key, value);
->>>>>>> upstream/master
 
                     object_list[index] = new_entry;
                     inst_object[entry.Key] = value;
@@ -549,12 +524,7 @@ namespace LitJson
 
             EnsureDictionary().Add(key, data);
 
-<<<<<<< HEAD
-            KeyValuePair<string, JsonData> entry =
-                new KeyValuePair<string, JsonData>((string)key, data);
-=======
             KeyValuePair<string, JsonData> entry = new KeyValuePair<string, JsonData>((string)key, data);
->>>>>>> upstream/master
             object_list.Add(entry);
 
             json = null;
