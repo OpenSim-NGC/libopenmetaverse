@@ -267,6 +267,15 @@ namespace OpenMetaverse
                 );
         }
 
+        public static Vector4 Clamp(Vector4 value1, float min, float max)
+        {
+            return new Vector4(
+                Utils.Clamp(value1.X, min, max),
+                Utils.Clamp(value1.Y, min, max),
+                Utils.Clamp(value1.Z, min, max),
+                Utils.Clamp(value1.W, min, max));
+        }
+
         public static Vector4 Clamp(Vector4 value1, Vector4 min, Vector4 max)
         {
             return new Vector4(

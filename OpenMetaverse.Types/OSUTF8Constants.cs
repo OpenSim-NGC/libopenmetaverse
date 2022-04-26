@@ -130,6 +130,10 @@ namespace OpenMetaverse
         public static readonly byte[] XMLelement_sale_info_Mid = osUTF8.GetASCIIBytes("</integer><key>sale_type</key><integer>");
         public static readonly byte[] XMLelement_sale_info_End = osUTF8.GetASCIIBytes("</integer></map>");
 
+        public static readonly byte[] OSUTF8null = osUTF8.GetASCIIBytes("null");
+        public static readonly byte[] OSUTF8true = osUTF8.GetASCIIBytes("true");
+        public static readonly byte[] OSUTF8false = osUTF8.GetASCIIBytes("false");
+
         public static readonly byte[] base64Bytes = {(byte)'A',(byte)'B',(byte)'C',(byte)'D',(byte)'E',(byte)'F',(byte)'G',(byte)'H',(byte)'I',(byte)'J',(byte)'K',(byte)'L',(byte)'M',(byte)'N',(byte)'O',
                                               (byte)'P',(byte)'Q',(byte)'R',(byte)'S',(byte)'T',(byte)'U',(byte)'V',(byte)'W',(byte)'X',(byte)'Y',(byte)'Z',(byte)'a',(byte)'b',(byte)'c',(byte)'d',
                                               (byte)'e',(byte)'f',(byte)'g',(byte)'h',(byte)'i',(byte)'j',(byte)'k',(byte)'l',(byte)'m',(byte)'n',(byte)'o',(byte)'p',(byte)'q',(byte)'r',(byte)'s',

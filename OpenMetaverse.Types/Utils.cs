@@ -83,7 +83,7 @@ namespace OpenMetaverse
         /// <summary>UNIX epoch in DateTime format</summary>
         public static readonly DateTime Epoch = new DateTime(1970, 1, 1);
 
-        public static readonly byte[] EmptyBytes = new byte[0];
+        public static readonly byte[] EmptyBytes = Array.Empty<byte>();
 
         /// <summary>Provide a single instance of the MD5 class to avoid making
         /// duplicate copies and handle thread safety</summary>
@@ -115,7 +115,7 @@ namespace OpenMetaverse
         public static float Clamp(float value, float min, float max)
         {
             // First we check to see if we're greater than the max
-            if (value > max)
+            if (value >= max)
                 return max;
 
             // Then we check to see if we're less than the min.
@@ -137,7 +137,7 @@ namespace OpenMetaverse
         public static double Clamp(double value, double min, double max)
         {
             // First we check to see if we're greater than the max
-            if (value > max)
+            if (value >= max)
                 return max;
 
             // Then we check to see if we're less than the min.
@@ -159,7 +159,7 @@ namespace OpenMetaverse
         public static int Clamp(int value, int min, int max)
         {
             // First we check to see if we're greater than the max
-            if (value > max)
+            if (value >= max)
                 return max;
 
             // Then we check to see if we're less than the min.

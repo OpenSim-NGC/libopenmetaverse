@@ -1325,7 +1325,7 @@ namespace PrimWorkshop
                             else
                             {
                                 if (face.TextureFace.TextureID == Primitive.TextureEntry.WHITE_TEXTURE ||
-                                    face.TextureFace.TextureID == UUID.Zero)
+                                    face.TextureFace.TextureID.IsZero())
                                 {
                                     Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_FILL);
                                 }

@@ -1655,96 +1655,108 @@ namespace OpenMetaverse
             return false;
         }
 
-        public static bool TryParseUUID(osUTF8Slice inp, out UUID res, bool dashs = true)
+        public unsafe static bool TryParseUUID(osUTF8Slice inp, out UUID result)
         {
-            res = new UUID();
-            osUTF8Slice t = new osUTF8Slice(inp);
-
-            t.SelfTrim();
-            int len = t.m_len;
-            if (len == 0)
+            result = new UUID();
+            if (inp.m_len < 32)
                 return false;
 
-            if (dashs)
+            try
             {
-                if (len < 36)
-                    return false;
+                fixed (byte* bval = &inp.m_data[inp.m_offset])
+                {
+                    byte* val = bval;
+
+                    while (*val == ' ') ++val;
+                    if (val[8] == '-')
+                    {
+                        if (val[13] != '-' || val[18] != '-' || val[23] != '-')
+                            return false;
+
+                        if (BitConverter.IsLittleEndian)
+                        {
+                            result.bytea3 = (byte)Utils.HexToByte(val, 0);
+                            result.bytea2 = (byte)Utils.HexToByte(val, 2);
+                            result.bytea1 = (byte)Utils.HexToByte(val, 4);
+                            result.bytea0 = (byte)Utils.HexToByte(val, 6);
+
+                            result.byteb1 = (byte)Utils.HexToByte(val, 9);
+                            result.byteb0 = (byte)Utils.HexToByte(val, 11);
+
+                            result.bytec1 = (byte)Utils.HexToByte(val, 14);
+                            result.bytec0 = (byte)Utils.HexToByte(val, 16);
+                        }
+                        else
+                        {
+                            result.bytea0 = (byte)Utils.HexToByte(val, 0);
+                            result.bytea1 = (byte)Utils.HexToByte(val, 2);
+                            result.bytea2 = (byte)Utils.HexToByte(val, 4);
+                            result.bytea3 = (byte)Utils.HexToByte(val, 6);
+
+                            result.byteb0 = (byte)Utils.HexToByte(val, 9);
+                            result.byteb1 = (byte)Utils.HexToByte(val, 11);
+
+                            result.bytec0 = (byte)Utils.HexToByte(val, 14);
+                            result.bytec1 = (byte)Utils.HexToByte(val, 16);
+                        }
+
+                        result.d = (byte)Utils.HexToByte(val, 19);
+                        result.e = (byte)Utils.HexToByte(val, 21);
+
+
+                        result.f = (byte)Utils.HexToByte(val, 24);
+                        result.g = (byte)Utils.HexToByte(val, 26);
+                        result.h = (byte)Utils.HexToByte(val, 28);
+                        result.i = (byte)Utils.HexToByte(val, 30);
+                        result.j = (byte)Utils.HexToByte(val, 32);
+                        result.k = (byte)Utils.HexToByte(val, 34);
+                        return true;
+                    }
+                    else
+                    {
+                        if (BitConverter.IsLittleEndian)
+                        {
+                            result.bytea3 = Utils.HexToByte(val, 0);
+                            result.bytea2 = Utils.HexToByte(val, 2);
+                            result.bytea1 = Utils.HexToByte(val, 4);
+                            result.bytea0 = Utils.HexToByte(val, 6);
+
+                            result.byteb1 = Utils.HexToByte(val, 8);
+                            result.byteb0 = Utils.HexToByte(val, 10);
+
+                            result.bytec1 = Utils.HexToByte(val, 12);
+                            result.bytec0 = Utils.HexToByte(val, 14);
+                        }
+                        else
+                        {
+                            result.bytea0 = Utils.HexToByte(val, 0);
+                            result.bytea1 = Utils.HexToByte(val, 2);
+                            result.bytea2 = Utils.HexToByte(val, 4);
+                            result.bytea3 = Utils.HexToByte(val, 6);
+
+                            result.byteb0 = Utils.HexToByte(val, 8);
+                            result.byteb1 = Utils.HexToByte(val, 10);
+
+                            result.bytec0 = Utils.HexToByte(val, 12);
+                            result.bytec1 = Utils.HexToByte(val, 14);
+                        }
+
+                        result.d = Utils.HexToByte(val, 16);
+                        result.e = Utils.HexToByte(val, 18);
+
+                        result.f = Utils.HexToByte(val, 20);
+                        result.g = Utils.HexToByte(val, 22);
+                        result.h = Utils.HexToByte(val, 24);
+                        result.i = Utils.HexToByte(val, 26);
+                        result.j = Utils.HexToByte(val, 28);
+                        result.k = Utils.HexToByte(val, 30);
+                        return true;
+                    }
+                }
             }
-            else
-            {
-                if (len < 32)
-                    return false;
-            }
-
-            byte[] data = t.m_data;
-            int dataoffset = t.m_offset;
-
-            UUID utmp = new UUID();
-            if (!Utils.TryHexToInt(data, dataoffset, 8, out utmp.a))
-                return false;
-            dataoffset += 8;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            int n;
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-            utmp.b = (short)n;
-            dataoffset += 4;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-            utmp.c = (short)n;
-            dataoffset += 4;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-
-            utmp.d = (byte)(n >> 8);
-            utmp.e = (byte)n;
-            dataoffset += 4;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            if (!Utils.TryHexToInt(data, dataoffset, 8, out n))
-                return false;
-            utmp.f = (byte)(n >> 24);
-            utmp.g = (byte)(n >> 16);
-            utmp.h = (byte)(n >> 8);
-            utmp.i = (byte)n;
-            dataoffset += 8;
-
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-            utmp.j = (byte)(n >> 8);
-            utmp.k = (byte)n;
-
-            res = utmp;
-            return true;
+            catch { }
+            result = new UUID();
+            return false;
         }
     }
 }

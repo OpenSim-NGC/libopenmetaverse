@@ -49,7 +49,7 @@ namespace OpenMetaverse.StructuredData
                 sb.Append(osUTF8Const.XMLllsdStart);
         }
 
-        public static osUTF8 Start(int size = 4096, bool addxmlversion = false)
+        public static osUTF8 Start(int size = OSUTF8Cached.MAXDATASIZE, bool addxmlversion = false)
         {
             osUTF8 sb = OSUTF8Cached.Acquire(size);
             if(addxmlversion)

@@ -1138,7 +1138,7 @@ namespace OpenMetaverse
             public byte[] GetBytes(int maxfaces = MAX_FACES)
             {
                 if (DefaultTexture == null)
-                    return Utils.EmptyBytes;
+                    return Array.Empty<byte>();
 
                 using (MemoryStream ms = new MemoryStream(4096))
                 {
@@ -1623,9 +1623,9 @@ namespace OpenMetaverse
             public byte[] GetBakesBytes(int maxfaces = MAX_FACES)
             {
                 if (DefaultTexture == null)
-                    return Utils.EmptyBytes;
+                    return Array.Empty<byte>();
 
-                if(maxfaces > FaceTextures.Length)
+                if (maxfaces > FaceTextures.Length)
                     maxfaces = FaceTextures.Length;
 
                 int[] bakedIndexes = (maxfaces > 21) ? AllBakedIndexes : LegacyBakedIndexes;

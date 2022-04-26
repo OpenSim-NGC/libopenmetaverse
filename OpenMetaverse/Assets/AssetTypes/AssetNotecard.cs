@@ -111,7 +111,7 @@ namespace OpenMetaverse.Assets
                     output.Append("\t}\n");
 
                     if (Permissions.HasPermissions(item.Permissions.BaseMask, PermissionMask.Modify | PermissionMask.Copy | PermissionMask.Transfer) ||
-                        item.AssetUUID == UUID.Zero)
+                        item.AssetUUID.IsZero())
                     {
                         output.Append("\t\tasset_id\t" + item.AssetUUID + "\n");
                     }

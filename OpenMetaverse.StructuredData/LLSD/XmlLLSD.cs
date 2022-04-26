@@ -720,7 +720,7 @@ namespace OpenMetaverse.StructuredData
                     if (reader.IsEmptyElement)
                     {
                         reader.Read();
-                        return OSD.FromBinary(Utils.EmptyBytes);
+                        return OSD.FromBinary(Array.Empty<byte>());
                     }
 
                     if (reader.GetAttribute("encoding") != null && reader.GetAttribute("encoding") != "base64")
@@ -739,7 +739,7 @@ namespace OpenMetaverse.StructuredData
                         }
                     }
 
-                    ret = OSD.FromBinary(Utils.EmptyBytes);
+                    ret = OSD.FromBinary(Array.Empty<byte>());
                     break;
                 case "uri":
                     if (reader.IsEmptyElement)

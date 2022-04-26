@@ -1495,11 +1495,11 @@ namespace OpenMetaverse
         public static byte[] StringToBytes(string str)
         {
             if (string.IsNullOrEmpty(str))
-                return EmptyBytes;
+                return Array.Empty<byte>();
 
             int nbytes = osUTF8GetBytesCount(str, out int sourcelen);
             if (nbytes == 0)
-                return EmptyBytes;
+                return Array.Empty<byte>(); ;
             byte[] dstarray = new byte[nbytes + 1];
             osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
             dstarray[nbytes] = 0;
@@ -1509,11 +1509,11 @@ namespace OpenMetaverse
         public static byte[] StringToBytes(string str, int maxlen)
         {
             if (string.IsNullOrEmpty(str))
-                return EmptyBytes;
+                return Array.Empty<byte>();
 
             int nbytes = osUTF8GetBytesCount(str, maxlen -1, out int sourcelen);
             if (nbytes == 0)
-                return EmptyBytes;
+                return Array.Empty<byte>();
             byte[] dstarray = new byte[nbytes + 1];
             osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
             dstarray[nbytes] = 0;
@@ -1523,11 +1523,11 @@ namespace OpenMetaverse
         public static byte[] StringToBytesNoTerm(string str)
         {
             if (string.IsNullOrEmpty(str))
-                return EmptyBytes;
+                return Array.Empty<byte>();
 
             int nbytes = osUTF8GetBytesCount(str, out int sourcelen);
             if (nbytes == 0)
-                return EmptyBytes;
+                return Array.Empty<byte>();
             byte[] dstarray = new byte[nbytes];
             osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
             return dstarray;
@@ -1536,11 +1536,11 @@ namespace OpenMetaverse
         public static byte[] StringToBytesNoTerm(string str, int maxlen)
         {
             if (string.IsNullOrEmpty(str))
-                return EmptyBytes;
+                return Array.Empty<byte>();
 
             int nbytes = osUTF8GetBytesCount(str, maxlen, out int sourcelen);
             if (nbytes == 0)
-                return EmptyBytes;
+                return Array.Empty<byte>();
             byte[] dstarray = new byte[nbytes];
             osUTF8Getbytes(str, sourcelen, dstarray, nbytes);
             return dstarray;
@@ -1819,53 +1819,6 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Converts a string containing hexadecimal characters to a byte array
-        /// </summary>
-        /// <param name="hexString">String containing hexadecimal characters</param>
-        /// <param name="handleDirty">If true, gracefully handles null, empty and
-        /// uneven strings as well as stripping unconvertable characters</param>
-        /// <returns>The converted byte array</returns>
-        public static byte[] HexStringToBytes(string hexString, bool handleDirty)
-        {
-            if (handleDirty)
-            {
-                if (String.IsNullOrEmpty(hexString))
-                    return Utils.EmptyBytes;
-
-                StringBuilder stripped = new StringBuilder(hexString.Length);
-                char c;
-
-                // remove all non A-F, 0-9, characters
-                for (int i = 0; i < hexString.Length; i++)
-                {
-                    c = hexString[i];
-                    if (IsHexDigit(c))
-                        stripped.Append(c);
-                }
-
-                hexString = stripped.ToString();
-
-                // if odd number of characters, discard last character
-                if (hexString.Length % 2 != 0)
-                {
-                    hexString = hexString.Substring(0, hexString.Length - 1);
-                }
-            }
-
-            int byteLength = hexString.Length / 2;
-            byte[] bytes = new byte[byteLength];
-            int j = 0;
-
-            for (int i = 0; i < bytes.Length; i++)
-            {
-                bytes[i] = HexToByte(hexString.Substring(j, 2));
-                j += 2;
-            }
-
-            return bytes;
-        }
-
-        /// <summary>
         /// Returns true is c is a hexadecimal digit (A-F, a-f, 0-9)
         /// </summary>
         /// <param name="c">Character to test</param>
@@ -1877,13 +1830,13 @@ namespace OpenMetaverse
             const int numa = 97;
             const int num0 = 48;
 
-            if(c > numa + 5)
-                return false;
             if (c < num0)
                 return false;
             if (c < (num0 + 10))
                 return true;
 
+            if (c > numa + 5)
+                return false;
             if (c >= numa)
                 return true;
 
@@ -1899,13 +1852,13 @@ namespace OpenMetaverse
             const int numa = 97;
             const int num0 = 48;
 
-            if (c > numa + 5)
-                return -1;
             if (c < num0)
                 return -1;
             if (c < (num0 + 10))
                 return c - num0;
 
+            if (c > numa + 5)
+                return -1;
             if (c >= numa)
                 return c - numa + 10;
 
@@ -1921,13 +1874,13 @@ namespace OpenMetaverse
             const int numa = 97;
             const int num0 = 48;
 
-            if (c > numa + 5)
-                return -1;
             if (c < num0)
                 return -1;
             if (c < (num0 + 10))
                 return c - num0;
 
+            if (c > numa + 5)
+                return -1;
             if (c >= numa)
                 return c - numa + 10;
 
@@ -1940,24 +1893,52 @@ namespace OpenMetaverse
         public static int HexNibble(Char c)
         {
 
-            const int numA = 65;
-            const int numa = 97;
-            const int num0 = 48;
+            const char numA = 'A';
+            const char numF = 'F';
+            const char numa = 'a';
+            const char numf = 'f';
+            const char num0 = '0';
+            const char num9 = '9';
 
-            if (c > numa + 5)
-                return 0;
             if (c < num0)
-                return 0;
-            if (c < (num0 + 10))
+                throw new Exception("invalid hex char");
+            if (c <= num9)
                 return c - num0;
 
+            if (c > numf)
+                throw new Exception("invalid hex char");
             if (c >= numa)
                 return c - numa + 10;
 
-            if (c >= numA && c < numA + 6)
+            if (c >= numA && c <= numF)
                 return c - numA + 10;
 
-            return 0;
+            throw new Exception("invalid hex char");
+        }
+
+        public static int HexNibble(byte c)
+        {
+            const byte numA = (byte)'A';
+            const byte numF = (byte)'F';
+            const byte numa = (byte)'a';
+            const byte numf = (byte)'f';
+            const byte num0 = (byte)'0';
+            const byte num9 = (byte)'9';
+
+            if (c < num0)
+                throw new Exception("invalid hex char");
+            if (c <= num9)
+                return c - num0;
+
+            if (c > numf)
+                throw new Exception("invalid hex char");
+            if (c >= numa)
+                return c - numa + 10;
+
+            if (c >= numA && c <= numF)
+                return c - numA + 10;
+
+            throw new Exception("invalid hex char");
         }
 
         public static bool TryHexToInt(byte[] data, int start, int len, out int res)
@@ -1975,17 +1956,86 @@ namespace OpenMetaverse
             }
             return true;
         }
-        /// <summary>
-        /// Converts 1 or 2 character string into equivalant byte value
-        /// </summary>
-        /// <param name="hex">1 or 2 character string</param>
-        /// <returns>byte</returns>
-        private static byte HexToByte(string hex)
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static bool TryHexToByte(byte[] data, int pos, out byte res)
         {
-            if (hex.Length > 2 || hex.Length <= 0)
-                throw new ArgumentException("hex must be 1 or 2 characters in length");
-            byte newByte = Byte.Parse(hex, System.Globalization.NumberStyles.HexNumber);
-            return newByte;
+            int a,b;
+            if ((a = HexNibbleWithChk(data[pos])) < 0)
+            {
+                res = 0;
+                return false;
+            }
+            if ((b = HexNibbleWithChk(data[pos + 1])) < 0)
+            {
+                res = 0;
+                return false;
+            }
+            res = (byte)(a << 4 | b);
+            return true;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static byte HexToByte(byte[] data, int pos)
+        {
+            return (byte)(HexNibble(data[pos]) << 4 | HexNibble(data[pos + 1]));
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static byte HexToByte(byte* data, int pos)
+        {
+            return (byte)(HexNibble(data[pos]) << 4 | HexNibble(data[pos + 1]));
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public unsafe static byte HexToByte(char* hex, int pos)
+        {
+            return (byte)(HexNibble(hex[pos]) << 4 | HexNibble(hex[pos + 1]));
+        }
+
+        /// <summary>
+        /// Converts a string containing hexadecimal characters to a byte array
+        /// </summary>
+        /// <param name="hexString">String containing hexadecimal characters</param>
+        /// <param name="handleDirty">If true, gracefully handles null, empty and
+        /// uneven strings as well as stripping unconvertable characters</param>
+        /// <returns>The converted byte array</returns>
+        public unsafe static byte[] HexStringToBytes(string hexString, bool handleDirty)
+        {
+            if (String.IsNullOrEmpty(hexString))
+                return EmptyBytes;
+            if (handleDirty)
+            {
+                StringBuilder stripped = new StringBuilder(hexString.Length);
+                // remove all non A-F, 0-9, characters
+                foreach (char c in hexString)
+                {
+                    if (IsHexDigit(c))
+                        stripped.Append(c);
+                }
+                hexString = stripped.ToString();
+
+                // if odd number of characters, discard last character
+                if (hexString.Length % 2 != 0)
+                {
+                    hexString = hexString.Substring(0, hexString.Length - 1);
+                }
+            }
+
+            int byteLength = hexString.Length / 2;
+            byte[] bytes = new byte[byteLength];
+            int j = 0;
+
+            fixed(char* c = hexString)
+            {
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    bytes[i] = HexToByte(c, j);
+                    j += 2;
+                }
+            }
+
+            return bytes;
         }
 
         #endregion Strings

@@ -185,6 +185,14 @@ namespace OpenMetaverse
             return value1;
         }
 
+        public static Vector3d Clamp(Vector3 value1, double min, double max)
+        {
+            return new Vector3d(
+                Utils.Clamp(value1.X, min, max),
+                Utils.Clamp(value1.Y, min, max),
+                Utils.Clamp(value1.Z, min, max));
+        }
+
         public static Vector3d Clamp(Vector3d value1, Vector3d min, Vector3d max)
         {
             return new Vector3d(
