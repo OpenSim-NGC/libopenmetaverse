@@ -1,11 +1,21 @@
 <Project>
- <PropertyGroup>
-  	<AssemblyVersion>1.1.7</AssemblyVersion>
-  	<FileVersion>1.1.7</FileVersion>
-	<Version>1.1.7</Version>
-	<MSBuildProjectExtensionsPath>$(SolutionDir)\obj\$(Configuration)\$(MSBuildProjectName)\</MSBuildProjectExtensionsPath>
-	<IntermediateOutputPath>$(SolutionDir)\obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
-	<OutputPath>$(SolutionDir)\build\$(Configuration)\$(AssemblyName)\</OutputPath>
-	<OutDir>$(OutputPath)</OutDir>
- </PropertyGroup>
+  <PropertyGroup>
+    <Version>0.10.0.0</Version>
+    <Product>OpenMetaverse</Product>
+    <Authors>Utopa Skye LLC, OpenMetaverse Developers</Authors>
+    <Company>Utopia Skye LLC</Company>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PackageVersion>1.1.8</PackageVersion>
+    <AssemblyVersion>1.1.7</AssemblyVersion>
+    <FileVersion>1.1.7</FileVersion>
+    <Version>1.1.7</Version>
+    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/OpenSim-NGC/libopenmetaverse</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>OMV OpenMetaverse OpenSim Halcyon OpenMetaverseFoundation VirtualWorld VirtualReality 3D SecondLife</PackageTags>
+    <RepositoryUrl>https://github.com/OpenSim-NGC/libopenmetaverse.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryBranch>master</RepositoryBranch>
+  </PropertyGroup>
 </Project>

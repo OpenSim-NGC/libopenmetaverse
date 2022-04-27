@@ -1,6 +1,7 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28803.352
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32414.318
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvatarPreview", "Programs\AvatarPreview\AvatarPreview.csproj", "{93CEA633-0000-0000-0000-000000000000}"
 EndProject
@@ -56,7 +57,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VoiceTest", "Programs\Voice
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WinGridProxy", "Programs\WinGridProxy\WinGridProxy.csproj", "{455B06F4-0000-0000-0000-000000000000}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenMetaverse.PrimMesher", "OpenMetaverse.PrimMesher\OpenMetaverse.PrimMesher.csproj", "{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenMetaverse.PrimMesher", "OpenMetaverse.PrimMesher\OpenMetaverse.PrimMesher.csproj", "{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{49AFD80D-D399-43FC-A9EE-9F15BC6D49E7}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
