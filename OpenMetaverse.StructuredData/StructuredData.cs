@@ -1566,10 +1566,10 @@ namespace OpenMetaverse.StructuredData
             Type = OSDType.Binary;
             this.value = new byte[]
             {
-                (byte)((value >> 24) % 256),
-                (byte)((value >> 16) % 256),
-                (byte)((value >> 8) % 256),
-                (byte)(value % 256)
+                (byte)((value >> 24) & 0xFF),
+                (byte)((value >> 16) & 0xFF),
+                (byte)((value >> 8) & 0xFF),
+                (byte)(value& 0xFF)
             };
         }
 
@@ -1578,14 +1578,14 @@ namespace OpenMetaverse.StructuredData
             Type = OSDType.Binary;
             this.value = new byte[]
             {
-                (byte)((value >> 56) % 256),
-                (byte)((value >> 48) % 256),
-                (byte)((value >> 40) % 256),
-                (byte)((value >> 32) % 256),
-                (byte)((value >> 24) % 256),
-                (byte)((value >> 16) % 256),
-                (byte)((value >> 8) % 256),
-                (byte)(value % 256)
+                (byte)((value >> 56) & 0xFF),
+                (byte)((value >> 48) & 0xFF),
+                (byte)((value >> 40) & 0xFF),
+                (byte)((value >> 32) & 0xFF),
+                (byte)((value >> 24) & 0xFF),
+                (byte)((value >> 16) & 0xFF),
+                (byte)((value >> 8) & 0xFF),
+                (byte)(value& 0xFF)
             };
         }
 
@@ -1594,14 +1594,14 @@ namespace OpenMetaverse.StructuredData
             Type = OSDType.Binary;
             this.value = new byte[]
             {
-                (byte)((value >> 56) % 256),
-                (byte)((value >> 48) % 256),
-                (byte)((value >> 40) % 256),
-                (byte)((value >> 32) % 256),
-                (byte)((value >> 24) % 256),
-                (byte)((value >> 16) % 256),
-                (byte)((value >> 8) % 256),
-                (byte)(value % 256)
+                (byte)((value >> 56) & 0xFF),
+                (byte)((value >> 48) & 0xFF),
+                (byte)((value >> 40) & 0xFF),
+                (byte)((value >> 32) & 0xFF),
+                (byte)((value >> 24) & 0xFF),
+                (byte)((value >> 16) & 0xFF),
+                (byte)((value >> 8) & 0xFF),
+                (byte)(value& 0xFF)
             };
         }
 
@@ -1611,45 +1611,36 @@ namespace OpenMetaverse.StructuredData
 
         public override int AsInteger()
         {
-            return (
-                (value[0] << 24) +
-                (value[1] << 16) +
-                (value[2] << 8) +
-                (value[3] << 0));
+            return ((value[0] << 24) | (value[1] << 16) | (value[2] << 8) |  (value[3] << 0));
         }
 
         public override uint AsUInteger()
         {
-            return (uint)(
-                (value[0] << 24) +
-                (value[1] << 16) +
-                (value[2] << 8) +
-                (value[3] << 0));
-        }
+            return (uint)((value[0] << 24) | (value[1] << 16) | (value[2] << 8) | (value[3] << 0));}
 
         public override long AsLong()
         {
             return (long)(
-                ((long)value[0] << 56) +
-                ((long)value[1] << 48) +
-                ((long)value[2] << 40) +
-                ((long)value[3] << 32) +
-                ((long)value[4] << 24) +
-                ((long)value[5] << 16) +
-                ((long)value[6] << 8) +
+                ((long)value[0] << 56) |
+                ((long)value[1] << 48) |
+                ((long)value[2] << 40) |
+                ((long)value[3] << 32) |
+                ((long)value[4] << 24) |
+                ((long)value[5] << 16) |
+                ((long)value[6] << 8) |
                 ((long)value[7] << 0));
         }
 
         public override ulong AsULong()
         {
             return (ulong)(
-                ((ulong)value[0] << 56) +
-                ((ulong)value[1] << 48) +
-                ((ulong)value[2] << 40) +
-                ((ulong)value[3] << 32) +
-                ((ulong)value[4] << 24) +
-                ((ulong)value[5] << 16) +
-                ((ulong)value[6] << 8) +
+                ((ulong)value[0] << 56) |
+                ((ulong)value[1] << 48) |
+                ((ulong)value[2] << 40) |
+                ((ulong)value[3] << 32) |
+                ((ulong)value[4] << 24) |
+                ((ulong)value[5] << 16) |
+                ((ulong)value[6] << 8) |
                 ((ulong)value[7] << 0));
         }
 

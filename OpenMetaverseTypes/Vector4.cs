@@ -112,6 +112,32 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Add(Vector4 v)
+        {
+            X += v.X;
+            Y += v.Y;
+            Z += v.Z;
+            W += v.W;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Sub(Vector4 v)
+        {
+            X -= v.X;
+            Y -= v.Y;
+            Z -= v.Z;
+            W -= v.W;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clamp(float min, float max)
+        {
+            X = Utils.Clamp(X, min, max);
+            Y = Utils.Clamp(Y, min, max);
+            Z = Utils.Clamp(Z, min, max);
+            W = Utils.Clamp(W, min, max);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Min(Vector4 v)
         {
             if (v.X < X) X = v.X;
@@ -204,6 +230,11 @@ namespace OpenMetaverse
             return Length().CompareTo(vector.Length());
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float Dot(Vector4 value2)
+        {
+            return (X * value2.X) + (Y * value2.Y) + (Z * value2.Z) + (W * value2.W);
+        }
         /// <summary>
         /// Test if this vector is composed of all finite numbers
         /// </summary>
@@ -498,6 +529,19 @@ namespace OpenMetaverse
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool NotEqual(Vector4 other)
+        {
+            if (X != other.X)
+                return true;
+            if (Y != other.Y)
+                return true;
+            if (Z != other.Z)
+                return true;
+            if (W != other.W)
+                return true;
+            return false;
+        }
         public override int GetHashCode()
         {
             return X.GetHashCode() ^ Y.GetHashCode() ^ Z.GetHashCode() ^ W.GetHashCode();
