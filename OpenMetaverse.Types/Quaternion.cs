@@ -818,6 +818,7 @@ namespace OpenMetaverse
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(Quaternion other)
         {
             if (X != other.X)

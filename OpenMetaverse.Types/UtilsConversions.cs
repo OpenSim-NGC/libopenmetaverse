@@ -367,7 +367,8 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int CombineHash(int a, int b)
         {
-            return ((a << 5) + a) ^ b;
+            //return ((a << 5) + a) ^ b;
+            return 65599 * a + b;
         }
 
         /// <summary>

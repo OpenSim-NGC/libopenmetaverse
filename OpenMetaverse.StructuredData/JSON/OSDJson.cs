@@ -252,7 +252,7 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.String:
                 case OSDType.URI:
                 case OSDType.LLSDxml:
-                    appendJsonString((OSDString)osd, sb);
+                    appendJsonString(osd.AsString(), sb);
                     break;
                 case OSDType.OSDUTF8:
                     osUTF8 ou8 = ((OSDUTF8)osd).value;
@@ -363,14 +363,14 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.String:
                 case OSDType.URI:
                 case OSDType.LLSDxml:
-                    OSDString ostr = (OSDString)osd;
-                    if (!string.IsNullOrEmpty(ostr.value))
+                    string ostr = osd.AsString();
+                    if (!string.IsNullOrEmpty(ostr))
                     {
                         if (mapcont++ > 0)
                             sb.AppendASCII(',');
                         appendJsonString(name, sb);
                         sb.AppendASCII(':');
-                        appendJsonString(ostr.value, sb);
+                        appendJsonString(ostr, sb);
                     }
                     break;
                 case OSDType.OSDUTF8:

@@ -838,7 +838,9 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            return a ^ intb ^ intc ^ intd;
+            int h = Utils.CombineHash(intd, intc);
+            h = Utils.CombineHash(h, intb);
+            return Utils.CombineHash(h, a);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
