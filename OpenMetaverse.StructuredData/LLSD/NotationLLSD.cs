@@ -880,7 +880,7 @@ namespace OpenMetaverse.StructuredData
         /// 
         /// </summary>
         /// <param name="s"></param>
-        /// <param name="c"></param>
+        /// <param name="d"></param>
         /// <returns></returns>
         public static string UnescapeCharacter(String s, char d)
         {
@@ -959,7 +959,7 @@ namespace OpenMetaverse.StructuredData
         /// 
         /// </summary>
         /// <param name="s"></param>
-        /// <param name="c"></param>
+        /// <param name="d"></param>
         /// <returns></returns>
         public static string EscapeCharacter(String s, char d)
         {

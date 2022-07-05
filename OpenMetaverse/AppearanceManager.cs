@@ -1367,7 +1367,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Populates textures and visual params from a decoded asset
         /// </summary>
-        /// <param name="wearable">Wearable to decode</param>
+        /// <param name="textures">textures to decode</param>
         public static void DecodeWearableParams(WearableData wearable, ref TextureData[] textures)
         {
             Dictionary<VisualAlphaParam, float> alphaMasks = new Dictionary<VisualAlphaParam, float>();

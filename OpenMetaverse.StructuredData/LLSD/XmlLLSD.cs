@@ -162,7 +162,7 @@ namespace OpenMetaverse.StructuredData
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="writer"></param>
+        /// <param name="sb"></param>
         /// <param name="data"></param>
         public static void SerializeLLSDXmlElement(StringBuilder sb, OSD data, bool formal)
         {
