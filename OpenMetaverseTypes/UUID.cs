@@ -107,10 +107,13 @@ namespace OpenMetaverse
         public unsafe UUID(string sval)
         {
             this = new UUID();
-            if (string.IsNullOrEmpty(sval))
-                throw new System.FormatException("Invalid UUID");
+            if (sval == null)
+                throw new FormatException("Invalid UUID");
 
             int len = sval.Length;
+            if (len < 32)
+                throw new FormatException("Invalid UUID");
+
             try
             {
                 fixed (char* bval = sval)
@@ -120,10 +123,15 @@ namespace OpenMetaverse
                     {
                         ++val;
                         --len;
+                        if (len < 32)
+                            throw new Exception();
                     }
 
                     if (val[8] == '-')
                     {
+                        if (len < 36)
+                            throw new Exception();
+
                         while (--len > 35)
                         {
                             if (val[len] != ' ')
@@ -550,10 +558,12 @@ namespace OpenMetaverse
         public unsafe static UUID Parse(string sval)
         {
             UUID result = new UUID();
-            if (string.IsNullOrEmpty(sval))
+            if (sval == null)
                 throw new FormatException("Invalid UUID");
-            int len = sval.Length;
 
+            int len = sval.Length;
+            if (len < 32)
+                throw new FormatException("Invalid UUID");
             try
             {
                 fixed (char* bval = sval)
@@ -563,10 +573,14 @@ namespace OpenMetaverse
                     {
                         ++val;
                         --len;
+                        if (len < 32)
+                            throw new Exception();
                     }
 
                     if (val[8] == '-')
                     {
+                        if (len < 36)
+                            throw new Exception();
                         while (--len > 35)
                         {
                             if (val[len] != ' ')
@@ -698,6 +712,8 @@ namespace OpenMetaverse
                     {
                         ++val;
                         --len;
+                        if (len < 32)
+                            return false;
                     }
 
                     if (val[8] == '-')
