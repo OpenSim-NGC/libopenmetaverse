@@ -962,7 +962,8 @@ namespace OpenMetaverse
         public unsafe static bool TryParseUUID(osUTF8 inp, out UUID result)
         {
             result = new UUID();
-            if (inp.m_len < 32)
+            int len = inp.m_len;
+            if (len < 32)
                 return false;
 
             try
@@ -971,9 +972,18 @@ namespace OpenMetaverse
                 {
                     byte* val = bval;
 
-                    while (*val == ' ') ++val;
+                    while (*val == ' ')
+                    {
+                        ++val;
+                        --len;
+                        if (len < 32)
+                            return false;
+                    }
+
                     if (val[8] == '-')
                     {
+                        if (len < 36)
+                            return false;
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             return false;
 

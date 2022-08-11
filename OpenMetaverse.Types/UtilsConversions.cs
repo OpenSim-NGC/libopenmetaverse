@@ -1902,19 +1902,19 @@ namespace OpenMetaverse
             const char num9 = '9';
 
             if (c < num0)
-                throw new Exception("invalid hex char");
+                throw new FormatException("invalid hex char");
             if (c <= num9)
                 return c - num0;
 
             if (c > numf)
-                throw new Exception("invalid hex char");
+                throw new FormatException("invalid hex char");
             if (c >= numa)
                 return c - numa + 10;
 
             if (c >= numA && c <= numF)
                 return c - numA + 10;
 
-            throw new Exception("invalid hex char");
+            throw new FormatException("invalid hex char");
         }
 
         public static int HexNibble(byte c)
@@ -1927,19 +1927,19 @@ namespace OpenMetaverse
             const byte num9 = (byte)'9';
 
             if (c < num0)
-                throw new Exception("invalid hex char");
+                throw new FormatException("invalid hex char");
             if (c <= num9)
                 return c - num0;
 
             if (c > numf)
-                throw new Exception("invalid hex char");
+                throw new FormatException("invalid hex char");
             if (c >= numa)
                 return c - numa + 10;
 
             if (c >= numA && c <= numF)
                 return c - numA + 10;
 
-            throw new Exception("invalid hex char");
+            throw new FormatException("invalid hex char");
         }
 
         public static bool TryHexToInt(byte[] data, int start, int len, out int res)

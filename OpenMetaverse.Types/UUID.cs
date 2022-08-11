@@ -81,7 +81,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Constructor that takes a string UUID representation
         /// </summary>
-        /// <param name="val">A string representation of a UUID, case 
+        /// <param name="sval">A string representation of a UUID, case 
         /// insensitive and can either be hyphenated or non-hyphenated</param>
         /// <example>UUID("11f8aa9c-b071-4242-836b-13b7abe0d489")</example>
         /*
@@ -107,10 +107,13 @@ namespace OpenMetaverse
         public unsafe UUID(string sval)
         {
             this = new UUID();
-            if (string.IsNullOrEmpty(sval))
-                throw new System.FormatException("Invalid UUID");
+            if (sval == null)
+                throw new FormatException("Invalid UUID");
 
             int len = sval.Length;
+            if (len < 32)
+                throw new FormatException("Invalid UUID");
+
             try
             {
                 fixed (char* bval = sval)
@@ -120,10 +123,15 @@ namespace OpenMetaverse
                     {
                         ++val;
                         --len;
+                        if (len < 32)
+                            throw new Exception();
                     }
 
                     if (val[8] == '-')
                     {
+                        if (len < 36)
+                            throw new Exception();
+
                         while (--len > 35)
                         {
                             if (val[len] != ' ')
@@ -536,7 +544,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Generate a UUID from a string
         /// </summary>
-        /// <param name="val">A string representation of a UUID, case 
+        /// <param name="sval">A string representation of a UUID, case 
         /// insensitive and can either be hyphenated or non-hyphenated</param>
         /// <example>UUID.Parse("11f8aa9c-b071-4242-836b-13b7abe0d489")</example>
         /*
@@ -550,10 +558,12 @@ namespace OpenMetaverse
         public unsafe static UUID Parse(string sval)
         {
             UUID result = new UUID();
-            if (string.IsNullOrEmpty(sval))
-                throw new System.FormatException("Invalid UUID");
-            int len = sval.Length;
+            if (sval == null)
+                throw new FormatException("Invalid UUID");
 
+            int len = sval.Length;
+            if (len < 32)
+                throw new FormatException("Invalid UUID");
             try
             {
                 fixed (char* bval = sval)
@@ -563,10 +573,14 @@ namespace OpenMetaverse
                     {
                         ++val;
                         --len;
+                        if (len < 32)
+                            throw new Exception();
                     }
 
                     if (val[8] == '-')
                     {
+                        if (len < 36)
+                            throw new Exception();
                         while (--len > 35)
                         {
                             if (val[len] != ' ')
@@ -665,13 +679,13 @@ namespace OpenMetaverse
             }
             catch { }
             result = new UUID();
-            throw new System.FormatException("Invalid UUID");
+            throw new FormatException("Invalid UUID");
         }
 
         /// <summary>
         /// Generate a UUID from a string
         /// </summary>
-        /// <param name="val">A string representation of a UUID, case 
+        /// <param name="sval">A string representation of a UUID, case 
         /// insensitive and can either be hyphenated or non-hyphenated</param>
         /// <param name="result">Will contain the parsed UUID if successful,
         /// otherwise null</param>
@@ -681,10 +695,13 @@ namespace OpenMetaverse
         public unsafe static bool TryParse(string sval, out UUID result)
         {
             result = new UUID();
-            if (string.IsNullOrEmpty(sval))
+            if (sval is null)
                 return false;
 
             int len = sval.Length;
+            if (len < 32)
+                return false;
+
             try
             {
                 fixed (char* bval = sval)
@@ -695,10 +712,14 @@ namespace OpenMetaverse
                     {
                         ++val;
                         --len;
+                        if (len < 32)
+                            return false;
                     }
 
                     if (val[8] == '-')
                     {
+                        if (len < 36)
+                            return false;
                         while (--len > 35)
                         {
                             if (val[len] != ' ')
