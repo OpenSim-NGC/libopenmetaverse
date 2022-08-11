@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <OutputType>WinExe</OutputType>
     <AssemblyTitle>avatarpreview</AssemblyTitle>
     <Company>Millions Of Us</Company>

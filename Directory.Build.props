@@ -6,10 +6,10 @@
     <Company>Utopia Skye LLC</Company>
   </PropertyGroup>
   <PropertyGroup>
-    <PackageVersion>1.1.8</PackageVersion>
-    <AssemblyVersion>1.1.7</AssemblyVersion>
-    <FileVersion>1.1.7</FileVersion>
-    <Version>1.1.7</Version>
+    <PackageVersion>1.2.1</PackageVersion>
+    <AssemblyVersion>1.2.1</AssemblyVersion>
+    <FileVersion>1.2.1</FileVersion>
+    <Version>1.2.1</Version>
     <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/OpenSim-NGC/libopenmetaverse</PackageProjectUrl>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

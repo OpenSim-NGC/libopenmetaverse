@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Authors>Dhalia Trimble, OpenSim Contributors, Cinder Roxley</Authors>
     <Product>OpenMetaverse.PrimMesher</Product>
     <PackageId>OpenMetaverse.PrimMesher</PackageId>
