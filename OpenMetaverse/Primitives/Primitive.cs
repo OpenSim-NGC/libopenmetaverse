@@ -520,7 +520,7 @@ namespace OpenMetaverse
             /// <returns></returns>
             public override string ToString()
             {
-                return String.Format("LightTexture: {0} Params; {1]", LightTexture, Params);
+                return String.Format("LightTexture: {0} Params; {1}", LightTexture, Params);
             }
         }
 
@@ -618,6 +618,216 @@ namespace OpenMetaverse
             public override int GetHashCode()
             {
                 return SculptTexture.GetHashCode() ^ type.GetHashCode();
+            }
+        }
+
+        /// <summary>
+        /// Information on the ReflectionProbe properties of a primitive
+        /// </summary>
+        public class ReflectionProbe
+        {
+            /// <summary>
+            /// Default constructor
+            /// </summary>
+            public ReflectionProbe()
+            {
+            }
+
+            public float Ambiance = 0;
+            public float ClipDistance = 0;
+            public byte Flags = 0;
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="data"></param>
+            /// <param name="pos"></param>
+            public ReflectionProbe(byte[] data, int pos)
+            {
+                if (data.Length - pos >= 9)
+                {
+                    Ambiance = Utils.Clamp(Utils.BytesToFloat(data, pos), 0, 1.0f);
+                    ClipDistance = Utils.Clamp(Utils.BytesToFloat(data, pos + 4), 0, 1024f);
+                    Flags = data[pos + 8];
+                }
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public byte[] GetBytes()
+            {
+                byte[] data = new byte[9];
+                Utils.FloatToBytes(Ambiance, data, 0);
+                Utils.FloatToBytes(ClipDistance, data, 4);
+                data[8] = Flags;
+                return data;
+            }
+
+            public OSD GetOSD()
+            {
+                OSDMap map = new OSDMap();
+
+                map["ambiance"] = OSD.FromReal(Ambiance);
+                map["clip_distance"] = OSD.FromReal(ClipDistance);
+                map["flags"] = OSD.FromInteger(Flags);
+                return map;
+            }
+
+            public static ReflectionProbe FromOSD(OSD osd)
+            {
+                ReflectionProbe probe = new ReflectionProbe();
+
+                if (osd.Type == OSDType.Map)
+                {
+                    OSDMap map = (OSDMap)osd;
+
+                    probe.Ambiance = (float)map["ambiance"].AsReal();
+                    probe.ClipDistance = (float)map["clip_distance"].AsReal();
+                    probe.Flags = (byte)map["flags"].AsInteger();
+                }
+
+                return probe;
+            }
+
+            public override int GetHashCode()
+            {
+                return Ambiance.GetHashCode() ^ ClipDistance.GetHashCode() ^ (int)Flags;
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public override string ToString()
+            {
+                return String.Format("ReflectionProbe:  amb {0} clip {1} flags {2}", Ambiance, ClipDistance, Flags);
+            }
+        }
+
+        /// <summary>
+        /// Information on the ReflectionProbe properties of a primitive
+        /// </summary>
+        public class RenderMaterials
+        {
+            public struct RenderMaterialEntry
+            {
+                public byte te_index;
+                public UUID id;
+            }
+
+            public RenderMaterialEntry[] entries = null;
+
+            /// <summary>
+            /// Default constructor
+            /// </summary>
+            public RenderMaterials()
+            {
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="data"></param>
+            /// <param name="pos"></param>
+            public RenderMaterials(byte[] data, int pos, int size)
+            {
+                if (size > 17)
+                {
+                    int count = data[pos];
+                    ++pos;
+                    if (size >= 1 + 17 * count)
+                    {
+                        entries = new RenderMaterialEntry[count];
+                        for (int i = 0; i < count; ++i)
+                        {
+                            entries[i].te_index = data[pos++];
+                            entries[i].id = new UUID(data, pos);
+                            pos += 16;
+                        }
+                    }
+                }
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public byte[] GetBytes()
+            {
+                if (entries == null || entries.Length == 0)
+                {
+                    return new byte[] {0};
+                }
+                byte[] data = new byte[1 + 17 * entries.Length];
+                data[0] = (byte)entries.Length;
+                int pos = 1;
+                for (int i = 0; i < entries.Length; ++i)
+                {
+                    data[pos++] = entries[i].te_index;
+                    entries[i].id.ToBytes(data, pos);
+                    pos += 16;
+                }
+                return data;
+            }
+
+            public OSD GetOSD()
+            {
+                OSDArray eMaterials = new OSDArray();
+                if(entries != null)
+                {
+                    for(int i = 0; i < entries.Length;++i)
+                    {                 
+                        OSDMap map = new OSDMap()
+                        {
+                            ["te_idx"] = OSD.FromInteger(entries[i].te_index),
+                            ["id"] = OSD.FromUUID(entries[i].id)
+                        };
+                        eMaterials[i] = map;
+                    }
+                }
+                return eMaterials;
+            }
+
+            public static RenderMaterials FromOSD(OSD osd)
+            {
+                RenderMaterials rm = new RenderMaterials();
+                try
+                {
+                    if (osd.Type == OSDType.Array)
+                    {
+                        OSDArray mra = (OSDArray)osd;
+                        if(mra.Count > 0)
+                        {
+                            RenderMaterialEntry[] entries = new RenderMaterialEntry[mra.Count];
+                            for(int i = 0; i < mra.Count; ++i)
+                            {
+                                OSDMap map = (OSDMap)mra[i];
+                                entries[i].te_index = (byte)map["te_idx"].AsInteger();
+                                entries[i].id = map["id"].AsUUID();
+                            }
+                        } 
+                    }
+                }
+                catch { }
+                return rm;
+            }
+
+            public override int GetHashCode()
+            {
+                int h = entries.Length.GetHashCode();
+                for(int i = 0 ; i < entries.Length; ++i)
+                    h ^= (int)entries[i].te_index ^ entries[i].id.GetHashCode();
+                return h;
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public override string ToString()
+            {
+                return String.Format("RenderMaterials: nentries  {0}}", entries==null? 0:entries.Length);
             }
         }
 

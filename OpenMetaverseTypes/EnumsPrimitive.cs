@@ -234,6 +234,9 @@ namespace OpenMetaverse
         LightImage = 0x40,
         /// <summary>Whether this object is a mesh</summary>
         Mesh = 0x60,
+        MeshFlag = 0x70,
+        RenderMaterial = 0x80,
+        ReflectionProbe = 0x90
     }
 
     /// <summary>
