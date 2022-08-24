@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: preBuild
-      run ./runprebuild48.sh
+      run bash ${GITHUB_WORKSPACE}/runprebuild.sh
     - name: Build
       run: msbuild /p:Configuration=Release OpenMetaverse.sln
       
