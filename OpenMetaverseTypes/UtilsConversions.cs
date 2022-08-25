@@ -157,7 +157,7 @@ namespace OpenMetaverse
             string.Empty, // 54
             string.Empty, // 55
             "settings",   // 56
-            string.Empty, // 57
+            "material"    // 57
         };
 
         private static readonly string[] _FolderTypeNames = new string[]
@@ -188,7 +188,7 @@ namespace OpenMetaverse
             "favorite",   // 23
             string.Empty, // 24
             "settings",   // 25
-            "ensemble",   // 26
+            "material",   // 26
             "ensemble",   // 27
             "ensemble",   // 28
             "ensemble",   // 29
@@ -247,7 +247,7 @@ namespace OpenMetaverse
             string.Empty, // 23
             string.Empty, // 24
             "settings",   // 25
-            string.Empty, // 26
+            "material", // 26
         };
 
         private static readonly string[] _SaleTypeNames = new string[]
