@@ -3,8 +3,8 @@ name: msbuild48
 on:
   push:
     branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    paths:
+       - '**cs'
 
 jobs:
   build:
