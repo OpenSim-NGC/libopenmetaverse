@@ -1,4 +1,4 @@
-name: .NET
+name: msbuild48
 
 on:
   push:
@@ -13,8 +13,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: shortsha
+      id: vars
+      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"     
     - name: preBuild
       run: bash ${GITHUB_WORKSPACE}/runprebuild48.sh
     - name: Build
       run: msbuild /p:Configuration=Release OpenMetaverse.sln
-      
+    - name: release
+      run: zip -r LastBuild.zip bin LICENSE.txt
+    - uses: softprops/action-gh-release@v1
+      with:
+          tag_name:  ${{ steps.vars.outputs.sha_short }}
+          name: LastBuild
+          files: LastBuild.zip      
