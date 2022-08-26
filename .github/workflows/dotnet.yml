@@ -4,11 +4,12 @@ on:
   push:
     branches: [ "master" ]
     paths:
-       - '**cs'
-
+       - '**.cs'
+  workflow_dispatch:
+ 
 jobs:
   build:
-
+    if: github.repository == 'UbitUmarov/libopenmetaverse'
     runs-on: ubuntu-latest
 
     steps:
