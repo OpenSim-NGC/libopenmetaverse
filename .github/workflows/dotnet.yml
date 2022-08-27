@@ -43,7 +43,7 @@ jobs:
           ${{ join(github.event.commits.*.message, '\n') }}
           compile ${{ steps.build.conclusion }}
     - name: report manual irc
-      if: github.event_name == 'push'
+      if: github.event_name == 'workflow_dispatch'
       uses: rectalogic/notify-irc@v1
       with:
         channel: "#opensim-dev"
