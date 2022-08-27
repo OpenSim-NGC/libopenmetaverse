@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: checkout
     - uses: actions/checkout@v3
     - name: readshortsha
       id: vars
@@ -27,6 +26,7 @@ jobs:
       if: success()
       run: zip -r LastBuild.zip bin LICENSE.txt
     - uses: softprops/action-gh-release@v1
+      if: success()
       with:
           tag_name:  r${{ steps.vars.outputs.sha_short }}
           name: LastAutoBuild
