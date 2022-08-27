@@ -21,7 +21,7 @@ jobs:
       run: bash ${GITHUB_WORKSPACE}/runprebuild48.sh
     - name: Build
       id: build
-      run: echo "::set-output name=errors::$(msbuild /p:Configuration=Release OpenMetaverse.sln)"
+      run: msbuild /p:Configuration=Release OpenMetaverse.sln
     - name: release
       if: success()
       run: zip -r LastBuild.zip bin LICENSE.txt
@@ -41,7 +41,7 @@ jobs:
         message: |
           ${{ github.actor }} pushed to ${{ github.repository }}
           ${{ join(github.event.commits.*.message, '\n') }}
-          compiled errors: ${{ steps.build.outputs.errors }}
+          compile ${{ steps.build.conclusion }}
     - name: report manual irc
       if: github.event_name == 'push'
       uses: rectalogic/notify-irc@v1
@@ -50,4 +50,4 @@ jobs:
         server: "irc.libera.chat"
         nickname: osgithub
         message: |
-          ${{ github.repository }} compiled errors: ${{ steps.build.outputs.errors }}
+          ${{ github.repository }} compile: ${{ steps.build.conclusion }}
