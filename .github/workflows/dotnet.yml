@@ -41,7 +41,7 @@ jobs:
         message: |
           ${{ github.actor }} pushed to ${{ github.repository }}
           ${{ join(github.event.commits.*.message, '\n') }}
-          compile ${{ steps.build.conclusion }}
+          mono compile: ${{ steps.build.conclusion }}
     - name: report manual irc
       if: github.event_name == 'workflow_dispatch'
       uses: rectalogic/notify-irc@v1
@@ -50,4 +50,5 @@ jobs:
         server: "irc.libera.chat"
         nickname: osgithub
         message: |
-          ${{ github.repository }} compile: ${{ steps.build.conclusion }}
+          ${{ github.repository }}
+          mono compile: ${{ steps.build.conclusion }}
