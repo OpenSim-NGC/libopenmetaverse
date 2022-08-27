@@ -5,14 +5,16 @@ on:
     branches: [ "master" ]
     paths:
        - '**.cs'
-  workflow_dispatch:
  
 jobs:
-  irc:
+  ircPush:
     if: github.repository == 'UbitUmarov/libopenmetaverse'
     runs-on: ubuntu-latest
 
-    steps:     
+    steps:
+    - name: shortsha
+      id: vars
+      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"    
     - name: irc push
       uses: rectalogic/notify-irc@v1
       if: github.event_name == 'push'
@@ -21,15 +23,5 @@ jobs:
         server: "irc.libera.chat"
         nickname: osgithub
         message: |
-          ${{ github.actor }} pushed to ${{ github.repository }}
+          ${{ github.actor }} pushed to ${{ github.repository }} ${{ steps.vars.outputs.sha_short }}
           ${{ join(github.event.commits.*.message, '\n') }}
-
-    - name: irc work
-      uses: rectalogic/notify-irc@v1
-      if: github.event_name == 'workflow_dispatch'
-      with:
-        channel: "#opensim-dev"
-        server: "irc.libera.chat"
-        nickname: osgithub
-        message: |
-          'testing' ${{ github.repository }}
