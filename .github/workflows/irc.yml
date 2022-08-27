@@ -19,7 +19,7 @@ jobs:
       run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)" 
       
     - name: irc push
-    - uses: rectalogic/notify-irc@v1
+      uses: rectalogic/notify-irc@v1
       if: github.event_name == 'push'
       with:
         channel: "#opensim-dev"
@@ -30,7 +30,7 @@ jobs:
           ${{ join(github.event.commits.*.message) }}
 
     - name: irc work
-    - uses: rectalogic/notify-irc@v1
+      uses: rectalogic/notify-irc@v1
       if: github.event_name == 'workflow_dispatch'
       with:
         channel: "#opensim-dev"
