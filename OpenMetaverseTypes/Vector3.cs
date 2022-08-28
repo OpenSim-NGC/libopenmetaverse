@@ -25,9 +25,9 @@
  */
 
 using System;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Globalization;
 
 namespace OpenMetaverse
 {
@@ -310,11 +310,7 @@ namespace OpenMetaverse
             if (Utils.CanDirectCopyLE)
             {
                 fixed (byte* d = &dest[0])
-                {
-                    *(float*)(d + pos) = X;
-                    *(float*)(d + pos + 4) = Y;
-                    *(float*)(d + pos + 8) = Z;
-                }
+                    *(Vector3*)(d + pos) = this;
             }
             else
             {
@@ -328,16 +324,141 @@ namespace OpenMetaverse
         public unsafe void ToBytes(byte* dest)
         {
             if (Utils.CanDirectCopyLE)
-            {
-                *(float*)(dest) = X;
-                *(float*)(dest + 4) = Y;
-                *(float*)(dest + 8) = Z;
-            }
+                *(Vector3*)dest = this;
             else
             {
                 Utils.FloatToBytes(X, dest);
-                Utils.FloatToBytes(Y, dest);
-                Utils.FloatToBytes(Z, dest);
+                Utils.FloatToBytes(Y, dest + 4);
+                Utils.FloatToBytes(Z, dest + 8);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ClampedToShortsBytes(float range, byte[] dest, int pos)
+        {
+            float a, b;
+
+            a = Math.Abs(X);
+            b = Math.Abs(Y);
+            if (b > a)
+                a = b;
+            b = Math.Abs(Z);
+            if (b > a)
+                a = b;
+
+            ushort sx, sy, sz;
+            if (a > range)
+            {
+                a = range / a;
+                sx = Utils.FloatToUInt16(X * a, range);
+                sy = Utils.FloatToUInt16(Y * a, range);
+                sz = Utils.FloatToUInt16(Z * a, range);
+            }
+            else
+            {
+                sx = Utils.FloatToUInt16(X, range);
+                sy = Utils.FloatToUInt16(Y, range);
+                sz = Utils.FloatToUInt16(Z, range);
+            }
+
+            if (Utils.CanDirectCopyLE)
+            {
+                fixed (byte* d = &dest[0])
+                {
+                    *(ushort*)(d + pos) = sx;
+                    *(ushort*)(d + pos + 2) = sy;
+                    *(ushort*)(d + pos + 4) = sz;
+                }
+            }
+            else
+            {
+                Utils.UInt16ToBytes(sx, dest, pos);
+                Utils.UInt16ToBytes(sy, dest, pos + 2);
+                Utils.UInt16ToBytes(sz, dest, pos + 4);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ClampedToShortsBytes(float range, byte* dest, int pos)
+        {
+            float a, b;
+
+            a = Math.Abs(X);
+            b = Math.Abs(Y);
+            if (b > a)
+                a = b;
+            b = Math.Abs(Z);
+            if (b > a)
+                a = b;
+
+            ushort sx, sy, sz;
+            if (a > range)
+            {
+                a = range / a;
+                sx = Utils.FloatToUInt16(X * a, range);
+                sy = Utils.FloatToUInt16(Y * a, range);
+                sz = Utils.FloatToUInt16(Z * a, range);
+            }
+            else
+            {
+                sx = Utils.FloatToUInt16(X, range);
+                sy = Utils.FloatToUInt16(Y, range);
+                sz = Utils.FloatToUInt16(Z, range);
+            }
+
+            if (Utils.CanDirectCopyLE)
+            {
+                *(ushort*)(dest + pos) = sx;
+                *(ushort*)(dest + pos + 2) = sy;
+                *(ushort*)(dest + pos + 4) = sz;
+            }
+            else
+            {
+                Utils.UInt16ToBytes(sx, dest, pos);
+                Utils.UInt16ToBytes(sy, dest, pos + 2);
+                Utils.UInt16ToBytes(sz, dest, pos + 4);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ClampedToShortsBytes(float range, byte* dest)
+        {
+            float a, b;
+
+            a = Math.Abs(X);
+            b = Math.Abs(Y);
+            if (b > a)
+                a = b;
+            b = Math.Abs(Z);
+            if (b > a)
+                a = b;
+
+            ushort sx, sy, sc;
+            if (a > range)
+            {
+                a = range / a;
+                sx = Utils.FloatToUInt16(X * a, range);
+                sy = Utils.FloatToUInt16(Y * a, range);
+                sc = Utils.FloatToUInt16(Z * a, range);
+            }
+            else
+            {
+                sx = Utils.FloatToUInt16(X, range);
+                sy = Utils.FloatToUInt16(Y, range);
+                sc = Utils.FloatToUInt16(Z, range);
+            }
+
+            if (Utils.CanDirectCopyLE)
+            {
+                *(ushort*)(dest) = sx;
+                *(ushort*)(dest + 2) = sy;
+                *(ushort*)(dest + 4) = sc;
+            }
+            else
+            {
+                Utils.UInt16ToBytes(sx, dest);
+                Utils.UInt16ToBytes(sy, dest + 2);
+                Utils.UInt16ToBytes(sc, dest + 4);
             }
         }
 

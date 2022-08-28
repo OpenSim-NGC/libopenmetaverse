@@ -67,7 +67,6 @@
       <Configuration name="Release">
         <Options>
           <OutputPath>../bin/</OutputPath>
-          <XmlDocFile>OpenMetaverseTypes.XML</XmlDocFile>
         </Options>
       </Configuration>
 
@@ -92,7 +91,6 @@
       <Configuration name="Release">
         <Options>
           <OutputPath>../bin/</OutputPath>
-          <XmlDocFile>OpenMetaverse.StructuredData.XML</XmlDocFile>
         </Options>
       </Configuration>
 
@@ -116,7 +114,6 @@
       <Configuration name="Release">
         <Options>
           <OutputPath>../bin/</OutputPath>
-          <XmlDocFile>OpenMetaverse.XML</XmlDocFile>
         </Options>
       </Configuration>
 
@@ -149,7 +146,6 @@
       <Configuration name="Release">
         <Options>
           <OutputPath>../bin/</OutputPath>
-          <XmlDocFile>OpenMetaverse.Utilities.XML</XmlDocFile>
         </Options>
       </Configuration>
 
@@ -282,7 +278,6 @@
       <Configuration name="Release">
         <Options>
           <OutputPath>../bin/</OutputPath>
-          <XmlDocFile>OpenMetaverse.GUI.XML</XmlDocFile>
         </Options>
       </Configuration>
 
