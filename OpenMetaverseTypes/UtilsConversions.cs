@@ -2183,6 +2183,17 @@ namespace OpenMetaverse
             return (byte)(255 * val);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte FloatZeroOneToByte(float val)
+        {
+            if (val <= 0)
+                return 0;
+            if (val >= 1.0f)
+                return 255;
+
+            return (byte)(255 * val);
+        }
+
         /// <summary>
         /// Convert a byte to a float value given a minimum and maximum range
         /// </summary>

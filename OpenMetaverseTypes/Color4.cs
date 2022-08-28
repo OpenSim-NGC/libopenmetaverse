@@ -248,17 +248,19 @@ namespace OpenMetaverse
         /// instead of 255)</param>
         public void ToBytes(byte[] dest, int pos, bool inverted)
         {
-            dest[pos + 0] = Utils.FloatToByte(R, 0f, 1f);
-            dest[pos + 1] = Utils.FloatToByte(G, 0f, 1f);
-            dest[pos + 2] = Utils.FloatToByte(B, 0f, 1f);
-            dest[pos + 3] = Utils.FloatToByte(A, 0f, 1f);
-
-            if (inverted)
+            if (!inverted)
             {
-                dest[pos + 0] = (byte)(255 - dest[pos + 0]);
-                dest[pos + 1] = (byte)(255 - dest[pos + 1]);
-                dest[pos + 2] = (byte)(255 - dest[pos + 2]);
-                dest[pos + 3] = (byte)(255 - dest[pos + 3]);
+                dest[pos + 0] = Utils.FloatZeroOneToByte(R);
+                dest[pos + 1] = Utils.FloatZeroOneToByte(G);
+                dest[pos + 2] = Utils.FloatZeroOneToByte(B);
+                dest[pos + 3] = Utils.FloatZeroOneToByte(A);
+            }
+            else
+            {
+                dest[pos + 0] = (byte)(255 - Utils.FloatZeroOneToByte(R));
+                dest[pos + 1] = (byte)(255 - Utils.FloatZeroOneToByte(G));
+                dest[pos + 2] = (byte)(255 - Utils.FloatZeroOneToByte(B));
+                dest[pos + 3] = (byte)(255 - Utils.FloatZeroOneToByte(A));
             }
         }
 
@@ -313,22 +315,17 @@ namespace OpenMetaverse
         /// </summary>
         public void ClampValues()
         {
-            if (R < 0f)
-                R = 0f;
-            if (G < 0f)
-                G = 0f;
-            if (B < 0f)
-                B = 0f;
-            if (A < 0f)
-                A = 0f;
-            if (R > 1f)
-                R = 1f;
-            if (G > 1f)
-                G = 1f;
-            if (B > 1f)
-                B = 1f;
-            if (A > 1f)
-                A = 1f;
+            if (R < 0f) R = 0f;
+            else if (R > 1f) R = 1f;
+
+            if (G < 0f) G = 0f;
+            else if(G > 1f) G = 1f;
+
+            if (B < 0f) B = 0f;
+            else if (B > 1f) B = 1f;
+
+            if (A < 0f) A = 0f;
+            else if (A > 1f) A = 1f;
         }
 
         #endregion Public Methods

@@ -581,9 +581,9 @@ namespace OpenMetaverse.Imaging
 
             for (int i = 0; i < dest.Red.Length; i++)
             {
-                dest.Red[i] = (byte)((dest.Red[i] * Utils.FloatToByte(src.R, 0f, 1f)) >> 8);
-                dest.Green[i] = (byte)((dest.Green[i] * Utils.FloatToByte(src.G, 0f, 1f)) >> 8);
-                dest.Blue[i] = (byte)((dest.Blue[i] * Utils.FloatToByte(src.B, 0f, 1f)) >> 8);
+                dest.Red[i] = (byte)((dest.Red[i] * Utils.FloatZeroOneToByte(src.R)) >> 8);
+                dest.Green[i] = (byte)((dest.Green[i] * Utils.FloatZeroOneToByte(src.G)) >> 8);
+                dest.Blue[i] = (byte)((dest.Blue[i] * Utils.FloatZeroOneToByte(src.B)) >> 8);
             }
         }
 
@@ -610,9 +610,9 @@ namespace OpenMetaverse.Imaging
         /// <param name="b">Blue value</param>
         private void InitBakedLayerColor(float r, float g, float b)
         {
-            byte rByte = Utils.FloatToByte(r, 0f, 1f);
-            byte gByte = Utils.FloatToByte(g, 0f, 1f);
-            byte bByte = Utils.FloatToByte(b, 0f, 1f);
+            byte rByte = Utils.FloatZeroOneToByte(r);
+            byte gByte = Utils.FloatZeroOneToByte(g);
+            byte bByte = Utils.FloatZeroOneToByte(b);
 
             byte rAlt, gAlt, bAlt;
 

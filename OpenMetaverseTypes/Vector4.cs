@@ -132,11 +132,19 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clamp(float min, float max)
         {
-            X = Utils.Clamp(X, min, max);
-            Y = Utils.Clamp(Y, min, max);
-            Z = Utils.Clamp(Z, min, max);
-            W = Utils.Clamp(W, min, max);
+            if (X < min) X = min;
+            else if (X > max) X = max;
+
+            if (Y < min) Y = min;
+            else if (Y > max) Y = max;
+
+            if (Z < min) Z = min;
+            else if (Z > max) Z = max;
+
+            if (W < min) W = min;
+            else if (W > max) W = max;
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Min(Vector4 v)
         {
