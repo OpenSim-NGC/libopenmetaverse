@@ -2194,6 +2194,19 @@ namespace OpenMetaverse
             return (byte)(255 * val);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ushort FloatZeroOneToushort(float val)
+        {
+            if (val <= 0)
+                return 0;
+
+            if (val >= 1.0f)
+                return 0xffff;
+
+            return (ushort)(val * 0xffff);
+        }
+
+
         /// <summary>
         /// Convert a byte to a float value given a minimum and maximum range
         /// </summary>
