@@ -304,7 +304,7 @@ namespace OpenMetaverse
         /// <param name="dest">Destination byte array</param>
         /// <param name="pos">Position in the destination array to start
         /// writing. Must be at least 12 bytes before the end of the array</param>
-        public void ToBytes(byte[] dest, int pos)
+        public unsafe void ToBytes(byte[] dest, int pos)
         {
             float norm = LengthSquared();
             if (norm > 1e-6f || norm < 0.9999f)
@@ -313,15 +313,150 @@ namespace OpenMetaverse
                     norm = -1f / (float)Math.Sqrt(norm);
                 else
                     norm = 1f / (float)Math.Sqrt(norm);
-                Utils.FloatToBytesSafepos(norm * X, dest, pos);
-                Utils.FloatToBytesSafepos(norm * Y, dest, pos + 4);
-                Utils.FloatToBytesSafepos(norm * Z, dest, pos + 8);
+                if (Utils.CanDirectCopyLE)
+                {
+                    fixed (byte* d = &dest[0])
+                    {
+                        *(float*)(d + pos) = norm * X;
+                        *(float*)(d + pos + 4) = norm * Y;
+                        *(float*)(d + pos + 8) = norm * Z;
+                    }
+                }
+                else
+                {
+                    Utils.FloatToBytesSafepos(norm * X, dest, pos);
+                    Utils.FloatToBytesSafepos(norm * Y, dest, pos + 4);
+                    Utils.FloatToBytesSafepos(norm * Z, dest, pos + 8);
+                }
             }
             else
             {
-                Utils.FloatToBytesSafepos(0, dest, pos);
-                Utils.FloatToBytesSafepos(0, dest, pos + 4);
-                Utils.FloatToBytesSafepos(0, dest, pos + 8);
+                if (Utils.CanDirectCopyLE)
+                {
+                    fixed (byte* d = &dest[0])
+                    {
+                        *(long*)(d + pos) = 0;
+                        *(int*)(d + pos + 8) = 0;
+                    }
+                }
+                else
+                {
+                    Utils.FloatToBytesSafepos(0, dest, pos);
+                    Utils.FloatToBytesSafepos(0, dest, pos + 4);
+                    Utils.FloatToBytesSafepos(0, dest, pos + 8);
+                }
+            }
+        }
+
+        public unsafe void ToBytes(byte* dest)
+        {
+            float norm = LengthSquared();
+            if (norm > 1e-6f || norm < 0.9999f)
+            {
+                if (W < 0f)
+                    norm = -1f / (float)Math.Sqrt(norm);
+                else
+                    norm = 1f / (float)Math.Sqrt(norm);
+                if (Utils.CanDirectCopyLE)
+                {
+                    *(float*)(dest) = norm * X;
+                    *(float*)(dest + 4) = norm * Y;
+                    *(float*)(dest + 8) = norm * Z;
+                }
+                else
+                {
+                    Utils.FloatToBytes(norm * X, dest);
+                    Utils.FloatToBytes(norm * Y, dest + 4);
+                    Utils.FloatToBytes(norm * Z, dest + 8);
+                }
+            }
+            else
+            {
+                if (Utils.CanDirectCopyLE)
+                {
+                    *(long*)dest = 0;
+                    *(int*)(dest + 8) = 0;
+                }
+                else
+                {
+                    Utils.FloatToBytes(0, dest);
+                    Utils.FloatToBytes(0, dest + 4);
+                    Utils.FloatToBytes(0, dest + 8);
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ToShortsBytes(byte[] dest, int pos)
+        {
+            ushort sx = Utils.FloatToUnitUInt16(X);
+            ushort sy = Utils.FloatToUnitUInt16(Y);
+            ushort sz = Utils.FloatToUnitUInt16(Z);
+            ushort sw = Utils.FloatToUnitUInt16(W);
+
+            if (Utils.CanDirectCopyLE)
+            {
+                fixed (byte* d = &dest[0])
+                {
+                    *(ushort*)(d + pos) = sx;
+                    *(ushort*)(d + pos + 2) = sy;
+                    *(ushort*)(d + pos + 4) = sz;
+                    *(ushort*)(d + pos + 6) = sw;
+                }
+            }
+            else
+            {
+                Utils.UInt16ToBytes(sx, dest, pos);
+                Utils.UInt16ToBytes(sy, dest, pos + 2);
+                Utils.UInt16ToBytes(sz, dest, pos + 4);
+                Utils.UInt16ToBytes(sw, dest, pos + 6);
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ToShortsBytes(byte* dest, int pos)
+        {
+            ushort sx = Utils.FloatToUnitUInt16(X);
+            ushort sy = Utils.FloatToUnitUInt16(Y);
+            ushort sz = Utils.FloatToUnitUInt16(Z);
+            ushort sw = Utils.FloatToUnitUInt16(W);
+
+            if (Utils.CanDirectCopyLE)
+            {
+                *(ushort*)(dest + pos) = sx;
+                *(ushort*)(dest + pos + 2) = sy;
+                *(ushort*)(dest + pos + 4) = sz;
+                *(ushort*)(dest + pos + 6) = sw;
+            }
+            else
+            {
+                Utils.UInt16ToBytes(sx, dest, pos);
+                Utils.UInt16ToBytes(sy, dest, pos + 2);
+                Utils.UInt16ToBytes(sz, dest, pos + 4);
+                Utils.UInt16ToBytes(sw, dest, pos + 6);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ToShortsBytes(byte* dest)
+        {
+            ushort sx = Utils.FloatToUnitUInt16(X);
+            ushort sy = Utils.FloatToUnitUInt16(Y);
+            ushort sz = Utils.FloatToUnitUInt16(Z);
+            ushort sw = Utils.FloatToUnitUInt16(W);
+
+            if (Utils.CanDirectCopyLE)
+            {
+                *(ushort*)(dest) = sx;
+                *(ushort*)(dest + 2) = sy;
+                *(ushort*)(dest + 4) = sz;
+                *(ushort*)(dest + 6) = sw;
+            }
+            else
+            {
+                Utils.UInt16ToBytes(sx, dest);
+                Utils.UInt16ToBytes(sy, dest + 2);
+                Utils.UInt16ToBytes(sz, dest + 4);
+                Utils.UInt16ToBytes(sw, dest + 6);
             }
         }
 

@@ -210,10 +210,30 @@ namespace OpenMetaverse
         /// <param name="pos">Position in the destination array to start
         /// writing. Must be at least 8 bytes before the end of the array</param>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void ToBytes(byte[] dest, int pos)
+        public unsafe void ToBytes(byte[] dest, int pos)
         {
-            Utils.FloatToBytesSafepos(X, dest, pos);
-            Utils.FloatToBytesSafepos(Y, dest, pos + 4);
+            if (Utils.CanDirectCopyLE)
+            {
+                fixed (byte* d = &dest[0])
+                    *(Vector2*)(d + pos) = this;
+            }
+            else
+            {
+                Utils.FloatToBytesSafepos(X, dest, pos);
+                Utils.FloatToBytesSafepos(Y, dest, pos + 4);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ToBytes(byte* dest)
+        {
+            if (Utils.CanDirectCopyLE)
+                *(Vector2*)(dest) = this;
+            else
+            {
+                Utils.FloatToBytes(X, dest);
+                Utils.FloatToBytes(Y, dest + 4);
+            }
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

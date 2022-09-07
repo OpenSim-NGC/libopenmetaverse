@@ -114,16 +114,7 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Clamp(float value, float min, float max)
         {
-            // First we check to see if we're greater than the max
-            if (value >= max)
-                return max;
-
-            // Then we check to see if we're less than the min.
-            if (value < min)
-                return min;
-
-            // There's no check to see if min > max.
-            return value;
+            return (value < max) ? (value > min ? value : min) : max;
         }
 
         /// <summary>
@@ -136,16 +127,7 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Clamp(double value, double min, double max)
         {
-            // First we check to see if we're greater than the max
-            if (value >= max)
-                return max;
-
-            // Then we check to see if we're less than the min.
-            if (value < min)
-                return min;
-
-            // There's no check to see if min > max.
-            return value;
+            return (value < max) ? (value > min ? value : min) : max;
         }
 
         /// <summary>
@@ -158,16 +140,7 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Clamp(int value, int min, int max)
         {
-            // First we check to see if we're greater than the max
-            if (value >= max)
-                return max;
-
-            // Then we check to see if we're less than the min.
-            if (value < min)
-                return min;
-
-            // There's no check to see if min > max.
-            return value;
+            return (value < max) ? (value > min ? value : min) : max;
         }
 
         /// <summary>
@@ -213,40 +186,38 @@ namespace OpenMetaverse
 
         public static float Hermite(float value1, float tangent1, float value2, float tangent2, float amount)
         {
+            if (amount <= 0f)
+                return value1;
+            if (amount >= 1f)
+                return value2;
+
             // All transformed to double not to lose precission
             // Otherwise, for high numbers of param:amount the result is NaN instead of Infinity
-            double v1 = value1, v2 = value2, t1 = tangent1, t2 = tangent2, s = amount, result;
-            double sCubed = s * s * s;
+            double v1 = value1, v2 = value2, t1 = tangent1, t2 = tangent2, s = amount;
             double sSquared = s * s;
-
-            if (amount == 0f)
-                result = value1;
-            else if (amount == 1f)
-                result = value2;
-            else
-                result = (2d * v1 - 2d * v2 + t2 + t1) * sCubed +
+            double sCubed = sSquared * s;
+            
+            return (float)((2d * v1 - 2d * v2 + t2 + t1) * sCubed +
                     (3d * v2 - 3d * v1 - 2d * t1 - t2) * sSquared +
-                    t1 * s + v1;
-            return (float)result;
+                    t1 * s + v1);
         }
 
         public static double Hermite(double value1, double tangent1, double value2, double tangent2, double amount)
         {
+            if (amount <= 0d)
+                return value1;
+            if (amount >= 1f)
+                return value2;
+
             // All transformed to double not to lose precission
             // Otherwise, for high numbers of param:amount the result is NaN instead of Infinity
-            double v1 = value1, v2 = value2, t1 = tangent1, t2 = tangent2, s = amount, result;
-            double sCubed = s * s * s;
+            double v1 = value1, v2 = value2, t1 = tangent1, t2 = tangent2, s = amount;
             double sSquared = s * s;
+            double sCubed = sSquared * s;
 
-            if (amount == 0d)
-                result = value1;
-            else if (amount == 1f)
-                result = value2;
-            else
-                result = (2d * v1 - 2d * v2 + t2 + t1) * sCubed +
+            return (2d * v1 - 2d * v2 + t2 + t1) * sCubed +
                     (3d * v2 - 3d * v1 - 2d * t1 - t2) * sSquared +
                     t1 * s + v1;
-            return result;
         }
 
         public static float Lerp(float value1, float value2, float amount)
@@ -261,20 +232,12 @@ namespace OpenMetaverse
 
         public static float SmoothStep(float value1, float value2, float amount)
         {
-            // It is expected that 0 < amount < 1
-            // If amount < 0, return value1
-            // If amount > 1, return value2
-            float result = Utils.Clamp(amount, 0f, 1f);
-            return Utils.Hermite(value1, 0f, value2, 0f, result);
+            return Utils.Hermite(value1, 0f, value2, 0f, amount);
         }
 
         public static double SmoothStep(double value1, double value2, double amount)
         {
-            // It is expected that 0 < amount < 1
-            // If amount < 0, return value1
-            // If amount > 1, return value2
-            double result = Utils.Clamp(amount, 0f, 1f);
-            return Utils.Hermite(value1, 0f, value2, 0f, result);
+            return Utils.Hermite(value1, 0f, value2, 0f, amount);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -424,26 +387,20 @@ namespace OpenMetaverse
         public static Platform GetRunningPlatform()
         {
             const string OSX_CHECK_FILE = "/Library/Extensions.kextcache";
-
-            if (Environment.OSVersion.Platform == PlatformID.WinCE)
+            switch(Environment.OSVersion.Platform)
             {
-                return Platform.WindowsCE;
-            }
-            else
-            {
-                int plat = (int)Environment.OSVersion.Platform;
-
-                if ((plat != 4) && (plat != 128))
-                {
-                    return Platform.Windows;
-                }
-                else
+                case PlatformID.WinCE:
+                    return Platform.WindowsCE;
+                case PlatformID.Unix:
+                case PlatformID.MacOSX:
                 {
                     if (System.IO.File.Exists(OSX_CHECK_FILE))
                         return Platform.OSX;
                     else
                         return Platform.Linux;
                 }
+                default:
+                    return Platform.Windows;
             }
         }
 
@@ -453,11 +410,7 @@ namespace OpenMetaverse
         /// <returns>Enumeration of the current runtime we are running on</returns>
         public static Runtime GetRunningRuntime()
         {
-            Type t = Type.GetType("Mono.Runtime");
-            if (t != null)
-                return Runtime.Mono;
-            else
-                return Runtime.Windows;
+            return (Type.GetType("Mono.Runtime") == null) ? Runtime.Windows : Runtime.Mono;
         }
 
         #endregion Platform

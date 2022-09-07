@@ -132,11 +132,19 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clamp(float min, float max)
         {
-            X = Utils.Clamp(X, min, max);
-            Y = Utils.Clamp(Y, min, max);
-            Z = Utils.Clamp(Z, min, max);
-            W = Utils.Clamp(W, min, max);
+            if (X < min) X = min;
+            else if (X > max) X = max;
+
+            if (Y < min) Y = min;
+            else if (Y > max) Y = max;
+
+            if (Z < min) Z = min;
+            else if (Z > max) Z = max;
+
+            if (W < min) W = min;
+            else if (W > max) W = max;
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Min(Vector4 v)
         {
@@ -276,12 +284,35 @@ namespace OpenMetaverse
         /// <param name="dest">Destination byte array</param>
         /// <param name="pos">Position in the destination array to start
         /// writing. Must be at least 16 bytes before the end of the array</param>
-        public void ToBytes(byte[] dest, int pos)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ToBytes(byte[] dest, int pos)
         {
-            Utils.FloatToBytesSafepos(X, dest, pos);
-            Utils.FloatToBytesSafepos(Y, dest, pos + 4);
-            Utils.FloatToBytesSafepos(Z, dest, pos + 8);
-            Utils.FloatToBytesSafepos(W, dest, pos + 12);
+            if (Utils.CanDirectCopyLE)
+            {
+                fixed (byte* d = &dest[0])
+                    *(Vector4*)(d + pos) = this;
+            }
+            else
+            {
+                Utils.FloatToBytesSafepos(X, dest, pos);
+                Utils.FloatToBytesSafepos(Y, dest, pos + 4);
+                Utils.FloatToBytesSafepos(Z, dest, pos + 8);
+                Utils.FloatToBytesSafepos(W, dest, pos + 12);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ToBytes(byte* dest)
+        {
+            if (Utils.CanDirectCopyLE)
+                *(Vector4*)dest = this;
+            else
+            {
+                Utils.FloatToBytes(X, dest);
+                Utils.FloatToBytes(Y, dest + 4);
+                Utils.FloatToBytes(Z, dest + 8);
+                Utils.FloatToBytes(W, dest + 12);
+            }
         }
 
         #endregion Public Methods
