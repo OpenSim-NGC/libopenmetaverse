@@ -20,8 +20,8 @@ namespace PrimWorkshop
         const float DEG_TO_RAD = 0.0174532925f;
         const uint TERRAIN_START = (uint)Int32.MaxValue + 1;
 
-        ContextMenu ExportPrimMenu;
-        ContextMenu ExportTerrainMenu;
+        ContextMenuStrip ExportPrimMenu;
+        ContextMenuStrip ExportTerrainMenu;
 
         GridClient Client;
         Camera Camera;
@@ -82,14 +82,14 @@ namespace PrimWorkshop
             cboServer.SelectedIndex = 0;
 
             // Context menus
-            ExportPrimMenu = new ContextMenu();
-            ExportPrimMenu.MenuItems.Add("Download", new EventHandler(DownloadMenu_Clicked));
-            ExportPrimMenu.MenuItems.Add("Download All Objects", new EventHandler(DownloadAllMenu_Clicked));
-            ExportTerrainMenu = new ContextMenu();
-            ExportTerrainMenu.MenuItems.Add("Teleport", new EventHandler(TeleportMenu_Clicked));
-            ExportTerrainMenu.MenuItems.Add("Export Terrain", new EventHandler(ExportTerrainMenu_Clicked));
-            ExportTerrainMenu.MenuItems.Add("Import Object", new EventHandler(ImportObjectMenu_Clicked));
-            ExportTerrainMenu.MenuItems.Add("Import Sim", new EventHandler(ImportSimMenu_Clicked));
+            ExportPrimMenu = new ContextMenuStrip();
+            ExportPrimMenu.Items.Add(new ToolStripMenuItem("Download", null, new EventHandler(DownloadMenu_Clicked)));
+            ExportPrimMenu.Items.Add(new ToolStripMenuItem("Download All Objects", null, new EventHandler(DownloadAllMenu_Clicked)));
+            ExportTerrainMenu = new ContextMenuStrip();
+            ExportTerrainMenu.Items.Add(new ToolStripMenuItem("Teleport", null, new EventHandler(TeleportMenu_Clicked)));
+            ExportTerrainMenu.Items.Add(new ToolStripMenuItem("Export Terrain", null,  new EventHandler(ExportTerrainMenu_Clicked)));
+            ExportTerrainMenu.Items.Add(new ToolStripMenuItem("Import Object", null, new EventHandler(ImportObjectMenu_Clicked)));
+            ExportTerrainMenu.Items.Add(new ToolStripMenuItem("Import Sim", null, new EventHandler(ImportSimMenu_Clicked)));
 
             // Setup a timer for updating the progress bar
             ProgressTimer = new System.Timers.Timer(250);
@@ -556,14 +556,14 @@ namespace PrimWorkshop
                 {
                     // This should have already been fixed in the picking processing code
                     Console.WriteLine("Download menu clicked when a child prim is selected!");
-                    glControl.ContextMenu = null;
+                    glControl.ContextMenuStrip = null;
                     LastHit = 0;
                 }
             }
             else
             {
                 Console.WriteLine("Download menu clicked when there is no selected prim!");
-                glControl.ContextMenu = null;
+                glControl.ContextMenuStrip = null;
                 LastHit = 0;
             }
         }
@@ -696,7 +696,7 @@ namespace PrimWorkshop
                 else
                 {
                     // This shouldn't have happened...
-                    glControl.ContextMenu = null;
+                    glControl.ContextMenuStrip = null;
                 }
             }
         }
@@ -867,7 +867,7 @@ namespace PrimWorkshop
             else
             {
                 LastHit = 0;
-                glControl.ContextMenu = null;
+                glControl.ContextMenuStrip = null;
             }
         }
 
@@ -903,7 +903,7 @@ namespace PrimWorkshop
             if (LastHit >= TERRAIN_START)
             {
                 // Terrain was clicked on, turn off the context menu
-                glControl.ContextMenu = ExportTerrainMenu;
+                glControl.ContextMenuStrip = ExportTerrainMenu;
             }
             else
             {
@@ -922,7 +922,7 @@ namespace PrimWorkshop
                         if (RenderPrimList.TryGetValue(render.Prim.ParentID, out renderParent))
                         {
                             // Turn on the context menu
-                            glControl.ContextMenu = ExportPrimMenu;
+                            glControl.ContextMenuStrip = ExportPrimMenu;
 
                             // Change the clicked on prim to the parent. Camera position stays on the
                             // clicked child but the highlighting is applied to all the children

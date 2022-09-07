@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net6.0</TargetFramework>
+	<TargetFramework>net6.0-windows</TargetFramework>
+	<UseWindowsForms>true</UseWindowsForms>
     <OutputType>WinExe</OutputType>
     <AssemblyTitle>WinGridProxy</AssemblyTitle>
     <Company>OpenMetaverse</Company>
