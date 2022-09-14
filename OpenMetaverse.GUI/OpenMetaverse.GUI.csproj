@@ -10,11 +10,6 @@
     <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="System.Windows.Forms">
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
     <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
   </ItemGroup>

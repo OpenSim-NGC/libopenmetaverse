@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFrameworks>net6.0</TargetFrameworks>
     <Authors>Dhalia Trimble, OpenSim Contributors, Cinder Roxley</Authors>
     <Product>OpenMetaverse.PrimMesher</Product>
     <PackageId>OpenMetaverse.PrimMesher</PackageId>
@@ -15,6 +15,6 @@
     <DefineConstants>TRACE;VERTEX_INDEXER</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
+	  <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
   </ItemGroup>
 </Project>

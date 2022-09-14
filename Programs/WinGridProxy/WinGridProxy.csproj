@@ -22,9 +22,6 @@
       <Private>False</Private>
       <HintPath>..\..\bin\Be.Windows.Forms.HexBox.dll</HintPath>
     </Reference>
-    <Reference Include="System.Windows.Forms">
-      <Private>False</Private>
-    </Reference>
     <Reference Include="XMLRPC">
       <Private>False</Private>
       <HintPath>..\..\bin\XMLRPC.dll</HintPath>

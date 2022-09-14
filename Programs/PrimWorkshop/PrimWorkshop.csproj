@@ -20,9 +20,6 @@
       <Private>False</Private>
       <HintPath>..\..\bin\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
-    <Reference Include="System.Windows.Forms">
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Tao.OpenGl">
       <Private>False</Private>
       <HintPath>..\..\bin\Tao.OpenGl.dll</HintPath>

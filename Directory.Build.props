@@ -21,5 +21,6 @@
     <RepositoryUrl>https://github.com/OpenSim-NGC/libopenmetaverse.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryBranch>master</RepositoryBranch>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 </Project>

@@ -12,9 +12,6 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System.Windows.Forms">
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Tao.OpenGl">
       <Private>False</Private>
       <HintPath>../../bin/Tao.OpenGl.dll</HintPath>
