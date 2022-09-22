@@ -645,6 +645,15 @@ namespace GridProxy
                 int indx = capuri.IndexOf("/item/");
                 if (indx < 0)
                     indx = capuri.IndexOf("/category/");
+
+                if (indx < 0)
+                {
+                    indx = capuri.IndexOf("/cap/");
+                    if(indx > 0 && indx + 45 < capuri.Length)
+                        indx += 41;
+                    else
+                        indx = -1;
+                }
                 if(indx > 0)
                     capuri = capuri.Substring(0,indx);
 
