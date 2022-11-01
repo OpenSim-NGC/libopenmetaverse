@@ -88,15 +88,15 @@ namespace OpenMetaverse
         /// <summary>Provide a single instance of the MD5 class to avoid making
         /// duplicate copies and handle thread safety</summary>
         private static readonly System.Security.Cryptography.MD5 MD5Builder =
-            new System.Security.Cryptography.MD5CryptoServiceProvider();
+            System.Security.Cryptography.MD5.Create();
 
         /// <summary>Provide a single instance of the SHA-1 class to avoid
         /// making duplicate copies and handle thread safety</summary>
         private static readonly System.Security.Cryptography.SHA1 SHA1Builder =
-            new System.Security.Cryptography.SHA1CryptoServiceProvider();
+            System.Security.Cryptography.SHA1.Create();
 
         private static readonly System.Security.Cryptography.SHA256 SHA256Builder =
-            new System.Security.Cryptography.SHA256Managed();
+            System.Security.Cryptography.SHA256.Create();
 
         /// <summary>Provide a single instance of a random number generator
         /// to avoid making duplicate copies and handle thread safety</summary>
