@@ -559,7 +559,7 @@ namespace OpenMetaverse
         {
             CheckCapacity(36);
             fixed (byte* d = m_data)
-                Utils.UUIDToByteDashString(ref u, d + m_len);
+                Utils.UUIDToByteDashString(u, d + m_len);
             m_len += 36;
         }
 

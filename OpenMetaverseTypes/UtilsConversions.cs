@@ -2994,7 +2994,7 @@ namespace OpenMetaverse
             return (byte)(b > 9 ? b + 0x57 : b + ASCIIzero);
         }
 
-        public static unsafe void UUIDToByteDashString(ref UUID u, byte* dst)
+        public static unsafe void UUIDToByteDashString(UUID u, byte* dst)
         {
             if (Sse41.IsSupported)
             {
@@ -3147,7 +3147,7 @@ namespace OpenMetaverse
         {
             osUTF8 ret = new osUTF8(36);
             fixed (byte* d = ret.m_data)
-                UUIDToByteDashString(ref v, d);
+                UUIDToByteDashString(v, d);
             ret.m_len = 36;
             return ret;
         }

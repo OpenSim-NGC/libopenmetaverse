@@ -74,163 +74,28 @@ namespace OpenMetaverse
         [XmlIgnore] [NonSerialized()] [FieldOffset(0)] public ulong ulonga;
         [XmlIgnore] [NonSerialized()] [FieldOffset(8)] public ulong ulongb;
 
-        [FieldOffset(0)] public Guid Guid;
-
         #region Constructors
 
+        public Guid Guid
+        {
+            get
+            {
+                return Unsafe.As<UUID, Guid>(ref this);
+            }
+            set
+            {
+                Unsafe.As<UUID, Guid>(ref this) = value;
+            }
+        }
         /// <summary>
         /// Constructor that takes a string UUID representation
         /// </summary>
         /// <param name="sval">A string representation of a UUID, case 
         /// insensitive and can either be hyphenated or non-hyphenated</param>
         /// <example>UUID("11f8aa9c-b071-4242-836b-13b7abe0d489")</example>
-        /*
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe UUID(string val)
+        public UUID(string sval) : this(sval.AsSpan())
         {
-            if (!string.IsNullOrEmpty(val))
-            {
-                try
-                {
-                    if (Guid.TryParse(val, out Guid gg))
-                    {
-                        this = *(UUID*)&gg;
-                        return;
-                    }
-                }
-                catch { }
-            }
-            this = new UUID();
-        }
-        */
-
-        public unsafe UUID(string sval)
-        {
-            this = new UUID();
-            if (sval is null)
-                throw new FormatException("Invalid UUID");
-            int len = sval.Length;
-            if (len < 32)
-                throw new FormatException("Invalid UUID");
-
-            try
-            {
-                fixed (char* bval = sval)
-                {
-                    char* val = bval;
-                    while (*val == ' ')
-                    {
-                        ++val;
-                        --len;
-                        if (len < 32)
-                            throw new Exception();
-                    }
-
-                    if (val[8] == '-')
-                    {
-                        if (len < 36)
-                            throw new Exception();
-
-                        while (--len > 35)
-                        {
-                            if (val[len] != ' ')
-                                throw new Exception();
-                        }
-
-                        if (val[13] != '-' || val[18] != '-' || val[23] != '-')
-                            throw new Exception();
-
-                        if (BitConverter.IsLittleEndian)
-                        {
-                            bytea3 = Utils.HexToByte(val, 0);
-                            bytea2 = Utils.HexToByte(val, 2);
-                            bytea1 = Utils.HexToByte(val, 4);
-                            bytea0 = Utils.HexToByte(val, 6);
-
-                            byteb1 = Utils.HexToByte(val, 9);
-                            byteb0 = Utils.HexToByte(val, 11);
-
-                            bytec1 = Utils.HexToByte(val, 14);
-                            bytec0 = Utils.HexToByte(val, 16);
-                        }
-                        else
-                        {
-                            bytea0 = Utils.HexToByte(val, 0);
-                            bytea1 = Utils.HexToByte(val, 2);
-                            bytea2 = Utils.HexToByte(val, 4);
-                            bytea3 = Utils.HexToByte(val, 6);
-
-                            byteb0 = Utils.HexToByte(val, 9);
-                            byteb1 = Utils.HexToByte(val, 11);
-
-                            bytec0 = Utils.HexToByte(val, 14);
-                            bytec1 = Utils.HexToByte(val, 16);
-                        }
-
-
-                        d = Utils.HexToByte(val, 19);
-                        e = Utils.HexToByte(val, 21);
-
-
-                        f = Utils.HexToByte(val, 24);
-                        g = Utils.HexToByte(val, 26);
-                        h = Utils.HexToByte(val, 28);
-                        i = Utils.HexToByte(val, 30);
-                        j = Utils.HexToByte(val, 32);
-                        k = Utils.HexToByte(val, 34);
-                        return;
-                    }
-                    else
-                    {
-                        while (--len > 31)
-                        {
-                            if (val[len] != ' ')
-                                throw new Exception();
-                        }
-
-                        if (BitConverter.IsLittleEndian)
-                        {
-                            bytea3 = Utils.HexToByte(val, 0);
-                            bytea2 = Utils.HexToByte(val, 2);
-                            bytea1 = Utils.HexToByte(val, 4);
-                            bytea0 = Utils.HexToByte(val, 6);
-
-                            byteb1 = Utils.HexToByte(val, 8);
-                            byteb0 = Utils.HexToByte(val, 10);
-
-                            bytec1 = Utils.HexToByte(val, 12);
-                            bytec0 = Utils.HexToByte(val, 14);
-                        }
-                        else
-                        {
-                            bytea0 = Utils.HexToByte(val, 0);
-                            bytea1 = Utils.HexToByte(val, 2);
-                            bytea2 = Utils.HexToByte(val, 4);
-                            bytea3 = Utils.HexToByte(val, 6);
-
-                            byteb0 = Utils.HexToByte(val, 8);
-                            byteb1 = Utils.HexToByte(val, 10);
-
-                            bytec0 = Utils.HexToByte(val, 12);
-                            bytec1 = Utils.HexToByte(val, 14);
-                        }
-
-                        d = Utils.HexToByte(val, 16);
-                        e = Utils.HexToByte(val, 18);
-
-                        f = Utils.HexToByte(val, 20);
-                        g = Utils.HexToByte(val, 22);
-                        h = Utils.HexToByte(val, 24);
-                        i = Utils.HexToByte(val, 26);
-                        j = Utils.HexToByte(val, 28);
-                        k = Utils.HexToByte(val, 30);
-                        return;
-                    }
-                }
-            }
-            catch { }
-            this = new UUID();
-            throw new System.FormatException("Invalid UUID");
         }
 
         public unsafe UUID(ReadOnlySpan<char> sval)
@@ -258,12 +123,6 @@ namespace OpenMetaverse
                         if (len < 36)
                             throw new Exception();
 
-                        while (--len > 35)
-                        {
-                            if (val[len] != ' ')
-                                throw new Exception();
-                        }
-
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             throw new Exception();
 
@@ -294,7 +153,6 @@ namespace OpenMetaverse
                             bytec1 = Utils.HexToByte(val, 16);
                         }
 
-
                         d = Utils.HexToByte(val, 19);
                         e = Utils.HexToByte(val, 21);
 
@@ -309,12 +167,6 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        while (--len > 31)
-                        {
-                            if (val[len] != ' ')
-                                throw new Exception();
-                        }
-
                         if (BitConverter.IsLittleEndian)
                         {
                             bytea3 = Utils.HexToByte(val, 0);
@@ -583,41 +435,7 @@ namespace OpenMetaverse
         public readonly unsafe byte[] GetBytes()
         {
             byte[] dest = new byte[16];
-            if (Ssse3.IsSupported)
-            {
-                Vector128<byte> rawval = Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in this));
-                if (BitConverter.IsLittleEndian)
-                    rawval = Ssse3.Shuffle(rawval, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
-                Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetArrayDataReference(dest)) = rawval;
-                return dest;
-            }
-            fixed (byte* ptr = &dest[0])
-            {
-                if (BitConverter.IsLittleEndian)
-                {
-                    *ptr = bytea3;
-                    *(ptr + 1) = bytea2;
-                    *(ptr + 2) = bytea1;
-                    *(ptr + 3) = bytea0;
-                    *(ptr + 4) = byteb1;
-                    *(ptr + 5) = byteb0;
-                    *(ptr + 6) = bytec1;
-                    *(ptr + 7) = bytec0;
-                    *(ulong*)(ptr + 8) = ulongb;
-                }
-                else
-                {
-                    *(ulong*)(ptr) = ulonga;
-                    *(ptr + 8) = d;
-                    *(ptr + 9) = e;
-                    *(ptr + 10) = f;
-                    *(ptr + 11) = g;
-                    *(ptr + 12) = h;
-                    *(ptr + 13) = i;
-                    *(ptr + 14) = j;
-                    *(ptr + 15) = k;
-                }
-            }
+            ToBytes(dest, 0);
             return dest;
         }
 
@@ -767,11 +585,6 @@ namespace OpenMetaverse
                     {
                         if (len < 36)
                             throw new Exception();
-                        while (--len > 35)
-                        {
-                            if (val[len] != ' ')
-                                throw new Exception();
-                        }
 
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             throw new Exception();
@@ -817,12 +630,6 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        while (--len > 31)
-                        {
-                            if (val[len] != ' ')
-                                throw new Exception();
-                        }
-
                         if (BitConverter.IsLittleEndian)
                         {
                             result.bytea3 = Utils.HexToByte(val, 0);
@@ -910,11 +717,6 @@ namespace OpenMetaverse
                     {
                         if (len < 36)
                             return false;
-                        while (--len > 35)
-                        {
-                            if (val[len] != ' ')
-                                return false;
-                        }
 
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             return false;
@@ -960,11 +762,6 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        while (--len > 31)
-                        {
-                            if (val[len] != ' ')
-                                return false;
-                        }
                         if (BitConverter.IsLittleEndian)
                         {
                             result.bytea3 = Utils.HexToByte(val, 0);
