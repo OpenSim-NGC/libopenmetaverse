@@ -1,32 +1,28 @@
-#!/bin/bash
+#!/bin/sh
 
-mono bin/Prebuild.exe /target nant
-mono bin/Prebuild.exe /target monodev
-mono bin/Prebuild.exe /target vs2010
+case "$1" in
 
-if [ x$1 == xnant ]; then
-    nant -buildfile:OpenMetaverse.build
-    RES=$?
-    echo Build Exit Code: $RES
-    if [ x$2 == xruntests ]; then
-	nunit-console bin/OpenMetaverse.Tests.dll -exclude=Network -labels -xml=testresults.xml
-    fi
-    
-    exit $RES
-fi
+ 'clean')
+    dotnet bin/prebuild.dll /file prebuild.xml /clean
 
-if [ x$1 == xprimrender ]; then
-    nant -buildfile:OpenMetaverse.Rendering.GPL.build
-    exit $?
-fi
+  ;;
 
-if [ x$1 == xopenjpeg ]; then
-   ARCH=`arch`
-   cd openjpeg-dotnet
-   if [ $ARCH == x86_64 ]; then
-      # since we're a 64bit host, compile a 32bit vesion of openjpeg
-      make ARCH=-i686 ARCHFLAGS=-m32 install
-   fi
-      # compile for default detected platform
-      make install
-fi
+
+  'autoclean')
+
+    echo y|dotnet bin/prebuild.dll /file prebuild.xml /clean
+
+  ;;
+
+
+
+  *)
+
+    dotnet bin/prebuild.dll /target vs2022 /targetframework net6_0 /excludedir = "obj | bin" /file prebuild.xml
+    echo "dotnet build -c Release OpenMetaverse.sln" > compile.sh
+    chmod +x compile.sh
+	cp bin/System.Drawing.Common.dll.linux bin/System.Drawing.Common.dll
+
+  ;;
+
+esac

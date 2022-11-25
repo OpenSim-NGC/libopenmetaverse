@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Prebuild xmlns="http://dnpb.sourceforge.net/schemas/prebuild-1.7.xsd" version="1.7">
-  <Solution name="OpenMetaverse" activeConfig="Debug" version="0.6.0" path="./">
+  <Solution activeConfig="Debug" name="OpenSim" path="./" version="0.5.0-$Rev$" frameworkVersion="net6_0">
     <Configuration name="Debug">
       <Options>
         <CompilerDefines>TRACE;DEBUG</CompilerDefines>
@@ -14,6 +14,11 @@
         <DebugInformation>true</DebugInformation>
         <IncrementalBuild>true</IncrementalBuild>
         <NoStdLib>false</NoStdLib>
+        <Prefer32Bit>false</Prefer32Bit>
+		<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+        <EnableDefaultItems>false</EnableDefaultItems>
       </Options>
     </Configuration>
     <Configuration name="Release">
@@ -29,12 +34,17 @@
         <DebugInformation>false</DebugInformation>
         <IncrementalBuild>true</IncrementalBuild>
         <NoStdLib>false</NoStdLib>
+        <Prefer32Bit>false</Prefer32Bit>
+		<UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+        <EnableDefaultItems>false</EnableDefaultItems>
       </Options>
     </Configuration>
 
     <!-- External Libraries -->
 
-    <Project name="CSJ2K" path="CSJ2K" type="Library" frameworkVersion="v4_6">
+    <Project name="CSJ2K" path="CSJ2K" type="Library" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -47,8 +57,7 @@
       </Configuration>
 
       <ReferencePath>../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Files>
         <Match pattern="*.cs" recurse="true">
          <Exclude name="obj" pattern="obj"/>
@@ -58,7 +67,7 @@
 
     <!-- Libraries -->
 
-    <Project name="OpenMetaverseTypes" path="OpenMetaverseTypes" type="Library" rootNamespace="OpenMetaverse" frameworkVersion="v4_6">
+    <Project name="OpenMetaverseTypes" path="OpenMetaverseTypes" type="Library" rootNamespace="OpenMetaverse" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -71,9 +80,6 @@
       </Configuration>
 
       <ReferencePath>../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Core"/>
-      <Reference name="System.Xml"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true">
@@ -82,7 +88,7 @@
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.StructuredData" path="OpenMetaverse.StructuredData" type="Library" rootNamespace="OpenMetaverse.StructuredData" frameworkVersion="v4_6">
+    <Project name="OpenMetaverse.StructuredData" path="OpenMetaverse.StructuredData" type="Library" rootNamespace="OpenMetaverse.StructuredData" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -95,8 +101,6 @@
       </Configuration>
 
       <ReferencePath>../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Xml"/>
       <Reference name="OpenMetaverseTypes"/>
       <Files>
         <Match pattern="*.cs" recurse="true">
@@ -105,7 +109,7 @@
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse" path="OpenMetaverse" type="Library" rootNamespace="OpenMetaverse" frameworkVersion="v4_6">
+    <Project name="OpenMetaverse" path="OpenMetaverse" type="Library" rootNamespace="OpenMetaverse" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -118,11 +122,7 @@
       </Configuration>
 
       <ReferencePath>../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Core"/>
-      <Reference name="System.Xml"/>
-      <Reference name="System.Data"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenMetaverse.StructuredData"/>
       <Reference name="log4net"/>
@@ -137,7 +137,7 @@
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.Utilities" path="OpenMetaverse.Utilities" type="Library" frameworkVersion="v4_6">
+    <Project name="OpenMetaverse.Utilities" path="OpenMetaverse.Utilities" type="Library" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -150,9 +150,6 @@
       </Configuration>
 
       <ReferencePath>../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Xml"/>
-      <Reference name="System.Data"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenMetaverse.StructuredData"/>
@@ -163,7 +160,7 @@
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.Tests" path="OpenMetaverse.Tests" type="Library" frameworkVersion="v4_6">
+    <Project name="OpenMetaverse.Tests" path="OpenMetaverse.Tests" type="Library" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -176,9 +173,6 @@
       </Configuration>
 
       <ReferencePath>../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Xml"/>
-      <Reference name="System.Data"/>
       <Reference name="nunit.framework"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
@@ -190,7 +184,7 @@
       </Files>
     </Project>
 
-    <Project name="GridProxy" path="Programs/GridProxy" type="Library" frameworkVersion="v4_6">
+    <Project name="GridProxy" path="Programs/GridProxy" type="Library" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -203,8 +197,6 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Xml"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenMetaverse.StructuredData"/>
@@ -219,7 +211,7 @@
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.Rendering.Simple" path="OpenMetaverse.Rendering.Simple" type="Library" frameworkVersion="v4_6">
+    <Project name="OpenMetaverse.Rendering.Simple" path="OpenMetaverse.Rendering.Simple" type="Library" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -232,8 +224,7 @@
       </Configuration>
 
       <ReferencePath>../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Files>
@@ -243,7 +234,7 @@
       </Files>
     </Project>
 -->
-    <Project name="OpenMetaverse.Rendering.Meshmerizer" path="OpenMetaverse.Rendering.Meshmerizer" type="Library" frameworkVersion="v4_6">
+    <Project name="OpenMetaverse.Rendering.Meshmerizer" path="OpenMetaverse.Rendering.Meshmerizer" type="Library" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -256,8 +247,7 @@
       </Configuration>
 
       <ReferencePath>../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenMetaverse.StructuredData"/>
@@ -269,7 +259,7 @@
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.GUI" path="OpenMetaverse.GUI" type="Library" frameworkVersion="v4_6">
+    <Project name="OpenMetaverse.GUI" path="OpenMetaverse.GUI" type="Library" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -282,9 +272,7 @@
       </Configuration>
 
       <ReferencePath>../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Data"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="System.Windows.Forms"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
@@ -297,7 +285,7 @@
 
     <!-- Programs -->
 
-    <Project name="AvatarPreview" path="Programs/AvatarPreview" type="WinExe" frameworkVersion="v4_6">
+    <Project name="AvatarPreview" path="Programs/AvatarPreview" type="WinExe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -310,10 +298,7 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Xml"/>
-      <Reference name="System.Data"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="System.Windows.Forms"/>
       <Reference name="Tao.OpenGl"/>
       <Reference name="Tao.Platform.Windows"/>
@@ -333,7 +318,7 @@
     </Project>
 -->
 
-    <Project name="Baker" path="Programs/Baker" type="WinExe" frameworkVersion="v4_6">
+    <Project name="Baker" path="Programs/Baker" type="WinExe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -346,9 +331,7 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Data"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="System.Windows.Forms"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
@@ -365,7 +348,7 @@
       </Files>
     </Project>
 
-    <Project name="importprimscript" path="Programs/importprimscript" type="Exe" frameworkVersion="v4_6">
+    <Project name="importprimscript" path="Programs/importprimscript" type="Exe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -378,8 +361,7 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
 
@@ -390,7 +372,7 @@
       </Files>
     </Project>
 
-    <Project name="mapgenerator" path="Programs/mapgenerator" type="Exe" frameworkVersion="v4_6">
+    <Project name="mapgenerator" path="Programs/mapgenerator" type="Exe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -403,7 +385,6 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
 
       <Files>
         <Match pattern="mapgenerator.cs"/>
@@ -411,7 +392,7 @@
       </Files>
     </Project>
 
-    <Project name="IRCGateway" path="Programs/examples/IRCGateway" type="Exe" frameworkVersion="v4_6">
+    <Project name="IRCGateway" path="Programs/examples/IRCGateway" type="Exe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -424,7 +405,6 @@
       </Configuration>
 
       <ReferencePath>../../../bin/</ReferencePath>
-      <Reference name="System"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Files>
@@ -435,7 +415,7 @@
 	  
     </Project>
 
-    <Project name="Dashboard" path="Programs/examples/Dashboard" type="WinExe" frameworkVersion="v4_6">
+    <Project name="Dashboard" path="Programs/examples/Dashboard" type="WinExe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -448,8 +428,7 @@
       </Configuration>
 
       <ReferencePath>../../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="System.Windows.Forms"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
@@ -469,7 +448,7 @@
 
     <!-- // Sorry for the cruft, this is an in progress plugin for WGP that
     	 // will show a simulators objects in a tree view - Coming soon!
-    <Project name="ObjectTreeBrowser" path="Programs/examples/ObjectTreeBrowser" type="WinExe" frameworkVersion="v4_6">
+    <Project name="ObjectTreeBrowser" path="Programs/examples/ObjectTreeBrowser" type="WinExe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -482,8 +461,7 @@
       </Configuration>
 
       <ReferencePath>../../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="System.Windows.Forms"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
@@ -499,7 +477,7 @@
       </Files>
     </Project>
     -->
-    <Project name="PrimWorkshop" path="Programs/PrimWorkshop" type="WinExe" frameworkVersion="v4_6">
+    <Project name="PrimWorkshop" path="Programs/PrimWorkshop" type="WinExe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -512,10 +490,7 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Xml"/>
-      <Reference name="System.Data"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="System.Windows.Forms"/>
       <Reference name="Tao.OpenGl"/>
       <Reference name="Tao.Platform.Windows"/>
@@ -538,7 +513,7 @@
       </Files>
     </Project>
 
-    <Project name="GridImageUpload" path="Programs/GridImageUpload" type="WinExe" frameworkVersion="v4_6">
+    <Project name="GridImageUpload" path="Programs/GridImageUpload" type="WinExe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -551,9 +526,7 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Data"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="System.Windows.Forms"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
@@ -567,7 +540,7 @@
       </Files>
     </Project>
 
-    <Project name="GridProxyApp" path="Programs/GridProxy" type="Exe" frameworkVersion="v4_6">
+    <Project name="GridProxyApp" path="Programs/GridProxy" type="Exe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -580,8 +553,6 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Xml"/>
       <Reference name="GridProxy"/>
       <Reference name="OpenMetaverseTypes"/>
 
@@ -590,7 +561,7 @@
       </Files>
     </Project>
 
-    <Project name="WinGridProxy" path="Programs/WinGridProxy" type="WinExe" frameworkVersion="v4_6">
+    <Project name="WinGridProxy" path="Programs/WinGridProxy" type="WinExe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -603,11 +574,7 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Core"/>
-      <Reference name="System.Xml"/>
-      <Reference name="System.Data"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="System.Windows.Forms"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
@@ -627,7 +594,7 @@
     </Project>
 
 <!--
-    <Project name="GridProxyGUI" path="Programs/GridProxyGUI" icon="libomv.ico" type="WinExe" frameworkVersion="v4_6">
+    <Project name="GridProxyGUI" path="Programs/GridProxyGUI" icon="libomv.ico" type="WinExe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -642,9 +609,7 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Xml"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="System.Windows.Forms"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
@@ -670,7 +635,7 @@
       </Files>
     </Project>
 -->
-    <Project name="VisualParamGenerator" path="Programs/VisualParamGenerator" type="Exe" frameworkVersion="v4_6">
+    <Project name="VisualParamGenerator" path="Programs/VisualParamGenerator" type="Exe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -683,8 +648,6 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Xml"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
 
@@ -693,7 +656,7 @@
       </Files>
     </Project>
 
-    <Project name="VoiceTest" path="Programs/VoiceTest" type="Exe" frameworkVersion="v4_6">
+    <Project name="VoiceTest" path="Programs/VoiceTest" type="Exe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../bin/</OutputPath>
@@ -706,7 +669,6 @@
       </Configuration>
 
       <ReferencePath>../../bin/</ReferencePath>
-      <Reference name="System"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenMetaverse.Utilities"/>
@@ -720,7 +682,7 @@
 
     <!-- Examples -->
 
-    <Project name="groupmanager" path="Programs/examples/groupmanager" type="WinExe" frameworkVersion="v4_6">
+    <Project name="groupmanager" path="Programs/examples/groupmanager" type="WinExe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -733,9 +695,7 @@
       </Configuration>
 
       <ReferencePath>../../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Data"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="System.Windows.Forms"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
@@ -750,7 +710,7 @@
       </Files>
     </Project>
 
-    <Project name="Heightmap" path="Programs/examples/Heightmap" type="WinExe" frameworkVersion="v4_6">
+    <Project name="Heightmap" path="Programs/examples/Heightmap" type="WinExe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -763,41 +723,7 @@
       </Configuration>
 
       <ReferencePath>../../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Data"/>
-      <Reference name="System.Drawing"/>
-      <Reference name="System.Windows.Forms"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
-
-      <Files>
-        <Match pattern="*.cs" recurse="true">
-         <Exclude name="obj" pattern="obj"/>
-        </Match>
-        <Match pattern="*.resx" recurse="true"/>
-		<!--
-        <Match pattern="*.settings" recurse="true"/>
-		-->
-        <Match pattern="*.ico" recurse="true"/>
-      </Files>
-    </Project>
-
-    <Project name="GridAccountant" path="Programs/examples/GridAccountant" type="WinExe" frameworkVersion="v4_6">
-      <Configuration name="Debug">
-        <Options>
-          <OutputPath>../../../bin/</OutputPath>
-        </Options>
-      </Configuration>
-      <Configuration name="Release">
-        <Options>
-          <OutputPath>../../../bin/</OutputPath>
-        </Options>
-      </Configuration>
-
-      <ReferencePath>../../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Data"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="System.Windows.Forms"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
@@ -814,7 +740,37 @@
       </Files>
     </Project>
 
-    <Project name="PacketDump" path="Programs/examples/PacketDump" type="Exe" frameworkVersion="v4_6">
+    <Project name="GridAccountant" path="Programs/examples/GridAccountant" type="WinExe" >
+      <Configuration name="Debug">
+        <Options>
+          <OutputPath>../../../bin/</OutputPath>
+        </Options>
+      </Configuration>
+      <Configuration name="Release">
+        <Options>
+          <OutputPath>../../../bin/</OutputPath>
+        </Options>
+      </Configuration>
+
+      <ReferencePath>../../../bin/</ReferencePath>
+      <Reference name="System.Drawing.Common"/>
+      <Reference name="System.Windows.Forms"/>
+      <Reference name="OpenMetaverse"/>
+      <Reference name="OpenMetaverseTypes"/>
+
+      <Files>
+        <Match pattern="*.cs" recurse="true">
+         <Exclude name="obj" pattern="obj"/>
+        </Match>
+        <Match pattern="*.resx" recurse="true"/>
+		<!--
+        <Match pattern="*.settings" recurse="true"/>
+		-->
+        <Match pattern="*.ico" recurse="true"/>
+      </Files>
+    </Project>
+
+    <Project name="PacketDump" path="Programs/examples/PacketDump" type="Exe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -838,7 +794,7 @@
       </Files>
     </Project>
 
-    <Project name="TestClient" path="Programs/examples/TestClient" type="Exe" frameworkVersion="v4_6">
+    <Project name="TestClient" path="Programs/examples/TestClient" type="Exe" >
       <Configuration name="Debug">
         <Options>
           <OutputPath>../../../bin/</OutputPath>
@@ -851,10 +807,7 @@
       </Configuration>
 
       <ReferencePath>../../../bin/</ReferencePath>
-      <Reference name="System"/>
-      <Reference name="System.Xml"/>
-      <Reference name="System.Web"/>
-      <Reference name="System.Drawing"/>
+      <Reference name="System.Drawing.Common"/>
       <Reference name="OpenMetaverse"/>
       <Reference name="OpenMetaverseTypes"/>
       <Reference name="OpenMetaverse.Utilities"/>
