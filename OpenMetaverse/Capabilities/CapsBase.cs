@@ -34,30 +34,33 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace OpenMetaverse.Http
 {
-    public class TrustAllCertificatePolicy : ICertificatePolicy
-    {
-        public bool CheckValidationResult(ServicePoint sp, X509Certificate cert, WebRequest req, int problem)
-        {
-            return true;
-        }
-
-        public static bool TrustAllCertificateHandler(Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            return true;
-        }
-    }
-
     public static class CapsBase
     {
         public delegate void OpenWriteEventHandler(HttpWebRequest request);
         public delegate void DownloadProgressEventHandler(HttpWebRequest request, HttpWebResponse response, int bytesReceived, int totalBytesToReceive);
         public delegate void RequestCompletedEventHandler(HttpWebRequest request, HttpWebResponse response, byte[] responseData, Exception error);
+        public static bool ValidateServerCertificate(
+            object sender,
+            X509Certificate certificate,
+            X509Chain chain,
+            SslPolicyErrors sslPolicyErrors)
+        {
+            //if (m_NoVerifyCertChain)
+                sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+
+            //if (m_NoVerifyCertHostname)
+                sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
+
+            return false;
+        }
 
         static CapsBase()
         {
-            ServicePointManager.CertificatePolicy = new TrustAllCertificatePolicy();
             // Even though this will compile on Mono 2.4, it throws a runtime exception
-            //ServicePointManager.ServerCertificateValidationCallback = TrustAllCertificatePolicy.TrustAllCertificateHandler;
+            ServicePointManager.ServerCertificateValidationCallback = ValidateServerCertificate;
         }
 
         private class RequestState

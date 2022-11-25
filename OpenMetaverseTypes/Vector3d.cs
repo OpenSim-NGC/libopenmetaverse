@@ -27,6 +27,8 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Globalization;
+using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace OpenMetaverse
 {
@@ -308,27 +310,162 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="val">A string representation of a 3D vector, enclosed 
         /// in arrow brackets and separated by commas</param>
-        public static Vector3d Parse(string val)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe Vector3d Parse(string val)
         {
-            char[] splitChar = { ',' };
-            string[] split = val.Replace("<", String.Empty).Replace(">", String.Empty).Split(splitChar);
-            return new Vector3d(
-                Double.Parse(split[0].Trim(), Utils.EnUsCulture),
-                Double.Parse(split[1].Trim(), Utils.EnUsCulture),
-                Double.Parse(split[2].Trim(), Utils.EnUsCulture));
+            return Parse(val.AsSpan());
         }
 
-        public static bool TryParse(string val, out Vector3d result)
+        public static unsafe Vector3d Parse(ReadOnlySpan<char> sp)
         {
-            try
+            if (sp.Length < 7)
+                throw new FormatException("Invalid Vector3");
+
+            int start = 0;
+            fixed (char* p = sp)
             {
-                result = Parse(val);
-                return true;
+                while (start < sp.Length)
+                {
+                    if (p[start++] == '<')
+                        break;
+                }
+                if (start > sp.Length - 6)
+                    throw new FormatException("Invalid Vector3");
+
+                int comma1 = start + 1;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 5)
+                    throw new FormatException("Invalid Vector3");
+
+                if (!double.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out double x))
+                    throw new FormatException("Invalid Vector3");
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 3)
+                    throw new FormatException("Invalid Vector3");
+                if (!double.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out double y))
+                    throw new FormatException("Invalid Vector3");
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == '>')
+                        break;
+                    comma1++;
+                }
+                if (comma1 >= sp.Length)
+                    throw new FormatException("Invalid Vector3");
+
+                if (!double.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out double z))
+                    throw new FormatException("Invalid Vector3");
+                return new Vector3d(x, y, z);
             }
-            catch (Exception)
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static bool TryParse(string val, out Vector3d result)
+        {
+            return TryParse(val.AsSpan(), out result);
+        }
+
+        public unsafe static bool TryParse(ReadOnlySpan<char> sp, out Vector3d result)
+        {
+            if (sp.Length < 7)
             {
-                result = Vector3d.Zero;
+                result = Zero;
                 return false;
+            }
+
+            int start = 0;
+            fixed (char* p = sp)
+            {
+                while (start < sp.Length)
+                {
+                    if (p[start++] == '<')
+                        break;
+                }
+                if (start > sp.Length - 6)
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                int comma1 = start + 1;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 5)
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                if (!double.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out double x))
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 3)
+                {
+                    result = Zero;
+                    return false;
+                }
+                if (!double.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out double y))
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == '>')
+                        break;
+                    comma1++;
+                }
+                if (comma1 >= sp.Length)
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                if (!double.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out double z))
+                {
+                    result = Zero;
+                    return false;
+                }
+                result = new Vector3d(x, y, z);
+                return true;
             }
         }
 
@@ -376,7 +513,15 @@ namespace OpenMetaverse
         /// <returns>A string representation of the vector</returns>
         public override string ToString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}, {2}>", X, Y, Z);
+            StringBuilder sb = new();
+            sb.Append('<');
+            sb.Append(X.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(Y.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(Z.ToString(Utils.EnUsCulture));
+            sb.Append('>');
+            return sb.ToString();
         }
 
         /// <summary>
@@ -386,10 +531,16 @@ namespace OpenMetaverse
         /// <returns>Raw string representation of the vector</returns>
         public string ToRawString()
         {
-            CultureInfo enUs = new CultureInfo("en-us");
+            CultureInfo enUs = new("en-us");
             enUs.NumberFormat.NumberDecimalDigits = 3;
 
-            return String.Format(enUs, "{0} {1} {2}", X, Y, Z);
+            StringBuilder sb = new();
+            sb.Append(X.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(Y.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(Z.ToString(enUs));
+            return sb.ToString();
         }
 
         #endregion Overrides

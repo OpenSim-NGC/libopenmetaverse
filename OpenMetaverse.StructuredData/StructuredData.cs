@@ -145,16 +145,14 @@ namespace OpenMetaverse.StructuredData
                         return Int32.MinValue;
                     return (int)Math.Round(v);
                 case OSDType.String:
-                    string s = ((OSDString)this).value;
-                    double dbl;
-                    if (Double.TryParse(s, out dbl))
+                    var s = ((OSDString)this).value.AsSpan();
+                    if (Double.TryParse(s, out double dbl))
                         return (int)Math.Floor(dbl);
                     else
                         return 0;
                 case OSDType.OSDUTF8:
-                    string us = ((OSDUTF8)this).value.ToString();
-                    double udbl;
-                    if (Double.TryParse(us, out udbl))
+                    var us = ((OSDUTF8)this).value.ToString().AsSpan();
+                    if (Double.TryParse(us, out double udbl))
                         return (int)Math.Floor(udbl);
                     else
                         return 0;
@@ -167,10 +165,12 @@ namespace OpenMetaverse.StructuredData
                     List<OSD> l = ((OSDArray)this).value;
                     if (l.Count < 4)
                         return 0;
-                    byte[] by = new byte[4];
-                    for (int i = 0; i < 4; i++)
-                        by[i] = (byte)l[i].AsInteger();
-                    return (by[0] << 24) | (by[1] << 16) | (by[2] << 8) | by[3];
+                    return
+                        (byte)l[0].AsInteger() << 24 |
+                        (byte)l[1].AsInteger() << 16 |
+                        (byte)l[2].AsInteger() << 8 |
+                        (byte)l[3].AsInteger();
+
                 case OSDType.Date:
                     return (int)Utils.DateTimeToUnixTime(((OSDDate)this).value);
                 default:
@@ -196,16 +196,14 @@ namespace OpenMetaverse.StructuredData
                         return UInt32.MinValue;
                     return (uint)Math.Round(v);
                 case OSDType.String:
-                    string s = ((OSDString)this).value;
-                    double dbl;
-                    if (Double.TryParse(s, out dbl))
+                    var s = ((OSDString)this).value.AsSpan();
+                    if (Double.TryParse(s, out double dbl))
                         return (uint)Math.Floor(dbl);
                     else
                         return 0;
                 case OSDType.OSDUTF8:
-                    string us = ((OSDUTF8)this).value.ToString();
-                    double udbl;
-                    if (Double.TryParse(us, out udbl))
+                    var us = ((OSDUTF8)this).value.ToString().AsSpan();
+                    if (Double.TryParse(us, out double udbl))
                         return (uint)Math.Floor(udbl);
                     else
                         return 0;
@@ -221,10 +219,11 @@ namespace OpenMetaverse.StructuredData
                     List<OSD> l = ((OSDArray)this).value;
                     if (l.Count < 4)
                         return 0;
-                    byte[] by = new byte[4];
-                    for (int i = 0; i < 4; i++)
-                        by[i] = (byte)l[i].AsInteger();
-                    return (uint)((by[0] << 24) | (by[1] << 16) | (by[2] << 8) | by[3]);
+                    return (
+                        ((uint)(byte)l[0].AsInteger() << 24) |
+                        ((uint)(byte)l[1].AsInteger() << 16) |
+                        ((uint)(byte)l[2].AsInteger() << 8) |
+                        (byte)l[3].AsInteger());
                 default:
                     return 0;
             }
@@ -248,16 +247,14 @@ namespace OpenMetaverse.StructuredData
                         return Int64.MinValue;
                     return (long)Math.Round(v);
                 case OSDType.String:
-                    string s = ((OSDString)this).value;
-                    double dbl;
-                    if (Double.TryParse(s, out dbl))
+                    var s = ((OSDString)this).value.AsSpan();
+                    if (Double.TryParse(s, out double dbl))
                         return (long)Math.Floor(dbl);
                     else
                         return 0;
                 case OSDType.OSDUTF8:
-                    string us = ((OSDUTF8)this).value.ToString();
-                    double udbl;
-                    if (Double.TryParse(us, out udbl))
+                    var us = ((OSDUTF8)this).value.ToString().AsSpan();
+                    if (Double.TryParse(us, out double udbl))
                         return (long)Math.Floor(udbl);
                     else
                         return 0;
@@ -283,18 +280,15 @@ namespace OpenMetaverse.StructuredData
                     List<OSD> l = ((OSDArray)this).value;
                     if (l.Count < 8)
                         return 0;
-                    byte[] b = new byte[8];
-                    for (int i = 0; i < 8; i++)
-                        b[i] = (byte)l[i].AsInteger();
-                    return (
-                        ((long)b[0] << 56) |
-                        ((long)b[1] << 48) |
-                        ((long)b[2] << 40) |
-                        ((long)b[3] << 32) |
-                        ((long)b[4] << 24) |
-                        ((long)b[5] << 16) |
-                        ((long)b[6] << 8) |
-                        b[7]);
+                    return 
+                        ((long)(byte)l[0].AsInteger() << 56) |
+                        ((long)(byte)l[1].AsInteger() << 48) |
+                        ((long)(byte)l[2].AsInteger() << 40) |
+                        ((long)(byte)l[3].AsInteger() << 32) |
+                        ((long)(byte)l[4].AsInteger() << 24) |
+                        ((long)(byte)l[5].AsInteger() << 16) |
+                        ((long)(byte)l[6].AsInteger() << 8) |
+                        (byte)l[7].AsInteger();
                 }
                 default:
                     return 0;
@@ -319,16 +313,14 @@ namespace OpenMetaverse.StructuredData
                         return UInt64.MinValue;
                     return (ulong)Math.Round(v);
                 case OSDType.String:
-                    string s = ((OSDString)this).value;
-                    double dbl;
-                    if (Double.TryParse(s, out dbl))
+                    var s = ((OSDString)this).value.AsSpan();
+                    if (Double.TryParse(s, out double dbl))
                         return (ulong)Math.Floor(dbl);
                     else
                         return 0;
                 case OSDType.OSDUTF8:
-                    string us = ((OSDUTF8)this).value.ToString();
-                    double udbl;
-                    if (Double.TryParse(us, out udbl))
+                    var us = ((OSDUTF8)this).value.ToString().AsSpan();
+                    if (Double.TryParse(us, out double udbl))
                         return (ulong)Math.Floor(udbl);
                     else
                         return 0;
@@ -354,18 +346,15 @@ namespace OpenMetaverse.StructuredData
                     List<OSD> l = ((OSDArray)this).value;
                     if (l.Count < 8)
                         return 0;
-                    byte[] b = new byte[8];
-                    for (int i = 0; i < 8; i++)
-                        b[i] = (byte)l[i].AsInteger();
                     return (
-                        ((ulong)b[0] << 56) |
-                        ((ulong)b[1] << 48) |
-                        ((ulong)b[2] << 40) |
-                        ((ulong)b[3] << 32) |
-                        ((ulong)b[4] << 24) |
-                        ((ulong)b[5] << 16) |
-                        ((ulong)b[6] << 8) |
-                        b[7]);
+                        ((ulong)(byte)l[0].AsInteger() << 56) |
+                        ((ulong)(byte)l[1].AsInteger() << 48) |
+                        ((ulong)(byte)l[2].AsInteger() << 40) |
+                        ((ulong)(byte)l[3].AsInteger() << 32) |
+                        ((ulong)(byte)l[4].AsInteger() << 24) |
+                        ((ulong)(byte)l[5].AsInteger() << 16) |
+                        ((ulong)(byte)l[6].AsInteger() << 8) |
+                        (byte)l[7].AsInteger());
                 }
                 default:
                     return 0;
@@ -383,16 +372,14 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.Real:
                     return ((OSDReal)this).value;
                 case OSDType.String:
-                    string s = ((OSDString)this).value;
-                    double dbl;
-                    if (Double.TryParse(s, out dbl))
+                    var s = ((OSDString)this).value.AsSpan();
+                    if (Double.TryParse(s, out double dbl))
                         return dbl;
                     else
                         return 0;
                 case OSDType.OSDUTF8:
-                    string us = ((OSDUTF8)this).value.ToString();
-                    double udbl;
-                    if (Double.TryParse(us, out udbl))
+                    var us = ((OSDUTF8)this).value.ToString().AsSpan();
+                    if (Double.TryParse(us, out double udbl))
                         return udbl;
                     else
                         return 0;
@@ -449,14 +436,13 @@ namespace OpenMetaverse.StructuredData
             switch (Type)
             {
                 case OSDType.String:
-                    UUID uuid;
-                    if (UUID.TryParse(((OSDString)this).value, out uuid))
+                    if (UUID.TryParse(((OSDString)this).value.AsSpan(), out UUID uuid))
                         return uuid;
                     else
                         return UUID.Zero;
                 case OSDType.OSDUTF8:
                     UUID ouuid;
-                    if (UUID.TryParse(((OSDUTF8)this).value.ToString(), out ouuid))
+                    if (UUID.TryParse(((OSDUTF8)this).value.ToString().AsSpan(), out ouuid))
                         return ouuid;
                     else
                         return UUID.Zero;
@@ -577,19 +563,19 @@ namespace OpenMetaverse.StructuredData
             switch (Type)
             {
                 case OSDType.String:
-                    return Vector3.Parse(((OSDString)this).value);
+                    return Vector3.Parse(((OSDString)this).value.AsSpan());
                 case OSDType.OSDUTF8:
-                    return Vector3.Parse(((OSDUTF8)this).value.ToString());
+                    return Vector3.Parse(((OSDUTF8)this).value.ToString().AsSpan());
                 case OSDType.Array:
                     List<OSD> l = ((OSDArray)this).value;
-                    Vector3 vector = Vector3.Zero;
                     if (l.Count == 3)
                     {
-                        vector.X = (float)l[0].AsReal();
-                        vector.Y = (float)l[1].AsReal();
-                        vector.Z = (float)l[2].AsReal();
+                        return new Vector3(
+                            (float)l[0].AsReal(),
+                            (float)l[1].AsReal(),
+                            (float)l[2].AsReal());
                     }
-                    return vector;
+                    return Vector3.Zero;
                 default:
                     return Vector3.Zero;
             }
@@ -600,9 +586,9 @@ namespace OpenMetaverse.StructuredData
             switch (Type)
             {
                 case OSDType.String:
-                    return Vector3d.Parse(((OSDString)this).value);
+                    return Vector3d.Parse(((OSDString)this).value.AsSpan());
                 case OSDType.OSDUTF8:
-                    return Vector3d.Parse(((OSDUTF8)this).value.ToString());
+                    return Vector3d.Parse(((OSDUTF8)this).value.ToString().AsSpan());
                 case OSDType.Array:
                     List<OSD> l = ((OSDArray)this).value;
                     Vector3d vector = Vector3d.Zero;
@@ -1307,7 +1293,7 @@ namespace OpenMetaverse.StructuredData
         public override UUID AsUUID()
         {
             UUID uuid;
-            if (UUID.TryParse(value.ToString(), out uuid))
+            if (UUID.TryParse(value.ToString().AsSpan(), out uuid))
                 return uuid;
             else
                 return UUID.Zero;
@@ -1411,8 +1397,7 @@ namespace OpenMetaverse.StructuredData
 
         public override UUID AsUUID()
         {
-            UUID uuid;
-            if (UUID.TryParse(value, out uuid))
+            if (UUID.TryParse(value.AsSpan(), out UUID uuid))
                 return uuid;
             else
                 return UUID.Zero;

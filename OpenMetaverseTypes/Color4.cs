@@ -69,9 +69,7 @@ namespace OpenMetaverse
             // Quick check to see if someone is doing something obviously wrong
             // like using float values from 0.0 - 255.0
             if (r > 1f || g > 1f || b > 1f || a > 1f)
-                throw new ArgumentException(
-                    String.Format("Attempting to initialize Color4 with out of range values <{0},{1},{2},{3}>",
-                    r, g, b, a));
+                throw new ArgumentException($"Attempting to initialize Color4 with out of range values <{r},{g},{b},{a}>");
 
             // Valid range is from 0.0 to 1.0
             R = Utils.Clamp(r, 0f, 1f);
@@ -282,8 +280,8 @@ namespace OpenMetaverse
         {
             const float HUE_MAX = 360f;
 
-            float max = Math.Max(Math.Max(R, G), B);
-            float min = Math.Min(Math.Min(R, B), B);
+            float max = MathF.Max(MathF.Max(R, G), B);
+            float min = MathF.Min(MathF.Min(R, B), B);
 
             if (max == min)
             {
@@ -441,12 +439,12 @@ namespace OpenMetaverse
 
         public override string ToString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}, {2}, {3}>", R, G, B, A);
+            return String.Format(Utils.EnUsCulture, $"<{R}, {G}, {B}, {A}>");
         }
 
         public string ToRGBString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}, {2}>", R, G, B);
+            return String.Format(Utils.EnUsCulture, $"<{R}, {G}, {B}>");
         }
 
         public override bool Equals(object obj)
@@ -478,7 +476,7 @@ namespace OpenMetaverse
             return !(lhs == rhs);
         }
 
-        public static Color4 operator +(Color4 lhs, Color4 rhs)
+        public static Color4 operator +(Color4 lhs, in Color4 rhs)
         {
             lhs.R += rhs.R;
             lhs.G += rhs.G;
@@ -489,7 +487,7 @@ namespace OpenMetaverse
             return lhs;
         }
 
-        public static Color4 operator -(Color4 lhs, Color4 rhs)
+        public static Color4 operator -(Color4 lhs, in Color4 rhs)
         {
             lhs.R -= rhs.R;
             lhs.G -= rhs.G;
@@ -500,7 +498,7 @@ namespace OpenMetaverse
             return lhs;
         }
 
-        public static Color4 operator *(Color4 lhs, Color4 rhs)
+        public static Color4 operator *(Color4 lhs, in Color4 rhs)
         {
             lhs.R *= rhs.R;
             lhs.G *= rhs.G;
@@ -514,9 +512,9 @@ namespace OpenMetaverse
         #endregion Operators
 
         /// <summary>A Color4 with zero RGB values and fully opaque (alpha 1.0)</summary>
-        public readonly static Color4 Black = new Color4(0f, 0f, 0f, 1f);
+        public readonly static Color4 Black = new(0f, 0f, 0f, 1f);
 
         /// <summary>A Color4 with full RGB values (1.0) and fully opaque (alpha 1.0)</summary>
-        public readonly static Color4 White = new Color4(1f, 1f, 1f, 1f);
+        public readonly static Color4 White = new(1f, 1f, 1f, 1f);
     }
 }

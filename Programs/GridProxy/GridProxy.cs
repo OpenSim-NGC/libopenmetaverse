@@ -47,6 +47,8 @@ using OpenMetaverse.StructuredData;
 using log4net;
 using Nwc.XmlRpc;
 using Logger = Nwc.XmlRpc.Logger;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace GridProxy
 {
@@ -199,17 +201,32 @@ namespace GridProxy
         /*
          * Proxy Management
          */
+        public static bool ValidateServerCertificate(
+            object sender,
+            X509Certificate certificate,
+            X509Chain chain,
+            SslPolicyErrors sslPolicyErrors)
+        {
+            //if (m_NoVerifyCertChain)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+
+            //if (m_NoVerifyCertHostname)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
+
+            return false;
+        }
 
         // Proxy: construct a proxy server with the given configuration
         public Proxy(ProxyConfig proxyConfig)
         {
             this.proxyConfig = proxyConfig;
 
-            ServicePointManager.CertificatePolicy = new TrustAllCertificatePolicy();
             ServicePointManager.Expect100Continue = false;
             ServicePointManager.DefaultConnectionLimit = 128;
-            // Even though this will compile on Mono 2.4, it throws a runtime exception
-            //ServicePointManager.ServerCertificateValidationCallback = TrustAllCertificatePolicy.TrustAllCertificateHandler;
+            ServicePointManager.ServerCertificateValidationCallback = ValidateServerCertificate;
 
             InitializeLoginProxy();
             InitializeSimProxy();
@@ -587,7 +604,7 @@ namespace GridProxy
                 headers["method"] = meth;
                 if (contentType == "application/llsd+xml" || contentType == "application/xml+llsd" || contentType == "application/xml")
                 {
-                    ProxyLoginSD(netStream, content);
+                    ProxyLoginSD(netStream, content, headers);
                 }
                 else
                 {
@@ -645,15 +662,6 @@ namespace GridProxy
                 int indx = capuri.IndexOf("/item/");
                 if (indx < 0)
                     indx = capuri.IndexOf("/category/");
-
-                if (indx < 0)
-                {
-                    indx = capuri.IndexOf("/cap/");
-                    if(indx > 0 && indx + 45 < capuri.Length)
-                        indx += 41;
-                    else
-                        indx = -1;
-                }
                 if(indx > 0)
                     capuri = capuri.Substring(0,indx);
 
@@ -1247,12 +1255,13 @@ namespace GridProxy
             }
         }
 
-        private void ProxyLoginSD(NetworkStream netStream, byte[] content)
+        private void ProxyLoginSD(NetworkStream netStream, byte[] content, Dictionary<string, string> headers)
         {
             lock (this)
             {
                 AutoResetEvent remoteComplete = new AutoResetEvent(false);
                 CapsClient loginRequest = new CapsClient(proxyConfig.remoteLoginUri);
+
                 OSD response = null;
                 loginRequest.OnComplete += new CapsClient.CompleteCallback(
                     delegate(CapsClient client, OSD result, Exception error)
@@ -1267,6 +1276,7 @@ namespace GridProxy
                         remoteComplete.Set();
                     }
                     );
+
                 loginRequest.BeginGetResponse(content, "application/llsd+xml", 1000 * 100);
                 remoteComplete.WaitOne(1000 * 100, false);
 

@@ -28,6 +28,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Globalization;
+using System.Text;
 
 namespace OpenMetaverse
 {
@@ -156,6 +157,16 @@ namespace OpenMetaverse
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsNotZero()
+        {
+            if (X != 0)
+                return true;
+            if (Y != 0)
+                return true;
+            return false;
+        }
+
         /// <summary>
         /// Test if this vector is composed of all finite numbers
         /// </summary>
@@ -239,7 +250,7 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public float Length()
         {
-            return (float)Math.Sqrt(X * X + Y * Y);
+            return MathF.Sqrt(X * X + Y * Y);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -254,7 +265,7 @@ namespace OpenMetaverse
             float factor = LengthSquared();
             if (factor > 1e-6)
             {
-                factor = 1f / (float)Math.Sqrt(factor);
+                factor = 1f / MathF.Sqrt(factor);
                 X *= factor;
                 Y *= factor;
             }
@@ -294,7 +305,7 @@ namespace OpenMetaverse
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static float Distance(Vector2 value1, Vector2 value2)
         {
-            return (float)Math.Sqrt(DistanceSquared(value1, value2));
+            return MathF.Sqrt(DistanceSquared(value1, value2));
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -335,16 +346,16 @@ namespace OpenMetaverse
         public static Vector2 Max(Vector2 value1, Vector2 value2)
         {
             return new Vector2(
-                Math.Max(value1.X, value2.X),
-                Math.Max(value1.Y, value2.Y));
+                MathF.Max(value1.X, value2.X),
+                MathF.Max(value1.Y, value2.Y));
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static Vector2 Min(Vector2 value1, Vector2 value2)
         {
             return new Vector2(
-                Math.Min(value1.X, value2.X),
-                Math.Min(value1.Y, value2.Y));
+                MathF.Min(value1.X, value2.X),
+                MathF.Min(value1.Y, value2.Y));
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -365,13 +376,13 @@ namespace OpenMetaverse
             return new Vector2(-value.X, -value.Y);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Normalize(Vector2 value)
         {
             float factor = value.LengthSquared();
             if (factor > 1e-6)
             {
-                factor = 1f / (float)Math.Sqrt(factor);
+                factor = 1f / MathF.Sqrt(factor);
                 return new Vector2(value.X * factor, value.Y * factor);
             }
             return new Vector2();
@@ -382,29 +393,129 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="val">A string representation of a 2D vector, enclosed 
         /// in arrow brackets and separated by commas</param>
-        public static Vector2 Parse(string val)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe Vector2 Parse(string val)
         {
-            char[] splitChar = { ',' };
-            string[] split = val.Replace("<", String.Empty).Replace(">", String.Empty).Split(splitChar);
-            return new Vector2(
-                float.Parse(split[0].Trim(), Utils.EnUsCulture),
-                float.Parse(split[1].Trim(), Utils.EnUsCulture));
+            return Parse(val.AsSpan());
         }
 
-        public static bool TryParse(string val, out Vector2 result)
+        public static unsafe Vector2 Parse(ReadOnlySpan<char> sp)
         {
-            try
+            if (sp.Length < 5)
+                throw new FormatException("Invalid Vector2");
+
+            int start = 0;
+            fixed (char* p = sp)
             {
-                result = Parse(val);
-                return true;
+                while (start < sp.Length)
+                {
+                    if (p[start++] == '<')
+                        break;
+                }
+                if (start > sp.Length - 4)
+                    throw new FormatException("Invalid Vector2");
+
+                int comma1 = start + 1;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 3)
+                    throw new FormatException("Invalid Vector2");
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float x))
+                    throw new FormatException("Invalid Vector2");
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == '>')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length)
+                    throw new FormatException("Invalid Vector2");
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float y))
+                    throw new FormatException("Invalid Vector2");
+
+                return new Vector2(x, y);
             }
-            catch (Exception)
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static bool TryParse(string val, out Vector2 result)
+        {
+            return TryParse(val.AsSpan(), out result);
+        }
+        public unsafe static bool TryParse(ReadOnlySpan<char> sp, out Vector2 result)
+        {
+            if (sp.Length < 5)
             {
-                result = new Vector2();
+                result = Zero;
                 return false;
             }
-        }
 
+            int start = 0;
+            fixed (char* p = sp)
+            {
+                while (start < sp.Length)
+                {
+                    if (p[start++] == '<')
+                        break;
+                }
+                if (start > sp.Length - 4)
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                int comma1 = start + 1;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 3)
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float x))
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == '>')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length)
+                {
+                    result = Zero;
+                    return false;
+                }
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float y))
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                result = new Vector2(x, y);
+                return true;
+            }
+        }
         /// <summary>
         /// Interpolates between two vectors using a cubic equation
         /// </summary>
@@ -486,7 +597,13 @@ namespace OpenMetaverse
         /// <returns>A string representation of the vector</returns>
         public override string ToString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}>", X, Y);
+            StringBuilder sb = new();
+            sb.Append('<');
+            sb.Append(X.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(Y.ToString(Utils.EnUsCulture));
+            sb.Append('>');
+            return sb.ToString();
         }
 
         /// <summary>
@@ -499,7 +616,12 @@ namespace OpenMetaverse
             CultureInfo enUs = new CultureInfo("en-us");
             enUs.NumberFormat.NumberDecimalDigits = 3;
 
-            return String.Format(enUs, "{0} {1}", X, Y);
+            StringBuilder sb = new();
+            sb.Append(X.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(Y.ToString(enUs));
+            sb.Append(' ');
+            return sb.ToString();
         }
 
         #endregion Overrides

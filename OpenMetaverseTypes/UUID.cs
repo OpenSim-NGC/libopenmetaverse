@@ -41,8 +41,6 @@ namespace OpenMetaverse
     [Serializable()]
     public struct UUID : IComparable,IComparable<UUID>, IEquatable<UUID>, IEqualityComparer<UUID>
     {
-        // still a big piece of *** because how stupid .net structs are.
-        // .net5 unsafe may remove the need for this union
         [XmlIgnore] [NonSerialized()] [FieldOffset(0)] public int a;
         [XmlIgnore] [NonSerialized()] [FieldOffset(4)] public short b;
         [XmlIgnore] [NonSerialized()] [FieldOffset(6)] public short c;
@@ -107,9 +105,135 @@ namespace OpenMetaverse
         public unsafe UUID(string sval)
         {
             this = new UUID();
-            if (sval == null)
+            if (sval is null)
+                throw new FormatException("Invalid UUID");
+            int len = sval.Length;
+            if (len < 32)
                 throw new FormatException("Invalid UUID");
 
+            try
+            {
+                fixed (char* bval = sval)
+                {
+                    char* val = bval;
+                    while (*val == ' ')
+                    {
+                        ++val;
+                        --len;
+                        if (len < 32)
+                            throw new Exception();
+                    }
+
+                    if (val[8] == '-')
+                    {
+                        if (len < 36)
+                            throw new Exception();
+
+                        while (--len > 35)
+                        {
+                            if (val[len] != ' ')
+                                throw new Exception();
+                        }
+
+                        if (val[13] != '-' || val[18] != '-' || val[23] != '-')
+                            throw new Exception();
+
+                        if (BitConverter.IsLittleEndian)
+                        {
+                            bytea3 = Utils.HexToByte(val, 0);
+                            bytea2 = Utils.HexToByte(val, 2);
+                            bytea1 = Utils.HexToByte(val, 4);
+                            bytea0 = Utils.HexToByte(val, 6);
+
+                            byteb1 = Utils.HexToByte(val, 9);
+                            byteb0 = Utils.HexToByte(val, 11);
+
+                            bytec1 = Utils.HexToByte(val, 14);
+                            bytec0 = Utils.HexToByte(val, 16);
+                        }
+                        else
+                        {
+                            bytea0 = Utils.HexToByte(val, 0);
+                            bytea1 = Utils.HexToByte(val, 2);
+                            bytea2 = Utils.HexToByte(val, 4);
+                            bytea3 = Utils.HexToByte(val, 6);
+
+                            byteb0 = Utils.HexToByte(val, 9);
+                            byteb1 = Utils.HexToByte(val, 11);
+
+                            bytec0 = Utils.HexToByte(val, 14);
+                            bytec1 = Utils.HexToByte(val, 16);
+                        }
+
+
+                        d = Utils.HexToByte(val, 19);
+                        e = Utils.HexToByte(val, 21);
+
+
+                        f = Utils.HexToByte(val, 24);
+                        g = Utils.HexToByte(val, 26);
+                        h = Utils.HexToByte(val, 28);
+                        i = Utils.HexToByte(val, 30);
+                        j = Utils.HexToByte(val, 32);
+                        k = Utils.HexToByte(val, 34);
+                        return;
+                    }
+                    else
+                    {
+                        while (--len > 31)
+                        {
+                            if (val[len] != ' ')
+                                throw new Exception();
+                        }
+
+                        if (BitConverter.IsLittleEndian)
+                        {
+                            bytea3 = Utils.HexToByte(val, 0);
+                            bytea2 = Utils.HexToByte(val, 2);
+                            bytea1 = Utils.HexToByte(val, 4);
+                            bytea0 = Utils.HexToByte(val, 6);
+
+                            byteb1 = Utils.HexToByte(val, 8);
+                            byteb0 = Utils.HexToByte(val, 10);
+
+                            bytec1 = Utils.HexToByte(val, 12);
+                            bytec0 = Utils.HexToByte(val, 14);
+                        }
+                        else
+                        {
+                            bytea0 = Utils.HexToByte(val, 0);
+                            bytea1 = Utils.HexToByte(val, 2);
+                            bytea2 = Utils.HexToByte(val, 4);
+                            bytea3 = Utils.HexToByte(val, 6);
+
+                            byteb0 = Utils.HexToByte(val, 8);
+                            byteb1 = Utils.HexToByte(val, 10);
+
+                            bytec0 = Utils.HexToByte(val, 12);
+                            bytec1 = Utils.HexToByte(val, 14);
+                        }
+
+                        d = Utils.HexToByte(val, 16);
+                        e = Utils.HexToByte(val, 18);
+
+                        f = Utils.HexToByte(val, 20);
+                        g = Utils.HexToByte(val, 22);
+                        h = Utils.HexToByte(val, 24);
+                        i = Utils.HexToByte(val, 26);
+                        j = Utils.HexToByte(val, 28);
+                        k = Utils.HexToByte(val, 30);
+                        return;
+                    }
+                }
+            }
+            catch { }
+            this = new UUID();
+            throw new System.FormatException("Invalid UUID");
+        }
+
+        public unsafe UUID(ReadOnlySpan<char> sval)
+        {
+            this = new UUID();
             int len = sval.Length;
             if (len < 32)
                 throw new FormatException("Invalid UUID");
@@ -143,42 +267,42 @@ namespace OpenMetaverse
 
                         if (BitConverter.IsLittleEndian)
                         {
-                            bytea3 = (byte)Utils.HexToByte(val, 0);
-                            bytea2 = (byte)Utils.HexToByte(val, 2);
-                            bytea1 = (byte)Utils.HexToByte(val, 4);
-                            bytea0 = (byte)Utils.HexToByte(val, 6);
+                            bytea3 = Utils.HexToByte(val, 0);
+                            bytea2 = Utils.HexToByte(val, 2);
+                            bytea1 = Utils.HexToByte(val, 4);
+                            bytea0 = Utils.HexToByte(val, 6);
 
-                            byteb1 = (byte)Utils.HexToByte(val, 9);
-                            byteb0 = (byte)Utils.HexToByte(val, 11);
+                            byteb1 = Utils.HexToByte(val, 9);
+                            byteb0 = Utils.HexToByte(val, 11);
 
-                            bytec1 = (byte)Utils.HexToByte(val, 14);
-                            bytec0 = (byte)Utils.HexToByte(val, 16);
+                            bytec1 = Utils.HexToByte(val, 14);
+                            bytec0 = Utils.HexToByte(val, 16);
                         }
                         else
                         {
-                            bytea0 = (byte)Utils.HexToByte(val, 0);
-                            bytea1 = (byte)Utils.HexToByte(val, 2);
-                            bytea2 = (byte)Utils.HexToByte(val, 4);
-                            bytea3 = (byte)Utils.HexToByte(val, 6);
+                            bytea0 = Utils.HexToByte(val, 0);
+                            bytea1 = Utils.HexToByte(val, 2);
+                            bytea2 = Utils.HexToByte(val, 4);
+                            bytea3 = Utils.HexToByte(val, 6);
 
-                            byteb0 = (byte)Utils.HexToByte(val, 9);
-                            byteb1 = (byte)Utils.HexToByte(val, 11);
+                            byteb0 = Utils.HexToByte(val, 9);
+                            byteb1 = Utils.HexToByte(val, 11);
 
-                            bytec0 = (byte)Utils.HexToByte(val, 14);
-                            bytec1 = (byte)Utils.HexToByte(val, 16);
+                            bytec0 = Utils.HexToByte(val, 14);
+                            bytec1 = Utils.HexToByte(val, 16);
                         }
 
 
-                        d = (byte)Utils.HexToByte(val, 19);
-                        e = (byte)Utils.HexToByte(val, 21);
+                        d = Utils.HexToByte(val, 19);
+                        e = Utils.HexToByte(val, 21);
 
 
-                        f = (byte)Utils.HexToByte(val, 24);
-                        g = (byte)Utils.HexToByte(val, 26);
-                        h = (byte)Utils.HexToByte(val, 28);
-                        i = (byte)Utils.HexToByte(val, 30);
-                        j = (byte)Utils.HexToByte(val, 32);
-                        k = (byte)Utils.HexToByte(val, 34);
+                        f = Utils.HexToByte(val, 24);
+                        g = Utils.HexToByte(val, 26);
+                        h = Utils.HexToByte(val, 28);
+                        i = Utils.HexToByte(val, 30);
+                        j = Utils.HexToByte(val, 32);
+                        k = Utils.HexToByte(val, 34);
                         return;
                     }
                     else
@@ -332,13 +456,12 @@ namespace OpenMetaverse
         /// <summary>
         /// IComparable.CompareTo implementation
         /// </summary>
-        public int CompareTo(object val)
+        public readonly int CompareTo(object val)
         {
             if (val == null)
                 return 1;
 
             UUID id = (UUID)val;
-
             if (id.a != a)
                 return (uint)id.a > (uint)a ? -1 : 1;
             if (id.b != b)
@@ -365,7 +488,7 @@ namespace OpenMetaverse
             return 0;
         }
 
-        public int CompareTo(UUID id)
+        public readonly int CompareTo(UUID id)
         {
             if (id.a != a)
                 return (uint)id.a > (uint)a ? -1 : 1;
@@ -437,7 +560,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <returns>A 16 byte array containing this UUID</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe byte[] GetBytes()
+        public readonly unsafe byte[] GetBytes()
         {
             byte[] dest = new byte[16];
             fixed (byte* ptr = &dest[0])
@@ -477,7 +600,7 @@ namespace OpenMetaverse
         /// <param name="pos">Position in the destination array to start
         /// writing. Must be at least 16 bytes before the end of the array</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void ToBytes(byte[] dest, int pos)
+        public readonly unsafe void ToBytes(byte[] dest, int pos)
         {
             fixed (byte* ptr = &dest[pos])
             {
@@ -509,7 +632,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void ToBytes(byte* ptr)
+        public readonly unsafe void ToBytes(byte* ptr)
         {
             if (BitConverter.IsLittleEndian)
             {
@@ -551,7 +674,8 @@ namespace OpenMetaverse
         /// Create a 64-bit integer representation from the second half of this UUID
         /// </summary>
         /// <returns>An integer created from the last eight bytes of this UUID</returns>
-        public ulong GetULong()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly ulong GetULong()
         {
             if (BitConverter.IsLittleEndian)
                 return ulongb;
@@ -576,20 +700,17 @@ namespace OpenMetaverse
         /// <param name="sval">A string representation of a UUID, case 
         /// insensitive and can either be hyphenated or non-hyphenated</param>
         /// <example>UUID.Parse("11f8aa9c-b071-4242-836b-13b7abe0d489")</example>
-        /*
-        public static UUID Parse(string val)
-        {
-            Guid gg = Guid.Parse(val);
-            return new UUID(gg);          
-        }
-        */
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
 
         public unsafe static UUID Parse(string sval)
         {
-            UUID result = new UUID();
-            if (sval == null)
-                throw new FormatException("Invalid UUID");
+            return Parse(sval.AsSpan());
+        }
 
+        public unsafe static UUID Parse(ReadOnlySpan<char> sval)
+        {
+            UUID result = new();
             int len = sval.Length;
             if (len < 32)
                 throw new FormatException("Invalid UUID");
@@ -621,41 +742,41 @@ namespace OpenMetaverse
 
                         if (BitConverter.IsLittleEndian)
                         {
-                            result.bytea3 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea0 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea3 = Utils.HexToByte(val, 0);
+                            result.bytea2 = Utils.HexToByte(val, 2);
+                            result.bytea1 = Utils.HexToByte(val, 4);
+                            result.bytea0 = Utils.HexToByte(val, 6);
 
-                            result.byteb1 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb0 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb1 = Utils.HexToByte(val, 9);
+                            result.byteb0 = Utils.HexToByte(val, 11);
 
-                            result.bytec1 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec0 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec1 = Utils.HexToByte(val, 14);
+                            result.bytec0 = Utils.HexToByte(val, 16);
                         }
                         else
                         {
-                            result.bytea0 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea3 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea0 = Utils.HexToByte(val, 0);
+                            result.bytea1 = Utils.HexToByte(val, 2);
+                            result.bytea2 = Utils.HexToByte(val, 4);
+                            result.bytea3 = Utils.HexToByte(val, 6);
 
-                            result.byteb0 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb1 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb0 = Utils.HexToByte(val, 9);
+                            result.byteb1 = Utils.HexToByte(val, 11);
 
-                            result.bytec0 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec1 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec0 = Utils.HexToByte(val, 14);
+                            result.bytec1 = Utils.HexToByte(val, 16);
                         }
 
-                        result.d = (byte)Utils.HexToByte(val, 19);
-                        result.e = (byte)Utils.HexToByte(val, 21);
+                        result.d = Utils.HexToByte(val, 19);
+                        result.e = Utils.HexToByte(val, 21);
 
 
-                        result.f = (byte)Utils.HexToByte(val, 24);
-                        result.g = (byte)Utils.HexToByte(val, 26);
-                        result.h = (byte)Utils.HexToByte(val, 28);
-                        result.i = (byte)Utils.HexToByte(val, 30);
-                        result.j = (byte)Utils.HexToByte(val, 32);
-                        result.k = (byte)Utils.HexToByte(val, 34);
+                        result.f = Utils.HexToByte(val, 24);
+                        result.g = Utils.HexToByte(val, 26);
+                        result.h = Utils.HexToByte(val, 28);
+                        result.i = Utils.HexToByte(val, 30);
+                        result.j = Utils.HexToByte(val, 32);
+                        result.k = Utils.HexToByte(val, 34);
                         return result;
                     }
                     else
@@ -721,11 +842,15 @@ namespace OpenMetaverse
         /// <returns>True if the string was successfully parse, otherwise false</returns>
         /// <example>UUID.TryParse("11f8aa9c-b071-4242-836b-13b7abe0d489", result)</example>
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static bool TryParse(string sval, out UUID result)
         {
+            return TryParse(sval.AsSpan(), out result);
+        }
+
+        public unsafe static bool TryParse(ReadOnlySpan<char> sval, out UUID result)
+        {
             result = new UUID();
-            if (sval is null)
-                return false;
 
             int len = sval.Length;
             if (len < 32)
@@ -760,41 +885,41 @@ namespace OpenMetaverse
 
                         if (BitConverter.IsLittleEndian)
                         {
-                            result.bytea3 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea0 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea3 = Utils.HexToByte(val, 0);
+                            result.bytea2 = Utils.HexToByte(val, 2);
+                            result.bytea1 = Utils.HexToByte(val, 4);
+                            result.bytea0 = Utils.HexToByte(val, 6);
 
-                            result.byteb1 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb0 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb1 = Utils.HexToByte(val, 9);
+                            result.byteb0 = Utils.HexToByte(val, 11);
 
-                            result.bytec1 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec0 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec1 = Utils.HexToByte(val, 14);
+                            result.bytec0 = Utils.HexToByte(val, 16);
                         }
                         else
                         {
-                            result.bytea0 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea3 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea0 = Utils.HexToByte(val, 0);
+                            result.bytea1 = Utils.HexToByte(val, 2);
+                            result.bytea2 = Utils.HexToByte(val, 4);
+                            result.bytea3 = Utils.HexToByte(val, 6);
 
-                            result.byteb0 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb1 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb0 = Utils.HexToByte(val, 9);
+                            result.byteb1 = Utils.HexToByte(val, 11);
 
-                            result.bytec0 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec1 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec0 = Utils.HexToByte(val, 14);
+                            result.bytec1 = Utils.HexToByte(val, 16);
                         }
 
-                        result.d = (byte)Utils.HexToByte(val, 19);
-                        result.e = (byte)Utils.HexToByte(val, 21);
+                        result.d = Utils.HexToByte(val, 19);
+                        result.e = Utils.HexToByte(val, 21);
 
 
-                        result.f = (byte)Utils.HexToByte(val, 24);
-                        result.g = (byte)Utils.HexToByte(val, 26);
-                        result.h = (byte)Utils.HexToByte(val, 28);
-                        result.i = (byte)Utils.HexToByte(val, 30);
-                        result.j = (byte)Utils.HexToByte(val, 32);
-                        result.k = (byte)Utils.HexToByte(val, 34);
+                        result.f = Utils.HexToByte(val, 24);
+                        result.g = Utils.HexToByte(val, 26);
+                        result.h = Utils.HexToByte(val, 28);
+                        result.i = Utils.HexToByte(val, 30);
+                        result.j = Utils.HexToByte(val, 32);
+                        result.k = Utils.HexToByte(val, 34);
                         return true;
                     }
                     else
@@ -886,7 +1011,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <returns>An integer composed of all the UUID bytes XORed together</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
+        public readonly override int GetHashCode()
         {
             int h = Utils.CombineHash(intd, intc);
             h = Utils.CombineHash(h, intb);
@@ -894,9 +1019,11 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetHashCode(UUID u)
+        public readonly int GetHashCode(UUID u)
         {
-            return u.a ^ u.intb ^ u.intc ^ u.intd;
+            int h = Utils.CombineHash(u.intd, u.intc);
+            h = Utils.CombineHash(h, u.intb);
+            return Utils.CombineHash(h, u.a);
         }
 
         /// <summary>
@@ -905,12 +1032,11 @@ namespace OpenMetaverse
         /// <param name="o">An object to compare to this UUID</param>
         /// <returns>True if the object is a UUID and both UUIDs are equal</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool Equals(object o)
+        public readonly override bool Equals(object o)
         {
-            if (!(o is UUID))
+            if (o is not UUID uuid)
                 return false;
 
-            UUID uuid = (UUID)o;
             if (ulonga != uuid.ulonga)
                 return false;
             if (ulongb != uuid.ulongb)
@@ -924,7 +1050,7 @@ namespace OpenMetaverse
         /// <param name="uuid">UUID to compare to</param>
         /// <returns>True if the UUIDs are equal, otherwise false</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(UUID uuid)
+        public readonly bool Equals(UUID uuid)
         {
             if (ulonga != uuid.ulonga)
                 return false;
@@ -934,7 +1060,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(UUID a, UUID b)
+        public readonly bool Equals(UUID a, UUID b)
         {
             if (a.ulonga != b.ulonga)
                 return false;
@@ -944,7 +1070,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsZero()
+        public readonly bool IsZero()
         {
             if (ulonga != 0)
                 return false;
@@ -954,7 +1080,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool NotEqual(UUID uuid)
+        public readonly bool NotEqual(in UUID uuid)
         {
             if (ulonga != uuid.ulonga)
                 return true;
@@ -964,7 +1090,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsNotZero()
+        public readonly bool IsNotZero()
         {
             if (ulonga != 0)
                 return true;
@@ -981,9 +1107,9 @@ namespace OpenMetaverse
         /// <example>11f8aa9c-b071-4242-836b-13b7abe0d489</example>
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override string ToString()
+        public readonly override string ToString()
         {
-            return Utils.UUIDToDashString(ref this);
+            return Utils.UUIDToDashString(this);
         }
 
         #endregion Overrides
@@ -997,7 +1123,7 @@ namespace OpenMetaverse
         /// <param name="rhs">Second UUID for comparison</param>
         /// <returns>True if the UUIDs are byte for byte equal, otherwise false</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(UUID lhs, UUID rhs)
+        public static bool operator ==(in UUID lhs, in UUID rhs)
         {
             if (lhs.ulonga != rhs.ulonga)
                 return false;
@@ -1013,7 +1139,7 @@ namespace OpenMetaverse
         /// <param name="rhs">Second UUID for comparison</param>
         /// <returns>True if the UUIDs are not equal, otherwise true</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(UUID lhs, UUID rhs)
+        public static bool operator !=(in UUID lhs, in UUID rhs)
         {
             if (lhs.ulonga != rhs.ulonga)
                 return true;
@@ -1030,10 +1156,11 @@ namespace OpenMetaverse
         /// <returns>A UUID that is a XOR combination of the two input UUIDs</returns>
         public static UUID operator ^(UUID lhs, UUID rhs)
         {
-            UUID ret = new UUID();
-            ret.ulonga = lhs.ulonga ^ rhs.ulonga;
-            ret.ulongb = lhs.ulongb ^ rhs.ulongb;
-            return ret;
+            return new()
+            {
+                ulonga = lhs.ulonga ^ rhs.ulonga,
+                ulongb = lhs.ulongb ^ rhs.ulongb
+            };
         }
 
         /// <summary>
@@ -1050,7 +1177,7 @@ namespace OpenMetaverse
         #endregion Operators
 
         /// <summary>An UUID with a value of all zeroes</summary>
-        public static readonly UUID Zero = new UUID();
+        public static readonly UUID Zero = new();
 
         /// <summary>A cache of UUID.Zero as a string to optimize a common path</summary>
         public static readonly string ZeroString = "00000000-0000-0000-0000-000000000000";

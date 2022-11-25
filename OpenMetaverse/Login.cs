@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.IO;
 using System.Net;
+using System.Net.Security;
 using System.Xml;
 using System.Security.Cryptography.X509Certificates;
 using Nwc.XmlRpc;
@@ -1063,6 +1064,23 @@ namespace OpenMetaverse
         #endregion
 
         #region Private Methods
+        public static bool ValidateServerCertificate(
+            object sender,
+            X509Certificate certificate,
+            X509Chain chain,
+            SslPolicyErrors sslPolicyErrors)
+        {
+            //if (m_NoVerifyCertChain)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+
+            //if (m_NoVerifyCertHostname)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
+
+            return false;
+        }
 
         private void BeginLogin()
         {
@@ -1112,10 +1130,7 @@ namespace OpenMetaverse
 
             #endregion
 
-            // TODO: Allow a user callback to be defined for handling the cert
-            ServicePointManager.CertificatePolicy = new TrustAllCertificatePolicy();
-            // Even though this will compile on Mono 2.4, it throws a runtime exception
-            //ServicePointManager.ServerCertificateValidationCallback = TrustAllCertificatePolicy.TrustAllCertificateHandler;
+            ServicePointManager.ServerCertificateValidationCallback = ValidateServerCertificate;
 
             if (Client.Settings.USE_LLSD_LOGIN)
             {
