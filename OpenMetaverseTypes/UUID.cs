@@ -29,6 +29,8 @@ using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Xml.Serialization;
+using System.Runtime.Intrinsics.X86;
+using System.Runtime.Intrinsics;
 
 namespace OpenMetaverse
 {
@@ -384,6 +386,15 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe UUID(byte[] source, int pos) : this()
         {
+            if(Ssse3.IsSupported)
+            {
+                Vector128<byte> rawval = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(source), pos));
+                if (BitConverter.IsLittleEndian)
+                    rawval = Ssse3.Shuffle(rawval, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                Unsafe.As<UUID, Vector128<byte>>(ref this) = rawval;
+                return;
+            }
+
             fixed (byte* ptr = &source[pos])
             {
                 if (BitConverter.IsLittleEndian)
@@ -524,6 +535,15 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void FromBytes(byte[] source, int pos)
         {
+            if (Ssse3.IsSupported)
+            {
+                Vector128<byte> rawval = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(source), pos));
+                if (BitConverter.IsLittleEndian)
+                    rawval = Ssse3.Shuffle(rawval, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                Unsafe.As<UUID, Vector128<byte>>(ref this) = rawval;
+                return;
+            }
+
             fixed (byte* ptr = &source[pos])
             {
                 if (BitConverter.IsLittleEndian)
@@ -563,6 +583,14 @@ namespace OpenMetaverse
         public readonly unsafe byte[] GetBytes()
         {
             byte[] dest = new byte[16];
+            if (Ssse3.IsSupported)
+            {
+                Vector128<byte> rawval = Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in this));
+                if (BitConverter.IsLittleEndian)
+                    rawval = Ssse3.Shuffle(rawval, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetArrayDataReference(dest)) = rawval;
+                return dest;
+            }
             fixed (byte* ptr = &dest[0])
             {
                 if (BitConverter.IsLittleEndian)
@@ -602,6 +630,14 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly unsafe void ToBytes(byte[] dest, int pos)
         {
+            if (Ssse3.IsSupported)
+            {
+                Vector128<byte> val = Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in this));
+                if (BitConverter.IsLittleEndian)
+                    val = Ssse3.Shuffle(val, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = val;
+                return;
+            }
             fixed (byte* ptr = &dest[pos])
             {
                 if (BitConverter.IsLittleEndian)

@@ -2996,6 +2996,49 @@ namespace OpenMetaverse
 
         public static unsafe void UUIDToByteDashString(ref UUID u, byte* dst)
         {
+            if (Sse41.IsSupported)
+            {
+                Vector128<byte> lower = Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in u));
+                if (BitConverter.IsLittleEndian)
+                    lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                Vector128<byte> upper = (Sse2.ShiftRightLogical(lower.AsInt32(), 4)).AsByte();
+
+                Vector128<byte> mask0f = Vector128.Create((byte)0x0f);
+                lower = Sse2.And(mask0f, lower);
+                upper = Sse2.And(mask0f, upper);
+
+                Vector128<sbyte> pastNine = Vector128.Create((sbyte)10);
+                Vector128<byte> lowerMask = Sse2.CompareLessThan(lower.AsSByte(), pastNine).AsByte();
+                Vector128<byte> upperMask = Sse2.CompareLessThan(upper.AsSByte(), pastNine).AsByte();
+
+                Vector128<byte> first = Vector128.Create((byte)'0');
+                Vector128<byte> second = Vector128.Create((byte)('a' - 10));
+                Vector128<byte> addlower = Sse41.BlendVariable(second, first, lowerMask);
+                Vector128<byte> addupper = Sse41.BlendVariable(second, first, upperMask);
+
+                lower = Sse2.Add(lower, addlower);
+                upper = Sse2.Add(upper, addupper);
+
+                Vector128<byte> mask1 = Ssse3.Shuffle(lower, Vector128.Create(0xff, 0, 0xff, 1, 0xff, 2, 0xff, 3, 0xff, 0xff, 4, 0xff, 5, 0xff, 0xff, 6));
+                Vector128<byte> mask2 = Ssse3.Shuffle(upper, Vector128.Create(0, 0xff, 1, 0xff, 2, 0xff, 3, 0xff, 0xff, 4, 0xff, 5, 0xff, 0xff, 6, 0xff));
+                Vector128<byte> mask3 = Ssse3.Shuffle(lower, Vector128.Create(0xff, 7, 0xff, 0xff, 8, 0xff, 9, 0xff, 0xff, 10, 0xff, 11, 0xff, 12, 0xff, 13));
+                Vector128<byte> mask4 = Ssse3.Shuffle(upper, Vector128.Create(7, 0xff, 0xff, 8, 0xff, 9, 0xff, 0xff, 10, 0xff, 11, 0xff, 12, 0xff, 13, 0xff));
+                Vector128<byte> hypens = Vector128.Create(0, 0, (byte)'-', 0, 0, 0, 0, (byte)'-', 0, 0, 0, 0, 0, 0, 0, 0);
+                Vector128<byte> hypens2 = Vector128.Create(0, 0, 0, 0, 0, 0, 0, 0, (byte)'-', 0, 0, 0, 0, (byte)'-', 0, 0);
+                Vector128<byte> upperSorted = Sse2.Or(Sse2.Or(mask1, mask2), hypens2);
+                Vector128<byte> lowerSorted = Sse2.Or(Sse2.Or(mask3, mask4), hypens);
+
+                Unsafe.As<byte, Vector128<byte>>(ref Unsafe.AsRef<byte>(dst)) = upperSorted;
+                Unsafe.As<byte, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(dst), 16)) = lowerSorted;
+
+                int v1 = Sse2.Extract(upper.AsUInt16(), 7);
+                int v2 = Sse2.Extract(lower.AsUInt16(), 7);
+                Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(dst), 32)) = (byte)(v1 & 0xff);
+                Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(dst), 33)) = (byte)(v2 & 0xff);
+                Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(dst), 34)) = (byte)((v1 >> 8) & 0xff);
+                Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(dst), 35)) = (byte)((v2 >> 8) & 0xff);
+                return;
+            }
             byte b;
             if (BitConverter.IsLittleEndian)
             {
@@ -3110,16 +3153,6 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe osUTF8 UUIDToosUTF8(ref UUID v)
-        {
-            osUTF8 ret = new osUTF8(36);
-            fixed (byte* d = ret.m_data)
-                UUIDToByteDashString(ref v, d);
-            ret.m_len = 36;
-            return ret;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static char charNibbleToHexUpper(byte b)
         {
             b &= 0x0f;
@@ -3140,116 +3173,169 @@ namespace OpenMetaverse
             return (char)(b > 9 ? b + 0x57 : b + ASCIIzero);
         }
 
-        public static string UUIDToDashString(ref UUID u)
+        public static string UUIDToDashString(UUID u)
         {
-            char[] dst = new char[36];
-            byte b;
-            if (BitConverter.IsLittleEndian)
+            return string.Create(36, u, (dst, u) =>
             {
-                //a
-                b = u.bytea3;
-                dst[0] = charHighNibbleToHexChar(b);
-                dst[1] = charLowNibbleToHexChar(b);
-                b = u.bytea2;
-                dst[2] = charHighNibbleToHexChar(b);
-                dst[3] = charLowNibbleToHexChar(b);
-                b = u.bytea1;
-                dst[4] = charHighNibbleToHexChar(b);
-                dst[5] = charLowNibbleToHexChar(b);
-                b = u.bytea0;
-                dst[6] = charHighNibbleToHexChar(b);
-                dst[7] = charLowNibbleToHexChar(b);
+                if (Sse41.IsSupported)
+                {
+                    Vector128<byte> lower = Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in u));
+                    if (BitConverter.IsLittleEndian)
+                        lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                    Vector128<byte> upper = (Sse2.ShiftRightLogical(lower.AsInt32(), 4)).AsByte();
 
-                dst[8] = '-';
+                    Vector128<byte> mask0f = Vector128.Create((byte)0x0f);
+                    lower = Sse2.And(mask0f, lower);
+                    upper = Sse2.And(mask0f, upper);
 
-                //b
-                b = u.byteb1;
-                dst[9] = charHighNibbleToHexChar(b);
-                dst[10] = charLowNibbleToHexChar(b);
-                b = u.byteb0;
-                dst[11] = charHighNibbleToHexChar(b);
-                dst[12] = charLowNibbleToHexChar(b);
+                    Vector128<sbyte> pastNine = Vector128.Create((sbyte)10);
+                    Vector128<byte> lowerMask = Sse2.CompareLessThan(lower.AsSByte(), pastNine).AsByte();
+                    Vector128<byte> upperMask = Sse2.CompareLessThan(upper.AsSByte(), pastNine).AsByte();
 
-                dst[13] = '-';
+                    Vector128<byte> first = Vector128.Create((byte)'0');
+                    Vector128<byte> second = Vector128.Create((byte)('a' - 10));
+                    Vector128<byte> addlower = Sse41.BlendVariable(second, first, lowerMask);
+                    Vector128<byte> addupper = Sse41.BlendVariable(second, first, upperMask);
 
-                //c
-                b = u.bytec1;
-                dst[14] = charHighNibbleToHexChar(b);
-                dst[15] = charLowNibbleToHexChar(b);
-                b = u.bytec0;
-                dst[16] = charHighNibbleToHexChar(b);
-                dst[17] = charLowNibbleToHexChar(b);
-            }
-            else
-            {
-                //a
-                b = u.bytea0;
-                dst[0] = charHighNibbleToHexChar(b);
-                dst[1] = charLowNibbleToHexChar(b);
-                b = u.bytea1;
-                dst[2] = charHighNibbleToHexChar(b);
-                dst[3] = charLowNibbleToHexChar(b);
-                b = u.bytea2;
-                dst[4] = charHighNibbleToHexChar(b);
-                dst[5] = charLowNibbleToHexChar(b);
-                b = u.bytea3;
-                dst[6] = charHighNibbleToHexChar(b);
-                dst[7] = charLowNibbleToHexChar(b);
+                    lower = Sse2.Add(lower, addlower);
+                    upper = Sse2.Add(upper, addupper);
 
-                dst[8] = '-';
+                    Vector128<byte> mask1 = Ssse3.Shuffle(lower, Vector128.Create(0xff, 0, 0xff, 1, 0xff, 2, 0xff, 3, 0xff, 0xff, 4, 0xff, 5, 0xff, 0xff, 6));
+                    Vector128<byte> mask2 = Ssse3.Shuffle(upper, Vector128.Create(0, 0xff, 1, 0xff, 2, 0xff, 3, 0xff, 0xff, 4, 0xff, 5, 0xff, 0xff, 6, 0xff));
+                    Vector128<byte> mask3 = Ssse3.Shuffle(lower, Vector128.Create(0xff, 7, 0xff, 0xff, 8, 0xff, 9, 0xff, 0xff, 10, 0xff, 11, 0xff, 12, 0xff, 13));
+                    Vector128<byte> mask4 = Ssse3.Shuffle(upper, Vector128.Create(7, 0xff, 0xff, 8, 0xff, 9, 0xff, 0xff, 10, 0xff, 11, 0xff, 12, 0xff, 13, 0xff));
+                    Vector128<byte> hypens = Vector128.Create(0, 0, (byte)'-', 0, 0, 0, 0, (byte)'-', 0, 0, 0, 0, 0, 0, 0, 0);
+                    Vector128<byte> hypens2 = Vector128.Create(0, 0, 0, 0, 0, 0, 0, 0, (byte)'-', 0, 0, 0, 0, (byte)'-', 0, 0);
+                    Vector128<byte> upperSorted = Sse2.Or(Sse2.Or(mask1, mask2), hypens2);
+                    Vector128<byte> lowerSorted = Sse2.Or(Sse2.Or(mask3, mask4), hypens);
 
-                //b
-                b = u.byteb0;
-                dst[9] = charHighNibbleToHexChar(b);
-                dst[10] = charLowNibbleToHexChar(b);
-                b = u.byteb1;
-                dst[11] = charHighNibbleToHexChar(b);
-                dst[12] = charLowNibbleToHexChar(b);
+                    Vector128<byte> charsMask0 = Vector128.Create(0, 0xff, 1, 0xff, 2, 0xff, 3, 0xff, 4, 0xff, 5, 0xff, 6, 0xff, 7, 0xff);
+                    Vector128<byte> chars0 = Ssse3.Shuffle(upperSorted, charsMask0);
+                    Unsafe.As<char, Vector128<byte>>(ref MemoryMarshal.GetReference(dst)) = chars0;
 
-                dst[13] = '-';
+                    Vector128<byte> charsMask1 = Vector128.Create(8, 0xff, 9, 0xff, 10, 0xff, 11, 0xff, 12, 0xff, 13, 0xff, 14, 0xff, 15, 0xff);
+                    Vector128<byte> chars1 = Ssse3.Shuffle(upperSorted, charsMask1);
+                    Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 16)) = chars1;
 
-                //c
-                b = u.bytec0;
-                dst[14] = charHighNibbleToHexChar(b);
-                dst[15] = charLowNibbleToHexChar(b);
-                b = u.bytec1;
-                dst[16] = charHighNibbleToHexChar(b);
-                dst[17] = charLowNibbleToHexChar(b);
-            }
+                    chars0 = Ssse3.Shuffle(lowerSorted, charsMask0);
+                    Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 32)) = chars0;
 
+                    chars1 = Ssse3.Shuffle(lowerSorted, charsMask1);
+                    Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 48)) = chars1;
 
-            dst[18] = '-';
+                    int v1 = Sse2.Extract(upper.AsUInt16(), 7);
+                    int v2 = Sse2.Extract(lower.AsUInt16(), 7);
+                    Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 64)) = (byte)(v1 & 0xff);
+                    Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 66)) = (byte)(v2 & 0xff);
+                    Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 68)) = (byte)((v1 >> 8) & 0xff);
+                    Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 70)) = (byte)((v2 >> 8) & 0xff);
+                    return;
+                }
+                byte b;
+                if (BitConverter.IsLittleEndian)
+                {
+                    //a
+                    b = u.bytea3;
+                    dst[0] = charHighNibbleToHexChar(b);
+                    dst[1] = charLowNibbleToHexChar(b);
+                    b = u.bytea2;
+                    dst[2] = charHighNibbleToHexChar(b);
+                    dst[3] = charLowNibbleToHexChar(b);
+                    b = u.bytea1;
+                    dst[4] = charHighNibbleToHexChar(b);
+                    dst[5] = charLowNibbleToHexChar(b);
+                    b = u.bytea0;
+                    dst[6] = charHighNibbleToHexChar(b);
+                    dst[7] = charLowNibbleToHexChar(b);
 
-            b = u.d; //d
-            dst[19] = charHighNibbleToHexChar(b);
-            dst[20] = charLowNibbleToHexChar(b);
-            b = u.e; //e
-            dst[21] = charHighNibbleToHexChar(b);
-            dst[22] = charLowNibbleToHexChar(b);
+                    dst[8] = '-';
 
-            dst[23] = '-';
+                    //b
+                    b = u.byteb1;
+                    dst[9] = charHighNibbleToHexChar(b);
+                    dst[10] = charLowNibbleToHexChar(b);
+                    b = u.byteb0;
+                    dst[11] = charHighNibbleToHexChar(b);
+                    dst[12] = charLowNibbleToHexChar(b);
 
-            b = u.f; //f
-            dst[24] = charHighNibbleToHexChar(b);
-            dst[25] = charLowNibbleToHexChar(b);
-            b = u.g; //g
-            dst[26] = charHighNibbleToHexChar(b);
-            dst[27] = charLowNibbleToHexChar(b);
-            b = u.h; //h
-            dst[28] = charHighNibbleToHexChar(b);
-            dst[29] = charLowNibbleToHexChar(b);
-            b = u.i; //i
-            dst[30] = charHighNibbleToHexChar(b);
-            dst[31] = charLowNibbleToHexChar(b);
-            b = u.j; //j
-            dst[32] = charHighNibbleToHexChar(b);
-            dst[33] = charLowNibbleToHexChar(b);
-            b = u.k; //k
-            dst[34] = charHighNibbleToHexChar(b);
-            dst[35] = charLowNibbleToHexChar(b);
-            return new string(dst);
+                    dst[13] = '-';
+
+                    //c
+                    b = u.bytec1;
+                    dst[14] = charHighNibbleToHexChar(b);
+                    dst[15] = charLowNibbleToHexChar(b);
+                    b = u.bytec0;
+                    dst[16] = charHighNibbleToHexChar(b);
+                    dst[17] = charLowNibbleToHexChar(b);
+                }
+                else
+                {
+                    //a
+                    b = u.bytea0;
+                    dst[0] = charHighNibbleToHexChar(b);
+                    dst[1] = charLowNibbleToHexChar(b);
+                    b = u.bytea1;
+                    dst[2] = charHighNibbleToHexChar(b);
+                    dst[3] = charLowNibbleToHexChar(b);
+                    b = u.bytea2;
+                    dst[4] = charHighNibbleToHexChar(b);
+                    dst[5] = charLowNibbleToHexChar(b);
+                    b = u.bytea3;
+                    dst[6] = charHighNibbleToHexChar(b);
+                    dst[7] = charLowNibbleToHexChar(b);
+
+                    dst[8] = '-';
+
+                    //b
+                    b = u.byteb0;
+                    dst[9] = charHighNibbleToHexChar(b);
+                    dst[10] = charLowNibbleToHexChar(b);
+                    b = u.byteb1;
+                    dst[11] = charHighNibbleToHexChar(b);
+                    dst[12] = charLowNibbleToHexChar(b);
+
+                    dst[13] = '-';
+
+                    //c
+                    b = u.bytec0;
+                    dst[14] = charHighNibbleToHexChar(b);
+                    dst[15] = charLowNibbleToHexChar(b);
+                    b = u.bytec1;
+                    dst[16] = charHighNibbleToHexChar(b);
+                    dst[17] = charLowNibbleToHexChar(b);
+                }
+
+                dst[18] = '-';
+
+                b = u.d; //d
+                dst[19] = charHighNibbleToHexChar(b);
+                dst[20] = charLowNibbleToHexChar(b);
+                b = u.e; //e
+                dst[21] = charHighNibbleToHexChar(b);
+                dst[22] = charLowNibbleToHexChar(b);
+
+                dst[23] = '-';
+
+                b = u.f; //f
+                dst[24] = charHighNibbleToHexChar(b);
+                dst[25] = charLowNibbleToHexChar(b);
+                b = u.g; //g
+                dst[26] = charHighNibbleToHexChar(b);
+                dst[27] = charLowNibbleToHexChar(b);
+                b = u.h; //h
+                dst[28] = charHighNibbleToHexChar(b);
+                dst[29] = charLowNibbleToHexChar(b);
+                b = u.i; //i
+                dst[30] = charHighNibbleToHexChar(b);
+                dst[31] = charLowNibbleToHexChar(b);
+                b = u.j; //j
+                dst[32] = charHighNibbleToHexChar(b);
+                dst[33] = charLowNibbleToHexChar(b);
+                b = u.k; //k
+                dst[34] = charHighNibbleToHexChar(b);
+                dst[35] = charLowNibbleToHexChar(b);
+            });
         }
-
         #endregion Miscellaneous
     }
 }
