@@ -1927,6 +1927,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="c">Character to test</param>
         /// <returns>true if hex digit, false if not</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsHexDigit(Char c)
         {
 
@@ -1949,7 +1950,7 @@ namespace OpenMetaverse
 
             return false;
         }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int HexNibbleWithChk(Char c)
         {
             const int numA = 65;
@@ -1971,7 +1972,7 @@ namespace OpenMetaverse
 
             return -1;
         }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int HexNibbleWithChk(byte c)
         {
             const int numA = 65;
@@ -1994,6 +1995,7 @@ namespace OpenMetaverse
             return -1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int HexNibble(Char c)
         {
 
@@ -2020,6 +2022,7 @@ namespace OpenMetaverse
             throw new FormatException("invalid hex char");
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int HexNibble(byte c)
         {
             const byte numA = (byte)'A';

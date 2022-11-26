@@ -126,6 +126,86 @@ namespace OpenMetaverse
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             throw new Exception();
 
+                        if (Sse42.IsSupported)
+                        {
+                            Vector128<byte> input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AsRef<char>(val));
+                            Vector128<byte> upper = Ssse3.Shuffle(input, Vector128.Create(0, 4, 8, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lower = Ssse3.Shuffle(input, Vector128.Create(2, 6, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 18));
+                            Vector128<byte> uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 34)), 7);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 38));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 54)), 11);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 56));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 8, 12));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 10, 14));
+
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            Vector128<byte> charTolower = Vector128.Create((byte)0x20);
+                            Vector128<byte> upperLetters = Sse2.Or(upper, charTolower);
+                            Vector128<byte> lowerLetters = Sse2.Or(lower, charTolower);
+
+                            Vector128<byte> letterTohex = Vector128.Create((byte)('a' - '0' - 10));
+                            upperLetters = Sse2.Subtract(upperLetters, letterTohex);
+                            lowerLetters = Sse2.Subtract(lowerLetters, letterTohex);
+
+                            Vector128<byte> char9 = Vector128.Create((byte)'9');
+                            Vector128<byte> above9upper = (Sse2.CompareGreaterThan(upper.AsSByte(), char9.AsSByte())).AsByte();
+                            Vector128<byte> above9lower = (Sse2.CompareGreaterThan(lower.AsSByte(), char9.AsSByte())).AsByte();
+
+                            Vector128<byte> ten = Vector128.Create((byte)('0' + 10));
+                            Vector128<byte> tmpcmpA = Sse2.Subtract(upperLetters, ten);
+                            Vector128<byte> tmpcmpB = Sse2.Subtract(lowerLetters, ten);
+
+                            Vector128<byte> fifteen = Vector128.Create((byte)('0' + 15));
+                            Vector128<byte> tmpcmpC = Sse2.Subtract(fifteen, upperLetters);
+                            Vector128<byte> tmpcmpD = Sse2.Subtract(fifteen, lowerLetters);
+
+                            tmpcmpA = Sse2.Or(tmpcmpC, tmpcmpA);
+                            tmpcmpB = Sse2.Or(tmpcmpD, tmpcmpB);
+
+                            tmpcmpA = Sse2.And(tmpcmpA, above9upper);
+                            tmpcmpB = Sse2.And(tmpcmpB, above9lower);
+
+                            tmpcmpA = Sse2.Or(tmpcmpB, tmpcmpA);
+                            int cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                throw new Exception();
+
+                            upper = Sse41.BlendVariable(upper, upperLetters, above9upper);
+                            lower = Sse41.BlendVariable(lower, lowerLetters, above9lower);
+
+                            Vector128<byte> charzero = Vector128.Create((byte)'0');
+                            upper = Sse2.Subtract(upper, charzero);
+                            lower = Sse2.Subtract(lower, charzero);
+
+                            tmpcmpA = Sse2.Or(lower, upper);
+                            cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                throw new Exception();
+
+                            upper = Sse2.ShiftLeftLogical(upper.AsUInt16(), 4).AsByte();
+                            lower = Sse2.Or(lower, upper);
+                            if (BitConverter.IsLittleEndian)
+                                lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                            Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in this)) = lower;
+                            return;
+                        }
+
                         if (BitConverter.IsLittleEndian)
                         {
                             bytea3 = Utils.HexToByte(val, 0);
@@ -589,6 +669,86 @@ namespace OpenMetaverse
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             throw new Exception();
 
+                        if (Sse42.IsSupported)
+                        {
+                            Vector128<byte> input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AsRef<char>(val));
+                            Vector128<byte> upper = Ssse3.Shuffle(input, Vector128.Create(0, 4, 8, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lower = Ssse3.Shuffle(input, Vector128.Create(2, 6, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 18));
+                            Vector128<byte> uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 34)), 7);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 38));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 54)), 11);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 56));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 8, 12));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 10, 14));
+
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            Vector128<byte> charTolower = Vector128.Create((byte)0x20);
+                            Vector128<byte> upperLetters = Sse2.Or(upper, charTolower);
+                            Vector128<byte> lowerLetters = Sse2.Or(lower, charTolower);
+
+                            Vector128<byte> letterTohex = Vector128.Create((byte)('a' - '0' - 10));
+                            upperLetters = Sse2.Subtract(upperLetters, letterTohex);
+                            lowerLetters = Sse2.Subtract(lowerLetters, letterTohex);
+
+                            Vector128<byte> char9 = Vector128.Create((byte)'9');
+                            Vector128<byte> above9upper = (Sse2.CompareGreaterThan(upper.AsSByte(), char9.AsSByte())).AsByte();
+                            Vector128<byte> above9lower = (Sse2.CompareGreaterThan(lower.AsSByte(), char9.AsSByte())).AsByte();
+
+                            Vector128<byte> ten = Vector128.Create((byte)('0' + 10));
+                            Vector128<byte> tmpcmpA = Sse2.Subtract(upperLetters, ten);
+                            Vector128<byte> tmpcmpB = Sse2.Subtract(lowerLetters, ten);
+
+                            Vector128<byte> fifteen = Vector128.Create((byte)('0' + 15));
+                            Vector128<byte> tmpcmpC = Sse2.Subtract(fifteen, upperLetters);
+                            Vector128<byte> tmpcmpD = Sse2.Subtract(fifteen, lowerLetters);
+
+                            tmpcmpA = Sse2.Or(tmpcmpC, tmpcmpA);
+                            tmpcmpB = Sse2.Or(tmpcmpD, tmpcmpB);
+
+                            tmpcmpA = Sse2.And(tmpcmpA, above9upper);
+                            tmpcmpB = Sse2.And(tmpcmpB, above9lower);
+
+                            tmpcmpA = Sse2.Or(tmpcmpB, tmpcmpA);
+                            int cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                throw new Exception();
+
+                            upper = Sse41.BlendVariable(upper, upperLetters, above9upper);
+                            lower = Sse41.BlendVariable(lower, lowerLetters, above9lower);
+
+                            Vector128<byte> charzero = Vector128.Create((byte)'0');
+                            upper = Sse2.Subtract(upper, charzero);
+                            lower = Sse2.Subtract(lower, charzero);
+
+                            tmpcmpA = Sse2.Or(lower, upper);
+                            cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                throw new Exception();
+
+                            upper = Sse2.ShiftLeftLogical(upper.AsUInt16(), 4).AsByte();
+                            lower = Sse2.Or(lower, upper);
+                            if (BitConverter.IsLittleEndian)
+                                lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                            Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in result)) = lower;
+                            return result;
+                        }
+
                         if (BitConverter.IsLittleEndian)
                         {
                             result.bytea3 = Utils.HexToByte(val, 0);
@@ -720,6 +880,86 @@ namespace OpenMetaverse
 
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             return false;
+
+                        if (Sse42.IsSupported)
+                        {
+                            Vector128<byte> input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AsRef<char>(val));
+                            Vector128<byte> upper = Ssse3.Shuffle(input, Vector128.Create(0, 4, 8, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lower = Ssse3.Shuffle(input, Vector128.Create(2, 6, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 18));
+                            Vector128<byte> uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 34)), 7);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 38));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 54)), 11);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 56));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 8, 12));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 10, 14));
+
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            Vector128<byte> charTolower = Vector128.Create((byte)0x20);
+                            Vector128<byte> upperLetters = Sse2.Or(upper, charTolower);
+                            Vector128<byte> lowerLetters = Sse2.Or(lower, charTolower);
+
+                            Vector128<byte> letterTohex = Vector128.Create((byte)('a' - '0' - 10));
+                            upperLetters = Sse2.Subtract(upperLetters, letterTohex);
+                            lowerLetters = Sse2.Subtract(lowerLetters, letterTohex);
+
+                            Vector128<byte> char9 = Vector128.Create((byte)'9');
+                            Vector128<byte> above9upper = (Sse2.CompareGreaterThan(upper.AsSByte(), char9.AsSByte())).AsByte();
+                            Vector128<byte> above9lower = (Sse2.CompareGreaterThan(lower.AsSByte(), char9.AsSByte())).AsByte();
+
+                            Vector128<byte> ten = Vector128.Create((byte)('0' + 10));
+                            Vector128<byte> tmpcmpA = Sse2.Subtract(upperLetters, ten);
+                            Vector128<byte> tmpcmpB = Sse2.Subtract(lowerLetters, ten);
+
+                            Vector128<byte> fifteen = Vector128.Create((byte)('0' + 15));
+                            Vector128<byte> tmpcmpC = Sse2.Subtract(fifteen, upperLetters);
+                            Vector128<byte> tmpcmpD = Sse2.Subtract(fifteen, lowerLetters);
+
+                            tmpcmpA = Sse2.Or(tmpcmpC, tmpcmpA);
+                            tmpcmpB = Sse2.Or(tmpcmpD, tmpcmpB);
+
+                            tmpcmpA = Sse2.And(tmpcmpA, above9upper);
+                            tmpcmpB = Sse2.And(tmpcmpB, above9lower);
+
+                            tmpcmpA = Sse2.Or(tmpcmpB, tmpcmpA);
+                            int cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                return false;
+
+                            upper = Sse41.BlendVariable(upper, upperLetters, above9upper);
+                            lower = Sse41.BlendVariable(lower, lowerLetters, above9lower);
+
+                            Vector128<byte> charzero = Vector128.Create((byte)'0');
+                            upper = Sse2.Subtract(upper, charzero);
+                            lower = Sse2.Subtract(lower, charzero);
+
+                            tmpcmpA = Sse2.Or(lower, upper);
+                            cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                return false;
+
+                            upper = Sse2.ShiftLeftLogical(upper.AsUInt16(), 4).AsByte();
+                            lower = Sse2.Or(lower, upper);
+                            if (BitConverter.IsLittleEndian)
+                                lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                            Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in result)) = lower;
+                            return true;
+                        }
 
                         if (BitConverter.IsLittleEndian)
                         {
