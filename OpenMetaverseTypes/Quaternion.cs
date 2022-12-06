@@ -29,7 +29,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Globalization;
 using System.Text;
-using System.Reflection.Metadata;
 using System.Runtime.Intrinsics.X86;
 using System.Runtime.Intrinsics;
 
@@ -111,10 +110,13 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Quaternion(Quaternion q)
         {
-            X = q.X;
-            Y = q.Y;
-            Z = q.Z;
-            W = q.W;
+            this = q;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion(Vector128<float> q) : this()
+        {
+            Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this)) = q;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -156,29 +158,51 @@ namespace OpenMetaverse
         public readonly bool ApproxEquals(Quaternion quat)
         {
             // assume normalized
+            return MathF.Abs(quat.W - W) < 1e-6f &&
+                   MathF.Abs(quat.Z - Z) < 1e-6f &&
+                   MathF.Abs(quat.X - X) < 1e-6f;
+        }
+        /* not faster
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool ApproxEquals2(in Quaternion quat)
+        {
+            if (Sse.IsSupported)
+            {
+                Vector128<float> tol = Vector128.Create(1e-6f);
+
+                Vector128<float> a = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                Vector128<float> c = Sse.CompareEqual(tol, tol);
+
+                Vector128<float> b = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(quat));
+                c = Sse2.ShiftRightLogical(c.AsInt32(), 1).AsSingle();
+
+                a = Sse.Subtract(a, b);
+                a = Sse.And(a, c);
+                a = Sse.CompareLessThan(a, tol);
+                int res = Sse.MoveMask(a);
+                return res == 0x0f;
+            }
+            // assume normalized
             return MathF.Abs(quat.X - X) < 1e-6f &&
                     MathF.Abs(quat.Y - Y) < 1e-6f &&
                     MathF.Abs(quat.Z - Z) < 1e-6f;
         }
+        */
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool ApproxEquals(Quaternion quat, float tolerance)
         {
             // assume normalized
-            return MathF.Abs(quat.X - X) < tolerance &&
-                    MathF.Abs(quat.Y - Y) < tolerance &&
-                    MathF.Abs(quat.Z - Z) < tolerance;
+            return MathF.Abs(quat.W - W) < tolerance &&
+                   MathF.Abs(quat.Z - Z) < tolerance &&
+                   MathF.Abs(quat.X - X) < tolerance;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool IsIdentity()
         {
             // assume normalized
-            if(W > (1.0f - 1e-6f))
-                return true;
-            if (W < -(1.0f - 1e-6f))
-                return true;
-            return false;
+            return MathF.Abs(W) > (1.0f - 1e-6f);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -195,31 +219,30 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly float Length()
+        public readonly unsafe float Length()
         {
-            return MathF.Sqrt((X * X) + (Y * Y) + (Z * Z) + (W * W));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly float LengthSquared()
-        {
-            return (X * X) + (Y * Y) + (Z * Z) + (W * W);
-        }
-
-        /* is slower
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe float LengthSquared2()
-        {
-            if (Avx.IsSupported)
+            if (Sse41.IsSupported)
             {
-                Vector128<float> q = Avx.LoadVector128((float*)Unsafe.AsPointer(ref X));
-                q = Avx.DotProduct(q, q, 0xf1);
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                q = Sse41.DotProduct(q, q, 0xf1);
+                return MathF.Sqrt(q.ToScalar());
+            }
+            else
+                return MathF.Sqrt((X * X) + (Y * Y) + (Z * Z) + (W * W));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly unsafe float LengthSquared()
+        {
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                q = Sse41.DotProduct(q, q, 0xf1);
                 return q.ToScalar();
             }
             else
                 return (X * X) + (Y * Y) + (Z * Z) + (W * W);
         }
-        */
 
         /// <summary>
         /// Normalizes the quaternion
@@ -227,6 +250,25 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Normalize()
         {
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                Vector128<float> d = Sse41.DotProduct(q, q, 0xff);
+                float m = d.ToScalar();
+                if (m > 1e-6f)
+                {
+                    d = Sse.Sqrt(d);
+                    q = Sse.Divide(q, d);
+                    //d = Sse.ReciprocalSqrt(d);
+                    //q = Sse.Multiply(q, d);
+                    Unsafe.As<Quaternion, Vector128<float>>(ref this) = q;
+                    return;
+                }
+                q = Vector128.Create(0f, 0f, 0f, 1f);
+                Unsafe.As<Quaternion, Vector128<float>>(ref this) = q;
+                return;
+            }
+
             float mag = LengthSquared();
             if (mag > 1e-6f)
             {
@@ -277,25 +319,52 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly float Dot(Quaternion q2)
         {
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref q2);
+                d = Sse41.DotProduct(q, d, 0xf1);
+                return d.ToScalar();
+            }
             return (X * q2.X) + (Y * q2.Y) + (Z * q2.Z) + (W * q2.W);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(Quaternion quaternion2)
         {
-            X += quaternion2.X;
-            Y += quaternion2.Y;
-            Z += quaternion2.Z;
-            W += quaternion2.W;
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref quaternion2);
+                d = Sse.Add(q, d);
+                Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this)) = d;
+            }
+            else
+            {
+                X += quaternion2.X;
+                Y += quaternion2.Y;
+                Z += quaternion2.Z;
+                W += quaternion2.W;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Sub(Quaternion quaternion2)
         {
-            X -= quaternion2.X;
-            Y -= quaternion2.Y;
-            Z -= quaternion2.Z;
-            W -= quaternion2.W;
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref quaternion2);
+                d = Sse.Subtract(q, d);
+                Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this)) = d;
+            }
+            else
+            {
+                X -= quaternion2.X;
+                Y -= quaternion2.Y;
+                Z -= quaternion2.Z;
+                W -= quaternion2.W;
+            }
         }
 
         /// <summary>
@@ -601,8 +670,16 @@ namespace OpenMetaverse
         #region Static Methods
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Quaternion Add(Quaternion quaternion1, Quaternion quaternion2)
+        public static Quaternion Add(in Quaternion quaternion1, in Quaternion quaternion2)
         {
+            if (Sse.IsSupported)
+            {
+                Vector128<float> a = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(quaternion1));
+                Vector128<float> b = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(quaternion2));
+                a = Sse.Add(a, b);
+                return new Quaternion(a);
+            }
+
             return new Quaternion(
                 quaternion1.X + quaternion2.X,
                 quaternion1.Y + quaternion2.Y,
@@ -614,9 +691,16 @@ namespace OpenMetaverse
         /// Returns the conjugate (spatial inverse) of a quaternion
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Quaternion Conjugate(Quaternion quaternion)
+        public static Quaternion Conjugate(in Quaternion quaternion)
         {
-            return new Quaternion( -quaternion.X, -quaternion.Y, -quaternion.Z, quaternion.W);
+            if (Sse.IsSupported)
+            {
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(quaternion));
+                Vector128<float> Mask = Vector128.Create(0x80000000, 0x80000000, 0x80000000, 0).AsSingle();
+                d = Sse.Xor(d, Mask);
+                return new Quaternion(d);
+            }
+            return new Quaternion(-quaternion.X, -quaternion.Y, -quaternion.Z, quaternion.W);
         }
 
         /// <summary>
@@ -821,6 +905,13 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Dot(Quaternion q1, Quaternion q2)
         {
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref q1);
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref q2);
+                d = Sse41.DotProduct(q, d, 0xf1);
+                return d.ToScalar();
+            }
             return (q1.X * q2.X) + (q1.Y * q2.Y) + (q1.Z * q2.Z) + (q1.W * q2.W);
         }
 
