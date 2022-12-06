@@ -602,7 +602,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <returns>The CRC checksum for this UUID</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public uint CRC()
+        public readonly uint CRC()
         {
             return (uint)a + (uint)intb + (uint)intc + (uint)intd;
         }
@@ -1097,9 +1097,7 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly int GetHashCode(UUID u)
         {
-            int h = Utils.CombineHash(u.intd, u.intc);
-            h = Utils.CombineHash(h, u.intb);
-            return Utils.CombineHash(h, u.a);
+            return u.GetHashCode();
         }
 
         /// <summary>

@@ -94,10 +94,7 @@ namespace OpenMetaverse
 
         public Vector4(Vector4 value)
         {
-            X = value.X;
-            Y = value.Y;
-            Z = value.Z;
-            W = value.W;
+            this = value;
         }
 
         #endregion Constructors
