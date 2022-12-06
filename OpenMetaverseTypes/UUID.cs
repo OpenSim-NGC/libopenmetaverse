@@ -71,11 +71,13 @@ namespace OpenMetaverse
         [XmlIgnore] [NonSerialized()] [FieldOffset(8)] public int intc;
         [XmlIgnore] [NonSerialized()] [FieldOffset(12)] public int intd;
 
-        [XmlIgnore] [NonSerialized()] [FieldOffset(0)] public ulong ulonga;
+        [XmlIgnore] [NonSerialized()][FieldOffset(0)] public ulong ulonga;
         [XmlIgnore] [NonSerialized()] [FieldOffset(8)] public ulong ulongb;
 
-        #region Constructors
+        [FieldOffset(0)] public Guid Guid;
 
+        #region Constructors
+        /*
         public Guid Guid
         {
             get
@@ -87,6 +89,7 @@ namespace OpenMetaverse
                 Unsafe.As<UUID, Guid>(ref this) = value;
             }
         }
+        */
         /// <summary>
         /// Constructor that takes a string UUID representation
         /// </summary>
