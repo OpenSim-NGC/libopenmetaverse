@@ -172,7 +172,7 @@ namespace OpenMetaverse.GUI
 
         private void defaultMenuItem_Click(object sender, EventArgs e)
         {
-            ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
+            ToolStripItem menuItem = (ToolStripItem)sender;
 
             InventoryItem item = (InventoryItem)Client.Inventory.Store[_SelectedItemID];
 

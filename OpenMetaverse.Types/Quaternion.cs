@@ -28,6 +28,9 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Globalization;
+using System.Text;
+using System.Runtime.Intrinsics.X86;
+using System.Runtime.Intrinsics;
 
 namespace OpenMetaverse
 {
@@ -43,6 +46,13 @@ namespace OpenMetaverse
         public float Z;
         /// <summary>W value</summary>
         public float W;
+
+        public enum MainAxis : int
+        {
+            X = 0,
+            Y = 1,
+            Z = 2
+        }
 
         #region Constructors
 
@@ -78,7 +88,7 @@ namespace OpenMetaverse
             Z = z;
 
             float xyzsum = 1f - (X * X) - (Y * Y) - (Z * Z);
-            W = (xyzsum > 1e-6f) ? (float)Math.Sqrt(xyzsum) : 0;
+            W = (xyzsum > 1e-6f) ? MathF.Sqrt(xyzsum) : 0;
         }
 
         /// <summary>
@@ -100,46 +110,103 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Quaternion(Quaternion q)
         {
-            X = q.X;
-            Y = q.Y;
-            Z = q.Z;
-            W = q.W;
+            this = q;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion(Vector128<float> q) : this()
+        {
+            Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this)) = q;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Quaternion(MainAxis BaseAxis, float angle)
+        {
+            switch (BaseAxis)
+            {
+                case MainAxis.X:
+                    W = MathF.Cos(0.5f * angle);
+                    X = MathF.Sqrt(1.0f - W * W);
+                    Y = 0;
+                    Z = 0;
+                    break;
+                case MainAxis.Y:
+                    W = MathF.Cos(0.5f * angle);
+                    Y = MathF.Sqrt(1.0f - W * W);
+                    X = 0;
+                    Z = 0;
+                    break;
+                case MainAxis.Z:
+                    W = MathF.Cos(0.5f * angle);
+                    Z = MathF.Sqrt(1.0f - W * W);
+                    X = 0;
+                    Y = 0;
+                    break;
+                default: //error
+                    X = 0;
+                    Y = 0;
+                    Z = 0;
+                    W = 1;
+                    break;
+            }
         }
 
         #endregion Constructors
 
         #region Public Methods
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool ApproxEquals(Quaternion quat)
+        public readonly bool ApproxEquals(Quaternion quat)
         {
             // assume normalized
-            return Math.Abs(quat.X - X) < 1e-6f &&
-                    Math.Abs(quat.Y - Y) < 1e-6f &&
-                    Math.Abs(quat.Z - Z) < 1e-6f;
+            return MathF.Abs(quat.W - W) < 1e-6f &&
+                   MathF.Abs(quat.Z - Z) < 1e-6f &&
+                   MathF.Abs(quat.X - X) < 1e-6f;
+        }
+        /* not faster
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool ApproxEquals2(in Quaternion quat)
+        {
+            if (Sse.IsSupported)
+            {
+                Vector128<float> tol = Vector128.Create(1e-6f);
+
+                Vector128<float> a = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                Vector128<float> c = Sse.CompareEqual(tol, tol);
+
+                Vector128<float> b = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(quat));
+                c = Sse2.ShiftRightLogical(c.AsInt32(), 1).AsSingle();
+
+                a = Sse.Subtract(a, b);
+                a = Sse.And(a, c);
+                a = Sse.CompareLessThan(a, tol);
+                int res = Sse.MoveMask(a);
+                return res == 0x0f;
+            }
+            // assume normalized
+            return MathF.Abs(quat.X - X) < 1e-6f &&
+                    MathF.Abs(quat.Y - Y) < 1e-6f &&
+                    MathF.Abs(quat.Z - Z) < 1e-6f;
+        }
+        */
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool ApproxEquals(Quaternion quat, float tolerance)
+        {
+            // assume normalized
+            return MathF.Abs(quat.W - W) < tolerance &&
+                   MathF.Abs(quat.Z - Z) < tolerance &&
+                   MathF.Abs(quat.X - X) < tolerance;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool ApproxEquals(Quaternion quat, float tolerance)
+        public readonly bool IsIdentity()
         {
             // assume normalized
-            return Math.Abs(quat.X - X) < tolerance &&
-                    Math.Abs(quat.Y - Y) < tolerance &&
-                    Math.Abs(quat.Z - Z) < tolerance;
+            return MathF.Abs(W) > (1.0f - 1e-6f);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsIdentity()
-        {
-            // assume normalized
-            if(W > (1.0f - 1e-6f))
-                return true;
-            if (W < -(1.0f - 1e-6f))
-                return true;
-            return false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsIdentityOrZero()
+        public readonly bool IsIdentityOrZero()
         {
             // assume normalized
             if (X != 0)
@@ -152,27 +219,60 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float Length()
+        public readonly unsafe float Length()
         {
-            return (float)Math.Sqrt((X * X) + (Y * Y) + (Z * Z) + (W * W));
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                q = Sse41.DotProduct(q, q, 0xf1);
+                return MathF.Sqrt(q.ToScalar());
+            }
+            else
+                return MathF.Sqrt((X * X) + (Y * Y) + (Z * Z) + (W * W));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float LengthSquared()
+        public readonly unsafe float LengthSquared()
         {
-            return (X * X) + (Y * Y) + (Z * Z) + (W * W);
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                q = Sse41.DotProduct(q, q, 0xf1);
+                return q.ToScalar();
+            }
+            else
+                return (X * X) + (Y * Y) + (Z * Z) + (W * W);
         }
 
         /// <summary>
         /// Normalizes the quaternion
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Normalize()
+        public unsafe void Normalize()
         {
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                Vector128<float> d = Sse41.DotProduct(q, q, 0xff);
+                float m = d.ToScalar();
+                if (m > 1e-6f)
+                {
+                    d = Sse.Sqrt(d);
+                    q = Sse.Divide(q, d);
+                    //d = Sse.ReciprocalSqrt(d);
+                    //q = Sse.Multiply(q, d);
+                    Unsafe.As<Quaternion, Vector128<float>>(ref this) = q;
+                    return;
+                }
+                q = Vector128.Create(0f, 0f, 0f, 1f);
+                Unsafe.As<Quaternion, Vector128<float>>(ref this) = q;
+                return;
+            }
+
             float mag = LengthSquared();
             if (mag > 1e-6f)
             {
-                float oomag = 1f / (float)Math.Sqrt(mag);
+                float oomag = 1f / MathF.Sqrt(mag);
                 X *= oomag;
                 Y *= oomag;
                 Z *= oomag;
@@ -202,10 +302,10 @@ namespace OpenMetaverse
             if (len > 1e-6f)
             {
                 len = -1.0f / len;
-                X = X * len;
-                Y = Y * len;
-                Z = Z * len;
-                W = -W * len;
+                X *= len;
+                Y *= len;
+                Z *= len;
+                W *= -len;
             }
             else
             {
@@ -217,33 +317,54 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float Dot(Quaternion q2)
+        public readonly float Dot(Quaternion q2)
         {
-            return (X * q2.X) + (Y * q2.Y) + (Z * q2.Z) + (W * q2.W);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float Dot(ref Quaternion q2)
-        {
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref q2);
+                d = Sse41.DotProduct(q, d, 0xf1);
+                return d.ToScalar();
+            }
             return (X * q2.X) + (Y * q2.Y) + (Z * q2.Z) + (W * q2.W);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(Quaternion quaternion2)
         {
-            X += quaternion2.X;
-            Y += quaternion2.Y;
-            Z += quaternion2.Z;
-            W += quaternion2.W;
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref quaternion2);
+                d = Sse.Add(q, d);
+                Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this)) = d;
+            }
+            else
+            {
+                X += quaternion2.X;
+                Y += quaternion2.Y;
+                Z += quaternion2.Z;
+                W += quaternion2.W;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Sub(Quaternion quaternion2)
         {
-            X -= quaternion2.X;
-            Y -= quaternion2.Y;
-            Z -= quaternion2.Z;
-            W -= quaternion2.W;
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref quaternion2);
+                d = Sse.Subtract(q, d);
+                Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this)) = d;
+            }
+            else
+            {
+                X -= quaternion2.X;
+                Y -= quaternion2.Y;
+                Z -= quaternion2.Z;
+                W -= quaternion2.W;
+            }
         }
 
         /// <summary>
@@ -262,7 +383,7 @@ namespace OpenMetaverse
             if (normalized)
             {
                 float xyzsum = 1f - (X * X) - (Y * Y) - (Z * Z);
-                W = (xyzsum > 1e-6f) ? (float)Math.Sqrt(xyzsum) : 0f;
+                W = (xyzsum > 1e-6f) ? MathF.Sqrt(xyzsum) : 0f;
             }
             else
             {
@@ -275,16 +396,16 @@ namespace OpenMetaverse
         /// </summary>
         /// <returns>A 12 byte array containing normalized X, Y, and Z floating
         /// point values in order using little endian byte ordering</returns>
-        public byte[] GetBytes()
+        public readonly byte[] GetBytes()
         {
             byte[] bytes = new byte[12];
             float norm = LengthSquared();
             if (norm > 1e-6f || W < 0.9999f)
             {
                 if (W < 0f)
-                    norm = -1f / (float)Math.Sqrt(norm);
+                    norm = -1f / MathF.Sqrt(norm);
                 else
-                    norm = 1f / (float)Math.Sqrt(norm);
+                    norm = 1f / MathF.Sqrt(norm);
                 Utils.FloatToBytesSafepos(norm * X, bytes, 0);
                 Utils.FloatToBytesSafepos(norm * Y, bytes, 4);
                 Utils.FloatToBytesSafepos(norm * Z, bytes, 8);
@@ -304,15 +425,15 @@ namespace OpenMetaverse
         /// <param name="dest">Destination byte array</param>
         /// <param name="pos">Position in the destination array to start
         /// writing. Must be at least 12 bytes before the end of the array</param>
-        public unsafe void ToBytes(byte[] dest, int pos)
+        public readonly unsafe void ToBytes(byte[] dest, int pos)
         {
             float norm = LengthSquared();
             if (norm > 1e-6f || norm < 0.9999f)
             {
                 if (W < 0f)
-                    norm = -1f / (float)Math.Sqrt(norm);
+                    norm = -1f / MathF.Sqrt(norm);
                 else
-                    norm = 1f / (float)Math.Sqrt(norm);
+                    norm = 1f / MathF.Sqrt(norm);
                 if (Utils.CanDirectCopyLE)
                 {
                     fixed (byte* d = &dest[0])
@@ -348,15 +469,15 @@ namespace OpenMetaverse
             }
         }
 
-        public unsafe void ToBytes(byte* dest)
+        public readonly unsafe void ToBytes(byte* dest)
         {
             float norm = LengthSquared();
             if (norm > 1e-6f || norm < 0.9999f)
             {
                 if (W < 0f)
-                    norm = -1f / (float)Math.Sqrt(norm);
+                    norm = -1f / MathF.Sqrt(norm);
                 else
-                    norm = 1f / (float)Math.Sqrt(norm);
+                    norm = 1f / MathF.Sqrt(norm);
                 if (Utils.CanDirectCopyLE)
                 {
                     *(float*)(dest) = norm * X;
@@ -387,7 +508,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void ToShortsBytes(byte[] dest, int pos)
+        public readonly unsafe void ToShortsBytes(byte[] dest, int pos)
         {
             ushort sx = Utils.FloatToUnitUInt16(X);
             ushort sy = Utils.FloatToUnitUInt16(Y);
@@ -413,7 +534,7 @@ namespace OpenMetaverse
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void ToShortsBytes(byte* dest, int pos)
+        public readonly unsafe void ToShortsBytes(byte* dest, int pos)
         {
             ushort sx = Utils.FloatToUnitUInt16(X);
             ushort sy = Utils.FloatToUnitUInt16(Y);
@@ -437,7 +558,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void ToShortsBytes(byte* dest)
+        public readonly unsafe void ToShortsBytes(byte* dest)
         {
             ushort sx = Utils.FloatToUnitUInt16(X);
             ushort sy = Utils.FloatToUnitUInt16(Y);
@@ -466,8 +587,10 @@ namespace OpenMetaverse
         /// <param name="roll">X euler angle</param>
         /// <param name="pitch">Y euler angle</param>
         /// <param name="yaw">Z euler angle</param>
-        public void GetEulerAngles(out float roll, out float pitch, out float yaw)
+        public readonly void GetEulerAngles(out float roll, out float pitch, out float yaw)
         {
+            const float halfpi = MathF.PI / 2f;
+
             roll = 0f;
             pitch = 0f;
             yaw = 0f;
@@ -480,7 +603,7 @@ namespace OpenMetaverse
             float tZ = Z * Z;
             float tW = W * W;
             float m = tX + tY + tZ + tW;
-            if (Math.Abs(m) < 0.0001f)
+            if (MathF.Abs(m) < 0.0001f)
                 return;
 
             float n = 2 * (Y * W + X * Z);
@@ -488,21 +611,21 @@ namespace OpenMetaverse
 
             if (p > 0f)
             {
-                roll = (float)Math.Atan2(2.0f * (X * W - Y * Z), (-tX - tY + tZ + tW));
-                pitch = (float)Math.Atan2(n, Math.Sqrt(p));
-                yaw = (float)Math.Atan2(2.0f * (Z * W - X * Y), tX - tY - tZ + tW);
+                roll = MathF.Atan2(2.0f * (X * W - Y * Z), (-tX - tY + tZ + tW));
+                pitch = MathF.Atan2(n, MathF.Sqrt(p));
+                yaw = MathF.Atan2(2.0f * (Z * W - X * Y), tX - tY - tZ + tW);
             }
             else if (n > 0f)
             {
                 roll = 0f;
-                pitch = (float)(Math.PI / 2d);
+                pitch = halfpi;
                 yaw = (float)Math.Atan2((Z * W + X * Y), 0.5f - tX - tY);
             }
             else
             {
                 roll = 0f;
-                pitch = -(float)(Math.PI / 2d);
-                yaw = (float)Math.Atan2((Z * W + X * Y), 0.5f - tX - tZ);
+                pitch = -halfpi;
+                yaw = MathF.Atan2((Z * W + X * Y), 0.5f - tX - tZ);
             }
         }
 
@@ -511,9 +634,9 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="axis">Unit vector describing the axis</param>
         /// <param name="angle">Angle around the axis, in radians</param>
-        public void GetAxisAngle(out Vector3 axis, out float angle)
+        public readonly void GetAxisAngle(out Vector3 axis, out float angle)
         {
-            Normalize();
+            //Normalize();
             float ww = W * W;
             if (ww > 0.9999f)
             {
@@ -527,19 +650,19 @@ namespace OpenMetaverse
                     axis = new Vector3(-X, -Y, -Z);
                 else
                     axis = new Vector3(X, Y, Z);
-                angle = (float)Math.PI;
+                angle = MathF.PI;
                 return;
             }
 
-            float sin = (float)Math.Sqrt(1.0f - ww);
+            float sin = MathF.Sqrt(1.0f - ww);
             float invSin = 1.0f / sin;
             if (W < 0)
                 invSin = -invSin;
             axis = new Vector3(X, Y, Z) * invSin;
 
-            angle = 2.0f * (float)Math.Acos(W);
-            if (angle > Math.PI)
-                angle = 2.0f * (float)Math.PI - angle;
+            angle = 2.0f * MathF.Acos(W);
+            if (angle > MathF.PI)
+                angle = 2.0f * MathF.PI - angle;
         }
 
         #endregion Public Methods
@@ -547,8 +670,16 @@ namespace OpenMetaverse
         #region Static Methods
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Quaternion Add(Quaternion quaternion1, Quaternion quaternion2)
+        public static Quaternion Add(in Quaternion quaternion1, in Quaternion quaternion2)
         {
+            if (Sse.IsSupported)
+            {
+                Vector128<float> a = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(quaternion1));
+                Vector128<float> b = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(quaternion2));
+                a = Sse.Add(a, b);
+                return new Quaternion(a);
+            }
+
             return new Quaternion(
                 quaternion1.X + quaternion2.X,
                 quaternion1.Y + quaternion2.Y,
@@ -560,9 +691,16 @@ namespace OpenMetaverse
         /// Returns the conjugate (spatial inverse) of a quaternion
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Quaternion Conjugate(Quaternion quaternion)
+        public static Quaternion Conjugate(in Quaternion quaternion)
         {
-            return new Quaternion( -quaternion.X, -quaternion.Y, -quaternion.Z, quaternion.W);
+            if (Sse.IsSupported)
+            {
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(quaternion));
+                Vector128<float> Mask = Vector128.Create(0x80000000, 0x80000000, 0x80000000, 0).AsSingle();
+                d = Sse.Xor(d, Mask);
+                return new Quaternion(d);
+            }
+            return new Quaternion(-quaternion.X, -quaternion.Y, -quaternion.Z, quaternion.W);
         }
 
         /// <summary>
@@ -572,7 +710,7 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Quaternion CreateFromAxisAngle(float axisX, float axisY, float axisZ, float angle)
         {
-            Vector3 axis = new Vector3(axisX, axisY, axisZ);
+            Vector3 axis = new(axisX, axisY, axisZ);
             return CreateFromAxisAngle(axis, angle);
         }
 
@@ -588,8 +726,8 @@ namespace OpenMetaverse
             axis.Normalize();
 
             angle *= 0.5f;
-            float c = (float)Math.Cos(angle);
-            float s = (float)Math.Sin(angle);
+            float c = MathF.Cos(angle);
+            float s = MathF.Sin(angle);
 
             return new Quaternion(axis.X * s, axis.Y * s, axis.Z * s, c);
         }
@@ -598,8 +736,8 @@ namespace OpenMetaverse
         public static Quaternion CreateRotationX(float angle)
         {
             angle *= 0.5f;
-            float c = (float)Math.Cos(angle);
-            float s = (float)Math.Sin(angle);
+            float c = MathF.Cos(angle);
+            float s = MathF.Sin(angle);
 
             return new Quaternion(s, 0, 0, c);
         }
@@ -608,8 +746,8 @@ namespace OpenMetaverse
         public static Quaternion CreateRotationY(float angle)
         {
             angle *= 0.5f;
-            float c = (float)Math.Cos(angle);
-            float s = (float)Math.Sin(angle);
+            float c = MathF.Cos(angle);
+            float s = MathF.Sin(angle);
 
             return new Quaternion(0, s, 0, c);
         }
@@ -618,8 +756,8 @@ namespace OpenMetaverse
         public static Quaternion CreateRotationZ(float angle)
         {
             angle *= 0.5f;
-            float c = (float)Math.Cos(angle);
-            float s = (float)Math.Sin(angle);
+            float c = MathF.Cos(angle);
+            float s = MathF.Sin(angle);
 
             return new Quaternion(0, 0, s, c);
         }
@@ -651,22 +789,22 @@ namespace OpenMetaverse
                 throw new ArgumentException("Euler angles must be in radians");
             
             roll *= 0.5f;
-            double atCos = Math.Cos(roll);
-            double atSin = Math.Sin(roll);
+            float atCos = MathF.Cos(roll);
+            float atSin = MathF.Sin(roll);
             pitch *= 0.5f;
-            double leftCos = Math.Cos(pitch);
-            double leftSin = Math.Sin(pitch);
+            float leftCos = MathF.Cos(pitch);
+            float leftSin = MathF.Sin(pitch);
             yaw *= 0.5f;
-            double upCos = Math.Cos(yaw);
-            double upSin = Math.Sin(yaw);
+            float upCos = MathF.Cos(yaw);
+            float upSin = MathF.Sin(yaw);
 
-            double atLeftCos = atCos * leftCos;
-            double atLeftSin = atSin * leftSin;
+            float atLeftCos = atCos * leftCos;
+            float atLeftSin = atSin * leftSin;
             return new Quaternion(
-                (float)(atSin * leftCos * upCos + atCos * leftSin * upSin),
-                (float)(atCos * leftSin * upCos - atSin * leftCos * upSin),
-                (float)(atLeftCos * upSin + atLeftSin * upCos),
-                (float)(atLeftCos * upCos - atLeftSin * upSin)
+                atSin * leftCos * upCos + atCos * leftSin * upSin,
+                atCos * leftSin * upCos - atSin * leftCos * upSin,
+                atLeftCos * upSin + atLeftSin * upCos,
+                atLeftCos * upCos - atLeftSin * upSin
             );
         }
 
@@ -676,7 +814,7 @@ namespace OpenMetaverse
             float n2;
             if (num >= 0f)
             {
-                num = (float)Math.Sqrt((num + 1f));
+                num = MathF.Sqrt((num + 1f));
                 n2 = 0.5f / num;
                 return new Quaternion(
                         (matrix.M23 - matrix.M32) * n2,
@@ -686,7 +824,7 @@ namespace OpenMetaverse
             }
             if ((matrix.M11 >= matrix.M22) && (matrix.M11 >= matrix.M33))
             {
-                num = (float)Math.Sqrt((((1f + matrix.M11) - matrix.M22) - matrix.M33));
+                num = MathF.Sqrt((((1f + matrix.M11) - matrix.M22) - matrix.M33));
                 n2 = 0.5f / num;
                 return new Quaternion(
                         0.5f * num,
@@ -696,7 +834,7 @@ namespace OpenMetaverse
             }
             if (matrix.M22 > matrix.M33)
             {
-                num = (float)Math.Sqrt((((1f + matrix.M22) - matrix.M11) - matrix.M33));
+                num = MathF.Sqrt((((1f + matrix.M22) - matrix.M11) - matrix.M33));
                 n2 = 0.5f / num;
                 return new Quaternion(
                         (matrix.M21 + matrix.M12) * n2,
@@ -705,7 +843,7 @@ namespace OpenMetaverse
                         (matrix.M31 - matrix.M13) * n2);
             }
 
-            num = (float)Math.Sqrt((((1f + matrix.M33) - matrix.M11) - matrix.M22));
+            num = MathF.Sqrt((((1f + matrix.M33) - matrix.M11) - matrix.M22));
             n2 = 0.5f / num;
             return new Quaternion(
                         (matrix.M31 + matrix.M13) * n2,
@@ -720,7 +858,7 @@ namespace OpenMetaverse
             float n2;
             if (num >= 0f)
             {
-                num = (float)Math.Sqrt((num + 1f));
+                num = MathF.Sqrt((num + 1f));
                 n2 = 0.5f / num;
                 return new Quaternion(
                         (matrix.M23 - matrix.M32) * n2,
@@ -730,7 +868,7 @@ namespace OpenMetaverse
             }
             if ((matrix.M11 >= matrix.M22) && (matrix.M11 >= matrix.M33))
             {
-                num = (float)Math.Sqrt((((1f + matrix.M11) - matrix.M22) - matrix.M33));
+                num = MathF.Sqrt((((1f + matrix.M11) - matrix.M22) - matrix.M33));
                 n2 = 0.5f / num;
                 return new Quaternion(
                         0.5f * num,
@@ -740,7 +878,7 @@ namespace OpenMetaverse
             }
             if (matrix.M22 > matrix.M33)
             {
-                num = (float)Math.Sqrt((((1f + matrix.M22) - matrix.M11) - matrix.M33));
+                num = MathF.Sqrt((((1f + matrix.M22) - matrix.M11) - matrix.M33));
                 n2 = 0.5f / num;
                 return new Quaternion(
                         (matrix.M21 + matrix.M12) * n2,
@@ -749,7 +887,7 @@ namespace OpenMetaverse
                         (matrix.M31 - matrix.M13) * n2);
             }
 
-            num = (float)Math.Sqrt((((1f + matrix.M33) - matrix.M11) - matrix.M22));
+            num = MathF.Sqrt((((1f + matrix.M33) - matrix.M11) - matrix.M22));
             n2 = 0.5f / num;
             return new Quaternion(
                         (matrix.M31 + matrix.M13) * n2,
@@ -767,6 +905,13 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Dot(Quaternion q1, Quaternion q2)
         {
+            if (Sse41.IsSupported)
+            {
+                Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref q1);
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref q2);
+                d = Sse41.DotProduct(q, d, 0xf1);
+                return d.ToScalar();
+            }
             return (q1.X * q2.X) + (q1.Y * q2.Y) + (q1.Z * q2.Z) + (q1.W * q2.W);
         }
 
@@ -792,7 +937,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Spherical linear interpolation between two quaternions
         /// </summary>
-        public static Quaternion Slerp(Quaternion q1, Quaternion q2, float amount)
+        public static Quaternion Slerp(Quaternion q1, in Quaternion q2, float amount)
         {
             float angle = Dot(q1, q2);
 
@@ -810,10 +955,10 @@ namespace OpenMetaverse
                 if ((1f - angle) >= 0.05f)
                 {
                     // slerp
-                    float theta = (float)Math.Acos(angle);
-                    float invsintheta = 1f / (float)Math.Sin(theta);
-                    scale = (float)Math.Sin(theta * (1f - amount)) * invsintheta;
-                    invscale = (float)Math.Sin(theta * amount) * invsintheta;
+                    float theta = MathF.Acos(angle);
+                    float invsintheta = 1f / MathF.Sin(theta);
+                    scale = MathF.Sin(theta * (1f - amount)) * invsintheta;
+                    invscale = MathF.Sin(theta * amount) * invsintheta;
                 }
                 else
                 {
@@ -824,13 +969,14 @@ namespace OpenMetaverse
             }
             else
             {
-                q2.X = -q1.Y;
-                q2.Y = q1.X;
-                q2.Z = -q1.W;
-                q2.W = q1.Z;
-
-                scale = (float)Math.Sin(Utils.PI * (0.5f - amount));
-                invscale = (float)Math.Sin(Utils.PI * amount);
+                scale = MathF.Sin(Utils.PI * (0.5f - amount));
+                invscale = MathF.Sin(Utils.PI * amount);
+                return new Quaternion(
+                    q1.X * scale - q1.Y * invscale,
+                    q1.Y * scale + q1.X * invscale,
+                    q1.Z * scale - q1.W * invscale,
+                    q1.W * scale + q1.Z * invscale
+                    );
             }
 
             return new Quaternion(
@@ -888,7 +1034,7 @@ namespace OpenMetaverse
             float mag = q.LengthSquared();
             if (mag > 1e-6f)
             {
-                float oomag = 1f / (float)Math.Sqrt(mag);
+                float oomag = 1f / MathF.Sqrt(mag);
                 return new Quaternion(
                     q.X * oomag,
                     q.Y * oomag,
@@ -898,38 +1044,210 @@ namespace OpenMetaverse
             return Quaternion.Identity;
         }
 
-        public static Quaternion Parse(string val)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+
+        public unsafe static Quaternion Parse(string val)
         {
-            char[] splitChar = { ',' };
-            string[] split = val.Replace("<", String.Empty).Replace(">", String.Empty).Split(splitChar);
-            if (split.Length == 3)
+            return Parse(val.AsSpan());
+        }
+
+        public unsafe static Quaternion Parse(ReadOnlySpan<char> sp)
+        {
+            if (sp.Length < 7)
+                throw new FormatException("Invalid Quaternion");
+
+            int start = 0;
+            fixed (char* p = sp)
             {
-                return new Quaternion(
-                    float.Parse(split[0].Trim(), Utils.EnUsCulture),
-                    float.Parse(split[1].Trim(), Utils.EnUsCulture),
-                    float.Parse(split[2].Trim(), Utils.EnUsCulture));
-            }
-            else
-            {
-                return new Quaternion(
-                    float.Parse(split[0].Trim(), Utils.EnUsCulture),
-                    float.Parse(split[1].Trim(), Utils.EnUsCulture),
-                    float.Parse(split[2].Trim(), Utils.EnUsCulture),
-                    float.Parse(split[3].Trim(), Utils.EnUsCulture));
+                while (start < sp.Length)
+                {
+                    if (p[start++] == '<')
+                        break;
+                }
+                if (start > sp.Length - 6)
+                    throw new FormatException("Invalid Quaternion");
+
+                int comma1 = start + 1;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 5)
+                    throw new FormatException("Invalid Quaternion");
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float x))
+                    throw new FormatException("Invalid Quaternion");
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 3)
+                    throw new FormatException("Invalid Quaternion");
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float y))
+                    throw new FormatException("Invalid Quaternion");
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == '>' || p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 >= sp.Length)
+                    throw new FormatException("Invalid Quaternion");
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float z))
+                    throw new FormatException("Invalid Quaternion");
+
+                if (p[comma1] == '>')
+                    return new Quaternion(x, y, z);
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == '>')
+                        break;
+                    comma1++;
+                }
+                if (comma1 >= sp.Length)
+                    throw new FormatException("Invalid Quaternion");
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float w))
+                    throw new FormatException("Invalid Quaternion");
+
+                return new Quaternion(x, y, z, w);
             }
         }
 
-        public static bool TryParse(string val, out Quaternion result)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static bool TryParse(string val, out Quaternion result)
         {
-            try
+            return TryParse(val.AsSpan(), out result);
+        }
+
+        public unsafe static bool TryParse(ReadOnlySpan<char> sp, out Quaternion result)
+        {
+            if (sp.Length < 7)
             {
-                result = Parse(val);
-                return true;
-            }
-            catch (Exception)
-            {
-                result = new Quaternion();
+                result = Identity;
                 return false;
+            }
+
+            int start = 0;
+            fixed (char* p = sp)
+            {
+                while (start < sp.Length)
+                {
+                    if (p[start++] == '<')
+                        break;
+                }
+                if (start > sp.Length - 6)
+                {
+                    result = Identity;
+                    return false;
+                }
+
+                int comma1 = start + 1;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 5)
+                {
+                    result = Identity;
+                    return false;
+                }
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float x))
+                {
+                    result = Identity;
+                    return false;
+                }
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 3)
+                {
+                    result = Identity;
+                    return false;
+                }
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float y))
+                {
+                    result = Identity;
+                    return false;
+                }
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == '>' || p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 >= sp.Length)
+                {
+                    result = Identity;
+                    return false;
+                }
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float z))
+                {
+                    result = Identity;
+                    return false;
+                }
+
+                if (p[comma1] == '>')
+                {
+                    result = new Quaternion(x, y, z);
+                    return true;
+                }
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == '>')
+                        break;
+                    comma1++;
+                }
+                if (comma1 >= sp.Length)
+                {
+                    result = Identity;
+                    return false;
+                }
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float w))
+                {
+                    result = Identity;
+                    return false;
+                }
+
+                result = new Quaternion(x, y, z, w);
+                return true;
             }
         }
 
@@ -937,9 +1255,9 @@ namespace OpenMetaverse
 
         #region Overrides
 
-        public override bool Equals(object obj)
+        public readonly override bool Equals(object obj)
         {
-            if(!(obj is Quaternion))
+            if((obj is not Quaternion))
                 return false;
             Quaternion other = (Quaternion)obj;
             if (X != other.X)
@@ -954,7 +1272,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(Quaternion other)
+        public readonly bool Equals(Quaternion other)
         {
             if (X != other.X)
                 return false;
@@ -968,7 +1286,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool NotEqual(Quaternion other)
+        public readonly bool NotEqual(Quaternion other)
         {
             if (X != other.X)
                 return true;
@@ -982,7 +1300,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
+        public readonly override int GetHashCode()
         {
             int hash = X.GetHashCode();
             hash = Utils.CombineHash(hash, Y.GetHashCode());
@@ -991,9 +1309,19 @@ namespace OpenMetaverse
             return hash;
         }
 
-        public override string ToString()
+        public readonly override string ToString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}, {2}, {3}>", X, Y, Z, W);
+            StringBuilder sb = new();
+            sb.Append('<');
+            sb.Append(X.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(Y.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(Z.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(W.ToString(Utils.EnUsCulture));
+            sb.Append('>');
+            return sb.ToString();
         }
 
         /// <summary>
@@ -1001,12 +1329,20 @@ namespace OpenMetaverse
         /// decimal digits and separated by spaces only
         /// </summary>
         /// <returns>Raw string representation of the quaternion</returns>
-        public string ToRawString()
+        public readonly string ToRawString()
         {
-            CultureInfo enUs = new CultureInfo("en-us");
+            CultureInfo enUs = new("en-us");
             enUs.NumberFormat.NumberDecimalDigits = 3;
 
-            return String.Format(enUs, "{0} {1} {2} {3}", X, Y, Z, W);
+            StringBuilder sb = new();
+            sb.Append(X.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(Y.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(Z.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(W.ToString(enUs));
+            return sb.ToString();
         }
 
         #endregion Overrides
@@ -1089,6 +1425,6 @@ namespace OpenMetaverse
         #endregion Operators
 
         /// <summary>A quaternion with a value of 0,0,0,1</summary>
-        public readonly static Quaternion Identity = new Quaternion(0f, 0f, 0f, 1f);
+        public readonly static Quaternion Identity = new(0f, 0f, 0f, 1f);
     }
 }

@@ -98,9 +98,9 @@ namespace OpenMetaverse.GUI
 
             EventHandler clickHandler = new EventHandler(defaultMenuItem_Click);
             this.ContextMenuStrip = new ContextMenuStrip();
-            this.ContextMenuStrip.Items.Add(new ToolStripMenuItem("Offer Teleport", null, clickHandler));
-            this.ContextMenuStrip.Items.Add(new ToolStripMenuItem("Teleport To", null, clickHandler));
-            this.ContextMenuStrip.Items.Add(new ToolStripMenuItem("Walk To", null, clickHandler));
+            this.ContextMenuStrip.Items.Add("Offer Teleport", null, clickHandler);
+            this.ContextMenuStrip.Items.Add("Teleport To", null, clickHandler);
+            this.ContextMenuStrip.Items.Add("Walk To", null, clickHandler);
 
             this.DoubleBuffered = true;
             this.ListViewItemSorter = _ColumnSorter;
@@ -360,7 +360,7 @@ namespace OpenMetaverse.GUI
 
         private void defaultMenuItem_Click(object sender, EventArgs e)
         {
-            ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
+            ToolStripItem menuItem = (ToolStripItem)sender;
 
             switch (menuItem.Text)
             {

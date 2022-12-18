@@ -559,7 +559,7 @@ namespace OpenMetaverse
         {
             CheckCapacity(36);
             fixed (byte* d = m_data)
-                Utils.UUIDToByteDashString(ref u, d + m_len);
+                Utils.UUIDToByteDashString(u, d + m_len);
             m_len += 36;
         }
 
@@ -1003,43 +1003,113 @@ namespace OpenMetaverse
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             return false;
 
+                        if (Sse42.IsSupported)
+                        {
+                            Vector128<byte> input = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.AsRef<byte>(val));
+                            Vector128<byte> upper = Ssse3.Shuffle(input, Vector128.Create(0, 2, 4, 6, 9, 11, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lower = Ssse3.Shuffle(input, Vector128.Create(1, 3, 5, 7, 10, 12, 15, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            input = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 16 + 3));
+                            Vector128<byte> upperhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 2, 5, 7, 9, 11, 13, 15));
+                            Vector128<byte> lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 1, 3, 6, 8, 10, 12, 14, 0xff));
+                            upper = Sse2.Or(upper, upperhalf);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            upper = Sse41.Insert(upper, Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 16)), 7);
+                            lower = Sse41.Insert(lower, Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 17)), 7);
+                            lower = Sse41.Insert(lower, Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 35)), 15);
+
+                            Vector128<byte> charf = Vector128.Create((byte)'f');
+                            Vector128<byte> tmpcmp = Sse2.Subtract(charf, lower);
+                            int cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+
+                            tmpcmp = Sse2.Subtract(charf, upper);
+                            cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+
+                            Vector128<byte> charTolower = Vector128.Create((byte)0x20);
+                            Vector128<byte> lowerLetters = Sse2.Or(lower, charTolower);
+                            Vector128<byte> upperLetters = Sse2.Or(upper, charTolower);
+
+                            Vector128<byte> letterTohex = Vector128.Create((byte)('a' - '0' - 10));
+                            lowerLetters = Sse2.Subtract(lowerLetters, letterTohex);
+                            upperLetters = Sse2.Subtract(upperLetters, letterTohex);
+
+                            Vector128<byte> char9 = Vector128.Create((byte)'9');
+                            Vector128<byte> above9lower = (Sse2.CompareGreaterThan(lower.AsSByte(), char9.AsSByte())).AsByte();
+
+                            Vector128<byte> ten = Vector128.Create((byte)('0' + 10));
+                            tmpcmp = Sse2.Subtract(lowerLetters, ten);
+                            tmpcmp = Sse2.And(tmpcmp, above9lower);
+                            cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+                            Vector128<byte> above9upper = (Sse2.CompareGreaterThan(upper.AsSByte(), char9.AsSByte())).AsByte();
+
+                            tmpcmp = Sse2.Subtract(upperLetters, ten);
+                            tmpcmp = Sse2.And(tmpcmp, above9upper);
+                            cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+
+                            lower = Sse41.BlendVariable(lower, lowerLetters, above9lower);
+                            upper = Sse41.BlendVariable(upper, upperLetters, above9upper);
+                            Vector128<byte> charzero = Vector128.Create((byte)'0');
+                            lower = Sse2.Subtract(lower, charzero);
+                            cmp = Sse2.MoveMask(lower);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+                            upper = Sse2.Subtract(upper, charzero);
+                            cmp = Sse2.MoveMask(upper);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+                            upper = Sse2.ShiftLeftLogical(upper.AsUInt16(), 4).AsByte();
+                            lower = Sse2.Or(lower, upper);
+                            if (BitConverter.IsLittleEndian)
+                                lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                            Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in result)) = lower;
+                            return true;
+                        }
+
                         if (BitConverter.IsLittleEndian)
                         {
-                            result.bytea3 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea0 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea3 = Utils.HexToByte(val, 0);
+                            result.bytea2 = Utils.HexToByte(val, 2);
+                            result.bytea1 = Utils.HexToByte(val, 4);
+                            result.bytea0 = Utils.HexToByte(val, 6);
 
-                            result.byteb1 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb0 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb1 = Utils.HexToByte(val, 9);
+                            result.byteb0 = Utils.HexToByte(val, 11);
 
-                            result.bytec1 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec0 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec1 = Utils.HexToByte(val, 14);
+                            result.bytec0 = Utils.HexToByte(val, 16);
                         }
                         else
                         {
-                            result.bytea0 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea3 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea0 = Utils.HexToByte(val, 0);
+                            result.bytea1 = Utils.HexToByte(val, 2);
+                            result.bytea2 = Utils.HexToByte(val, 4);
+                            result.bytea3 = Utils.HexToByte(val, 6);
 
-                            result.byteb0 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb1 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb0 = Utils.HexToByte(val, 9);
+                            result.byteb1 = Utils.HexToByte(val, 11);
 
-                            result.bytec0 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec1 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec0 = Utils.HexToByte(val, 14);
+                            result.bytec1 = Utils.HexToByte(val, 16);
                         }
 
-                        result.d = (byte)Utils.HexToByte(val, 19);
-                        result.e = (byte)Utils.HexToByte(val, 21);
+                        result.d = Utils.HexToByte(val, 19);
+                        result.e = Utils.HexToByte(val, 21);
 
 
-                        result.f = (byte)Utils.HexToByte(val, 24);
-                        result.g = (byte)Utils.HexToByte(val, 26);
-                        result.h = (byte)Utils.HexToByte(val, 28);
-                        result.i = (byte)Utils.HexToByte(val, 30);
-                        result.j = (byte)Utils.HexToByte(val, 32);
-                        result.k = (byte)Utils.HexToByte(val, 34);
+                        result.f = Utils.HexToByte(val, 24);
+                        result.g = Utils.HexToByte(val, 26);
+                        result.h = Utils.HexToByte(val, 28);
+                        result.i = Utils.HexToByte(val, 30);
+                        result.j = Utils.HexToByte(val, 32);
+                        result.k = Utils.HexToByte(val, 34);
                         return true;
                     }
                     else

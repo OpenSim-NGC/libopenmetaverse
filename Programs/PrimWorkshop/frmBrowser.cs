@@ -83,13 +83,13 @@ namespace PrimWorkshop
 
             // Context menus
             ExportPrimMenu = new ContextMenuStrip();
-            ExportPrimMenu.Items.Add(new ToolStripMenuItem("Download", null, new EventHandler(DownloadMenu_Clicked)));
-            ExportPrimMenu.Items.Add(new ToolStripMenuItem("Download All Objects", null, new EventHandler(DownloadAllMenu_Clicked)));
+            ExportPrimMenu.Items.Add("Download", null,new EventHandler(DownloadMenu_Clicked) );
+            ExportPrimMenu.Items.Add("Download All Objects",null, new EventHandler(DownloadAllMenu_Clicked));
             ExportTerrainMenu = new ContextMenuStrip();
-            ExportTerrainMenu.Items.Add(new ToolStripMenuItem("Teleport", null, new EventHandler(TeleportMenu_Clicked)));
-            ExportTerrainMenu.Items.Add(new ToolStripMenuItem("Export Terrain", null,  new EventHandler(ExportTerrainMenu_Clicked)));
-            ExportTerrainMenu.Items.Add(new ToolStripMenuItem("Import Object", null, new EventHandler(ImportObjectMenu_Clicked)));
-            ExportTerrainMenu.Items.Add(new ToolStripMenuItem("Import Sim", null, new EventHandler(ImportSimMenu_Clicked)));
+            ExportTerrainMenu.Items.Add("Teleport", null, new EventHandler(TeleportMenu_Clicked));
+            ExportTerrainMenu.Items.Add("Export Terrain",null, new EventHandler(ExportTerrainMenu_Clicked));
+            ExportTerrainMenu.Items.Add("Import Object",null, new EventHandler(ImportObjectMenu_Clicked));
+            ExportTerrainMenu.Items.Add("Import Sim",null, new EventHandler(ImportSimMenu_Clicked));
 
             // Setup a timer for updating the progress bar
             ProgressTimer = new System.Timers.Timer(250);

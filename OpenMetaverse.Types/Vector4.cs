@@ -28,6 +28,8 @@ using System;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Globalization;
+using System.Text;
 
 namespace OpenMetaverse
 {
@@ -93,10 +95,7 @@ namespace OpenMetaverse
 
         public Vector4(Vector4 value)
         {
-            X = value.X;
-            Y = value.Y;
-            Z = value.Z;
-            W = value.W;
+            this = value;
         }
 
         #endregion Constructors
@@ -229,6 +228,20 @@ namespace OpenMetaverse
             if (W != 0)
                 return false;
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsNotZero()
+        {
+            if (X != 0)
+                return true;
+            if (Y != 0)
+                return true;
+            if (Z != 0)
+                return true;
+            if (W != 0)
+                return true;
+            return false;
         }
         /// <summary>
         /// IComparable.CompareTo implementation
@@ -501,28 +514,195 @@ namespace OpenMetaverse
                 (vector.X * matrix.M14) + (vector.Y * matrix.M24) + (vector.Z * matrix.M34) + (vector.W * matrix.M44));
         }
 
-        public static Vector4 Parse(string val)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static Vector4 Parse(string val)
         {
-            char[] splitChar = { ',' };
-            string[] split = val.Replace("<", String.Empty).Replace(">", String.Empty).Split(splitChar);
-            return new Vector4(
-                float.Parse(split[0].Trim(), Utils.EnUsCulture),
-                float.Parse(split[1].Trim(), Utils.EnUsCulture),
-                float.Parse(split[2].Trim(), Utils.EnUsCulture),
-                float.Parse(split[3].Trim(), Utils.EnUsCulture));
+            return Parse(val.AsSpan());
         }
 
-        public static bool TryParse(string val, out Vector4 result)
+        public static unsafe Vector4 Parse(ReadOnlySpan<char> sp)
         {
-            try
+            if (sp.Length < 9)
+                throw new FormatException("Invalid Vector4");
+
+            int start = 0;
+            fixed (char* p = sp)
             {
-                result = Parse(val);
-                return true;
+                while (start < sp.Length)
+                {
+                    if (p[start++] == '<')
+                        break;
+                }
+                if (start > sp.Length - 8)
+                    throw new FormatException("Invalid Vector4");
+
+                int comma1 = start + 1;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 7)
+                    throw new FormatException("Invalid Vector4");
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float x))
+                    throw new FormatException("Invalid Vector4");
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 5)
+                    throw new FormatException("Invalid Vector4");
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float y))
+                    throw new FormatException("Invalid Vector4");
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 3)
+                    throw new FormatException("Invalid Vector4");
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float z))
+                    throw new FormatException("Invalid Vector4");
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == '>')
+                        break;
+                    comma1++;
+                }
+                if (comma1 >= sp.Length)
+                    throw new FormatException("Invalid Vector4");
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float w))
+                    throw new FormatException("Invalid Vector4");
+                return new Vector4(x, y, z, w);
             }
-            catch (Exception)
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static bool TryParse(string val, out Vector4 result)
+        {
+            return TryParse(val.AsSpan(), out result);
+        }
+
+        public unsafe static bool TryParse(ReadOnlySpan<char> sp, out Vector4 result)
+        {
+            if (sp.Length < 9)
             {
-                result = new Vector4();
+                result = Zero;
                 return false;
+            }
+            int start = 0;
+            fixed (char* p = sp)
+            {
+                while (start < sp.Length)
+                {
+                    if (p[start++] == '<')
+                        break;
+                }
+                if (start > sp.Length - 8)
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                int comma1 = start + 1;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 7)
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float x))
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 5)
+                {
+                    result = Zero;
+                    return false;
+                }
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float y))
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == ',')
+                        break;
+                    comma1++;
+                }
+                if (comma1 > sp.Length - 3)
+                {
+                    result = Zero;
+                    return false;
+                }
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float z))
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                comma1++;
+                start = comma1;
+                comma1++;
+                while (comma1 < sp.Length)
+                {
+                    if (p[comma1] == '>')
+                        break;
+                    comma1++;
+                }
+                if (comma1 >= sp.Length)
+                {
+                    result = Zero;
+                    return false;
+                }
+
+                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float w))
+                {
+                    result = Zero;
+                    return false;
+                }
+                result = new Vector4(x, y, z, w);
+                return true;
             }
         }
 
@@ -580,7 +760,17 @@ namespace OpenMetaverse
 
         public override string ToString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}, {2}, {3}>", X, Y, Z, W);
+            StringBuilder sb = new();
+            sb.Append('<');
+            sb.Append(X.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(Y.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(Z.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(W.ToString(Utils.EnUsCulture));
+            sb.Append('>');
+            return sb.ToString();
         }
 
         /// <summary>
@@ -593,7 +783,15 @@ namespace OpenMetaverse
             CultureInfo enUs = new CultureInfo("en-us");
             enUs.NumberFormat.NumberDecimalDigits = 3;
 
-            return String.Format(enUs, "{0} {1} {2} {3}", X, Y, Z, W);
+            StringBuilder sb = new();
+            sb.Append(X.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(Y.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(Z.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(W.ToString(enUs));
+            return sb.ToString();
         }
 
         #endregion Overrides
@@ -689,18 +887,18 @@ namespace OpenMetaverse
         #endregion Operators
 
         /// <summary>A vector with a value of 0,0,0,0</summary>
-        public readonly static Vector4 Zero = new Vector4();
+        public readonly static Vector4 Zero = new();
         /// <summary>A vector with a value of 1,1,1,1</summary>
-        public readonly static Vector4 One = new Vector4(1f, 1f, 1f, 1f);
+        public readonly static Vector4 One = new(1f, 1f, 1f, 1f);
         /// <summary>A vector with a value of 1,0,0,0</summary>
-        public readonly static Vector4 UnitX = new Vector4(1f, 0f, 0f, 0f);
+        public readonly static Vector4 UnitX = new(1f, 0f, 0f, 0f);
         /// <summary>A vector with a value of 0,1,0,0</summary>
-        public readonly static Vector4 UnitY = new Vector4(0f, 1f, 0f, 0f);
+        public readonly static Vector4 UnitY = new(0f, 1f, 0f, 0f);
         /// <summary>A vector with a value of 0,0,1,0</summary>
-        public readonly static Vector4 UnitZ = new Vector4(0f, 0f, 1f, 0f);
+        public readonly static Vector4 UnitZ = new(0f, 0f, 1f, 0f);
         /// <summary>A vector with a value of 0,0,0,1</summary>
-        public readonly static Vector4 UnitW = new Vector4(0f, 0f, 0f, 1f);
-        public readonly static Vector4 MinValue = new Vector4(float.MinValue, float.MinValue, float.MinValue, float.MinValue);
-        public readonly static Vector4 MaxValue = new Vector4(float.MaxValue, float.MaxValue, float.MaxValue, float.MaxValue);
+        public readonly static Vector4 UnitW = new(0f, 0f, 0f, 1f);
+        public readonly static Vector4 MinValue = new(float.MinValue, float.MinValue, float.MinValue, float.MinValue);
+        public readonly static Vector4 MaxValue = new(float.MaxValue, float.MaxValue, float.MaxValue, float.MaxValue);
     }
 }

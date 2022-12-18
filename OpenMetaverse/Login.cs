@@ -32,7 +32,13 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net;
-using System.Threading;
+using System.Net.Security;
+using System.Xml;
+using System.Security.Cryptography.X509Certificates;
+using Nwc.XmlRpc;
+using OpenMetaverse.StructuredData;
+using OpenMetaverse.Http;
+using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
 {
@@ -1060,6 +1066,23 @@ namespace OpenMetaverse
         #endregion
 
         #region Private Methods
+        public static bool ValidateServerCertificate(
+            object sender,
+            X509Certificate certificate,
+            X509Chain chain,
+            SslPolicyErrors sslPolicyErrors)
+        {
+            //if (m_NoVerifyCertChain)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+
+            //if (m_NoVerifyCertHostname)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
+
+            return false;
+        }
 
         private void BeginLogin()
         {
@@ -1109,7 +1132,7 @@ namespace OpenMetaverse
 
             #endregion
 
-            ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            ServicePointManager.ServerCertificateValidationCallback = ValidateServerCertificate;
 
             if (Client.Settings.USE_LLSD_LOGIN)
             {
