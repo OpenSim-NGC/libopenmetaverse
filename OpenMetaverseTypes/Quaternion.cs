@@ -330,12 +330,12 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Add(Quaternion quaternion2)
+        public void Add(in Quaternion quaternion2)
         {
             if (Sse41.IsSupported)
             {
                 Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
-                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref quaternion2);
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(quaternion2));
                 d = Sse.Add(q, d);
                 Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this)) = d;
             }
@@ -349,12 +349,12 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Sub(Quaternion quaternion2)
+        public void Sub(in Quaternion quaternion2)
         {
             if (Sse41.IsSupported)
             {
                 Vector128<float> q = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this));
-                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref quaternion2);
+                Vector128<float> d = Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(quaternion2));
                 d = Sse.Subtract(q, d);
                 Unsafe.As<Quaternion, Vector128<float>>(ref Unsafe.AsRef(this)) = d;
             }

@@ -881,6 +881,12 @@ namespace OpenMetaverse
                         if (len < 36)
                             return false;
 
+                        while (--len > 35)
+                        {
+                            if (val[len] != ' ')
+                                return false;
+                        }
+
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             return false;
 
@@ -1005,6 +1011,11 @@ namespace OpenMetaverse
                     }
                     else
                     {
+                        while (--len > 31)
+                        {
+                            if (val[len] != ' ')
+                                return false;
+                        }
                         if (BitConverter.IsLittleEndian)
                         {
                             result.bytea3 = Utils.HexToByte(val, 0);
