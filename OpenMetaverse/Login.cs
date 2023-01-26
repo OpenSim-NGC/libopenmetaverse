@@ -39,6 +39,7 @@ using Nwc.XmlRpc;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
+using System.Threading;
 
 namespace OpenMetaverse
 {
