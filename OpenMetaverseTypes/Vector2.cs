@@ -399,59 +399,56 @@ namespace OpenMetaverse
             return Parse(val.AsSpan());
         }
 
-        public static unsafe Vector2 Parse(ReadOnlySpan<char> sp)
+        public static Vector2 Parse(ReadOnlySpan<char> sp)
         {
-            if (sp.Length < 5)
+            if (sp.Length < 3)
                 throw new FormatException("Invalid Vector2");
 
             int start = 0;
-            fixed (char* p = sp)
-            {
-                while (start < sp.Length)
-                {
-                    if (p[start++] == '<')
-                        break;
-                }
-                if (start > sp.Length - 4)
-                    throw new FormatException("Invalid Vector2");
+            int comma = 0;
+            char c;
 
-                int comma1 = start + 1;
-                while (comma1 < sp.Length)
+            do
+            {
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ',' || c == '<')
+                    break;
+            }
+            while (++comma < sp.Length);
+
+            if (c == '<')
+            {
+                start = ++comma;
+                while (++comma < sp.Length)
                 {
-                    if (p[comma1] == ',')
+                    if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
                         break;
-                    comma1++;
                 }
-                if (comma1 > sp.Length - 3)
-                    throw new FormatException("Invalid Vector2");
+            }
+            if (comma > sp.Length - 1)
+                throw new FormatException("Invalid Vector2");
 
                 if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float x))
                     throw new FormatException("Invalid Vector2");
 
-                comma1++;
-                start = comma1;
-                comma1++;
-                while (comma1 < sp.Length)
-                {
-                    if (p[comma1] == '>')
-                        break;
-                    comma1++;
-                }
-                if (comma1 > sp.Length)
-                    throw new FormatException("Invalid Vector2");
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float y))
-                    throw new FormatException("Invalid Vector2");
-
-                return new Vector2(x, y);
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == '>')
+                    break;
             }
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float y))
+                throw new FormatException("Invalid Vector2");
+
+            return new Vector2(x, y);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe static bool TryParse(string val, out Vector2 result)
+        public static bool TryParse(string val, out Vector2 result)
         {
             return TryParse(val.AsSpan(), out result);
         }
-        public unsafe static bool TryParse(ReadOnlySpan<char> sp, out Vector2 result)
+        public static bool TryParse(ReadOnlySpan<char> sp, out Vector2 result)
         {
             if (sp.Length < 5)
             {
@@ -460,37 +457,36 @@ namespace OpenMetaverse
             }
 
             int start = 0;
-            fixed (char* p = sp)
+            int comma = 0;
+            char c;
+            do
             {
-                while (start < sp.Length)
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ',' || c == '<')
+                    break;
+            }
+            while (++comma < sp.Length);
+
+            if (c == '<')
+            {
+                start = ++comma;
+                while (++comma < sp.Length)
                 {
-                    if (p[start++] == '<')
+                    if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
                         break;
                 }
-                if (start > sp.Length - 4)
-                {
-                    result = Zero;
-                    return false;
-                }
+            }
+            if (comma > sp.Length - 1)
+            {
+                result = Zero;
+                return false;
+            }
 
-                int comma1 = start + 1;
-                while (comma1 < sp.Length)
-                {
-                    if (p[comma1] == ',')
-                        break;
-                    comma1++;
-                }
-                if (comma1 > sp.Length - 3)
-                {
-                    result = Zero;
-                    return false;
-                }
-
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float x))
-                {
-                    result = Zero;
-                    return false;
-                }
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float x))
+            {
+                result = Zero;
+                return false;
+            }
 
                 comma1++;
                 start = comma1;
@@ -512,9 +508,8 @@ namespace OpenMetaverse
                     return false;
                 }
 
-                result = new Vector2(x, y);
-                return true;
-            }
+            result = new Vector2(x, y);
+            return true;
         }
         /// <summary>
         /// Interpolates between two vectors using a cubic equation
