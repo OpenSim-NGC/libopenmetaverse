@@ -1543,7 +1543,7 @@ namespace OpenMetaverse
 
         public static string BytesToString(byte[] bytes, int index, int count)
         {
-            if (bytes.Length <= index + count)
+            if (bytes.Length < index + count)
                 return string.Empty;
             if (bytes[index + count - 1] == 0x00)
                 return Encoding.UTF8.GetString(bytes, index, count - 1);
