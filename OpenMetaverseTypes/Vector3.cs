@@ -857,6 +857,7 @@ namespace OpenMetaverse
                     result = Zero;
                     return false;
                 }
+            }
 
             if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float x))
             {
@@ -864,11 +865,17 @@ namespace OpenMetaverse
                 return false;
             }
 
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float x))
-                {
-                    result = Zero;
-                    return false;
-                }
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                    break;
+            }
+            if (comma > sp.Length - 3)
+            {
+                result = Zero;
+                return false;
+            }
 
             if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float y))
             {

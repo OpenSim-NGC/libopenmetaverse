@@ -1190,7 +1190,7 @@ namespace OpenMetaverse
             start = ++comma;
             while (++comma < sp.Length)
             {
-                c= Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
                 if (c == '>' || c == ',')
                     break;
             }
@@ -1216,7 +1216,8 @@ namespace OpenMetaverse
             start = comma;
             while (++comma < sp.Length)
             {
-                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == '>')
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ' ' || c == '>')
                     break;
             }
 

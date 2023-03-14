@@ -630,25 +630,22 @@ namespace OpenMetaverse
                 return false;
             }
 
-                comma1++;
-                start = comma1;
-                comma1++;
-                while (comma1 < sp.Length)
-                {
-                    if (p[comma1] == ',')
-                        break;
-                    comma1++;
-                }
-                if (comma1 > sp.Length - 5)
-                {
-                    result = Zero;
-                    return false;
-                }
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float y))
-                {
-                    result = Zero;
-                    return false;
-                }
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                    break;
+            }
+            if (comma > sp.Length - 5)
+            {
+                result = Zero;
+                return false;
+            }
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float y))
+            {
+                result = Zero;
+                return false;
+            }
 
             start = ++comma;
             while (++comma < sp.Length)
@@ -670,7 +667,8 @@ namespace OpenMetaverse
             start = ++comma;
             while (++comma < sp.Length)
             {
-                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == '>')
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if(c == ' ' || c == '>')
                     break;
             }
             if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float w))
