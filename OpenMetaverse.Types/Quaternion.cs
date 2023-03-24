@@ -1051,84 +1051,76 @@ namespace OpenMetaverse
             return Parse(val.AsSpan());
         }
 
-        public unsafe static Quaternion Parse(ReadOnlySpan<char> sp)
+        public static Quaternion Parse(ReadOnlySpan<char> sp)
         {
             if (sp.Length < 7)
                 throw new FormatException("Invalid Quaternion");
 
             int start = 0;
-            fixed (char* p = sp)
+            int comma = 0;
+            char c;
+            do
             {
-                while (start < sp.Length)
-                {
-                    if (p[start++] == '<')
-                        break;
-                }
-                if (start > sp.Length - 6)
-                    throw new FormatException("Invalid Quaternion");
-
-                int comma1 = start + 1;
-                while (comma1 < sp.Length)
-                {
-                    if (p[comma1] == ',')
-                        break;
-                    comma1++;
-                }
-                if (comma1 > sp.Length - 5)
-                    throw new FormatException("Invalid Quaternion");
-
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float x))
-                    throw new FormatException("Invalid Quaternion");
-
-                comma1++;
-                start = comma1;
-                comma1++;
-                while (comma1 < sp.Length)
-                {
-                    if (p[comma1] == ',')
-                        break;
-                    comma1++;
-                }
-                if (comma1 > sp.Length - 3)
-                    throw new FormatException("Invalid Quaternion");
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float y))
-                    throw new FormatException("Invalid Quaternion");
-
-                comma1++;
-                start = comma1;
-                comma1++;
-                while (comma1 < sp.Length)
-                {
-                    if (p[comma1] == '>' || p[comma1] == ',')
-                        break;
-                    comma1++;
-                }
-                if (comma1 >= sp.Length)
-                    throw new FormatException("Invalid Quaternion");
-
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float z))
-                    throw new FormatException("Invalid Quaternion");
-
-                if (p[comma1] == '>')
-                    return new Quaternion(x, y, z);
-
-                comma1++;
-                start = comma1;
-                comma1++;
-                while (comma1 < sp.Length)
-                {
-                    if (p[comma1] == '>')
-                        break;
-                    comma1++;
-                }
-                if (comma1 >= sp.Length)
-                    throw new FormatException("Invalid Quaternion");
-
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float w))
-                    throw new FormatException("Invalid Quaternion");
-
-                return new Quaternion(x, y, z, w);
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ',' || c == '<')
+                    break;
             }
+            while (++comma < sp.Length);
+
+            if (c == '<')
+            {
+                start = ++comma;
+                while (++comma < sp.Length)
+                {
+                    if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                        break;
+                }
+            }
+            if (comma > sp.Length - 5)
+                throw new FormatException("Invalid Quaternion");
+
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float x))
+                throw new FormatException("Invalid Quaternion");
+
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                    break;
+            }
+            if (comma > sp.Length - 3)
+                throw new FormatException("Invalid Quaternion");
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float y))
+                throw new FormatException("Invalid Quaternion");
+
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ',' || c == '>')
+                    break;
+            }
+            if (comma >= sp.Length)
+                throw new FormatException("Invalid Quaternion");
+
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float z))
+                throw new FormatException("Invalid Quaternion");
+
+            if (c == '>')
+                return new Quaternion(x, y, z);
+
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ' ' || c == '>')
+                    break;
+            }
+
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float w))
+                throw new FormatException("Invalid Quaternion");
+
+            return new Quaternion(x, y, z, w);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1137,7 +1129,7 @@ namespace OpenMetaverse
             return TryParse(val.AsSpan(), out result);
         }
 
-        public unsafe static bool TryParse(ReadOnlySpan<char> sp, out Quaternion result)
+        public static bool TryParse(ReadOnlySpan<char> sp, out Quaternion result)
         {
             if (sp.Length < 7)
             {
@@ -1146,109 +1138,97 @@ namespace OpenMetaverse
             }
 
             int start = 0;
-            fixed (char* p = sp)
+            int comma = 0;
+            char c;
+
+            do
             {
-                while (start < sp.Length)
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ',' || c == '<')
+                    break;
+            }
+            while (++comma < sp.Length);
+
+            if (c == '<')
+            {
+                start = ++comma;
+                while (++comma < sp.Length)
                 {
-                    if (p[start++] == '<')
+                    if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
                         break;
                 }
-                if (start > sp.Length - 6)
-                {
-                    result = Identity;
-                    return false;
-                }
+            }
+            if (comma > sp.Length - 5)
+            {
+                result = Identity;
+                return false;
+            }
 
-                int comma1 = start + 1;
-                while (comma1 < sp.Length)
-                {
-                    if (p[comma1] == ',')
-                        break;
-                    comma1++;
-                }
-                if (comma1 > sp.Length - 5)
-                {
-                    result = Identity;
-                    return false;
-                }
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float x))
+            {
+                result = Identity;
+                return false;
+            }
 
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float x))
-                {
-                    result = Identity;
-                    return false;
-                }
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                    break;
+            }
+            if (comma > sp.Length - 3)
+            {
+                result = Identity;
+                return false;
+            }
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float y))
+            {
+                result = Identity;
+                return false;
+            }
 
-                comma1++;
-                start = comma1;
-                comma1++;
-                while (comma1 < sp.Length)
-                {
-                    if (p[comma1] == ',')
-                        break;
-                    comma1++;
-                }
-                if (comma1 > sp.Length - 3)
-                {
-                    result = Identity;
-                    return false;
-                }
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float y))
-                {
-                    result = Identity;
-                    return false;
-                }
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == '>' || c == ',')
+                    break;
+            }
+            if (comma >= sp.Length)
+            {
+                result = Identity;
+                return false;
+            }
 
-                comma1++;
-                start = comma1;
-                comma1++;
-                while (comma1 < sp.Length)
-                {
-                    if (p[comma1] == '>' || p[comma1] == ',')
-                        break;
-                    comma1++;
-                }
-                if (comma1 >= sp.Length)
-                {
-                    result = Identity;
-                    return false;
-                }
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float z))
+            {
+                result = Identity;
+                return false;
+            }
 
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float z))
-                {
-                    result = Identity;
-                    return false;
-                }
-
-                if (p[comma1] == '>')
-                {
-                    result = new Quaternion(x, y, z);
-                    return true;
-                }
-
-                comma1++;
-                start = comma1;
-                comma1++;
-                while (comma1 < sp.Length)
-                {
-                    if (p[comma1] == '>')
-                        break;
-                    comma1++;
-                }
-                if (comma1 >= sp.Length)
-                {
-                    result = Identity;
-                    return false;
-                }
-
-                if (!float.TryParse(sp[start..comma1], NumberStyles.Float, Utils.EnUsCulture, out float w))
-                {
-                    result = Identity;
-                    return false;
-                }
-
-                result = new Quaternion(x, y, z, w);
+            if (c == '>')
+            {
+                result = new Quaternion(x, y, z);
                 return true;
             }
+
+            comma++;
+            start = comma;
+            while (++comma < sp.Length)
+            {
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ' ' || c == '>')
+                    break;
+            }
+
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float w))
+            {
+                result = Identity;
+                return false;
+            }
+
+            result = new Quaternion(x, y, z, w);
+            return true;
         }
 
         #endregion Static Methods
@@ -1257,9 +1237,9 @@ namespace OpenMetaverse
 
         public readonly override bool Equals(object obj)
         {
-            if((obj is not Quaternion))
+            if(obj is not Quaternion other)
                 return false;
-            Quaternion other = (Quaternion)obj;
+
             if (X != other.X)
                 return false;
             if (Y != other.Y)
