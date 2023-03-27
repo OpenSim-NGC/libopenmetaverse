@@ -41,17 +41,15 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml;
 
-using Nwc.XmlRpc;
-
 using OpenMetaverse;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using log4net;
-using Nwc.XmlRpc;
-using Logger = Nwc.XmlRpc.Logger;
+using XmlRpcCore;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Net.Http;
 
 namespace GridProxy
 {
@@ -193,6 +191,8 @@ namespace GridProxy
         public ProxyConfig proxyConfig;
         private string loginURI;
 
+        private static readonly HttpClient HttpClient = new HttpClient();
+        
         static List<string> BinaryResponseCaps = new List<string>()
         {
             "ViewerAsset",
@@ -1191,7 +1191,10 @@ namespace GridProxy
                 try
                 {
                     // forward the XML-RPC request to the server
-                    response = (XmlRpcResponse)request.Send(remoteLoginUri, 30 * 1000); // 30 second timeout
+                    var cts = new CancellationTokenSource();
+                    cts.CancelAfter(TimeSpan.FromSeconds(30)); // 30 second timeout
+                    response = HttpClient.PostAsXmlRpcAsync(proxyConfig.remoteLoginUri, request, cts.Token).Result;
+                    cts.Dispose();
                 }
                 catch (Exception e)
                 {

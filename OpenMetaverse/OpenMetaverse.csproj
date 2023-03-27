@@ -8,21 +8,15 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="log4net" Version="2.0.14" />
+    <PackageReference Include="log4net" Version="2.0.15" />
     <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
+    <PackageReference Include="XmlRpcCore" Version="3.1.2.77" />
     <PackageReference Include="ZeroFormatter" Version="1.6.4" />
+    <PackageReference Include="zlib.net-mutliplatform" Version="1.0.6" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="SmartThreadPool">
       <HintPath>..\bin\SmartThreadPool.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="XMLRPC">
-      <HintPath>..\bin\XMLRPC.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="zlib.net">
-      <HintPath>..\bin\zlib.net.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

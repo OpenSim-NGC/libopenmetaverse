@@ -25,7 +25,7 @@
  */
 
 using GridProxy;
-using Nwc.XmlRpc;
+using XmlRpcCore;
 using OpenMetaverse;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Packets;

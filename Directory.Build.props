@@ -6,10 +6,10 @@
     <Company>Utopia Skye LLC</Company>
   </PropertyGroup>
   <PropertyGroup>
-    <PackageVersion>1.2.1</PackageVersion>
-    <AssemblyVersion>1.2.1</AssemblyVersion>
-    <FileVersion>1.2.1</FileVersion>
-    <Version>1.2.1</Version>
+    <PackageVersion>1.3.1</PackageVersion>
+    <AssemblyVersion>1.3.1</AssemblyVersion>
+    <FileVersion>1.3.1</FileVersion>
+    <Version>1.3.1</Version>
     <MSBuildProjectExtensionsPath>$(SolutionDir)\obj\$(Configuration)\$(MSBuildProjectName)\</MSBuildProjectExtensionsPath>
     <IntermediateOutputPath>$(SolutionDir)\obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
     <OutputPath>$(SolutionDir)\build\$(Configuration)\$(AssemblyName)\</OutputPath>
