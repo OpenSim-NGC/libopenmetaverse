@@ -24,7 +24,7 @@ jobs:
       run: dotnet restore
 
     - name: Build
-      run: dotnet build --no-restore --Configuration Release
+      run: dotnet build --no-restore -p:Configuration=Release
 
     - name: Test
       run: dotnet test --no-restore --no-build --verbosity normal
@@ -36,7 +36,7 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Pack
-      run: dotnet pack --configuration Release NGC.LibOpenMetaverse
+      run: dotnet pack -p:Configuration=Release NGC.LibOpenMetaverse
 
     # - name: Publish Package
     #   run: dotnet nuget push Example.PackageName/bin/Release/*.nupkg --source https://nuget.pkg.github.com/YOUR_ACCOUNT/index.json
