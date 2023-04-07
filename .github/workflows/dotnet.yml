@@ -3,6 +3,7 @@ name: .NET
 on:
   push:
     branches: [ develop ]
+
   pull_request:
     branches: [ develop ]
 
@@ -13,13 +14,36 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 6.0.x
-    - name: Restore dependencies
-      run: dotnet restore
+
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --Configuration Release
+
     - name: Test
       run: dotnet test --no-build --verbosity normal
+
+    - name: Bump version and push tag
+      id: tag_version
+      uses: mathieudutour/github-tag-action@v6.1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Pack
+      run: dotnet pack --configuration Release NGC.LibOpenMetaverse
+
+    # - name: Publish Package
+    #   run: dotnet nuget push Example.PackageName/bin/Release/*.nupkg --source https://nuget.pkg.github.com/YOUR_ACCOUNT/index.json
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.bump_version.outputs.new_tag }}
+        release_name: Release ${{ github.ref }}
+        body: ${{ steps.tag_version.outputs.changelog }}
+
