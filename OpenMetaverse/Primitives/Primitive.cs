@@ -717,7 +717,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Information on the ReflectionProbe properties of a primitive
+        /// Information on the RenderMaterial properties of a primitive
         /// </summary>
         public class RenderMaterials
         {
@@ -817,7 +817,7 @@ namespace OpenMetaverse
 
             public static RenderMaterials FromOSD(OSD osd)
             {
-                RenderMaterials rm = new RenderMaterials();
+                RenderMaterials rm = new();
                 try
                 {
                     if (osd.Type == OSDType.Array)
@@ -832,10 +832,14 @@ namespace OpenMetaverse
                                 entries[i].te_index = (byte)map["te_idx"].AsInteger();
                                 entries[i].id = map["id"].AsUUID();
                             }
+                            rm.entries = entries;
                         } 
                     }
                 }
-                catch { }
+                catch
+                {
+                    rm.entries = null;
+                }
                 return rm;
             }
 
