@@ -28,6 +28,7 @@ using System;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace OpenMetaverse
 {
@@ -156,6 +157,16 @@ namespace OpenMetaverse
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsNotZero()
+        {
+            if (X != 0)
+                return true;
+            if (Y != 0)
+                return true;
+            return false;
+        }
+
         /// <summary>
         /// Test if this vector is composed of all finite numbers
         /// </summary>
@@ -183,7 +194,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="byteArray">Byte array containing two four-byte floats</param>
         /// <param name="pos">Beginning position in the byte array</param>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void FromBytes(byte[] byteArray, int pos)
         {
             X = Utils.BytesToFloatSafepos(byteArray, pos);
@@ -194,7 +205,7 @@ namespace OpenMetaverse
         /// Returns the raw bytes for this vector
         /// </summary>
         /// <returns>An eight-byte array containing X and Y</returns>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte[] GetBytes()
         {
             byte[] dest = new byte[8];
@@ -209,32 +220,52 @@ namespace OpenMetaverse
         /// <param name="dest">Destination byte array</param>
         /// <param name="pos">Position in the destination array to start
         /// writing. Must be at least 8 bytes before the end of the array</param>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void ToBytes(byte[] dest, int pos)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ToBytes(byte[] dest, int pos)
         {
-            Utils.FloatToBytesSafepos(X, dest, pos);
-            Utils.FloatToBytesSafepos(Y, dest, pos + 4);
+            if (Utils.CanDirectCopyLE)
+            {
+                fixed (byte* d = &dest[0])
+                    *(Vector2*)(d + pos) = this;
+            }
+            else
+            {
+                Utils.FloatToBytesSafepos(X, dest, pos);
+                Utils.FloatToBytesSafepos(Y, dest, pos + 4);
+            }
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ToBytes(byte* dest)
+        {
+            if (Utils.CanDirectCopyLE)
+                *(Vector2*)(dest) = this;
+            else
+            {
+                Utils.FloatToBytes(X, dest);
+                Utils.FloatToBytes(Y, dest + 4);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float Length()
         {
-            return (float)Math.Sqrt(X * X + Y * Y);
+            return MathF.Sqrt(X * X + Y * Y);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public float LengthSquared()
         {
             return X * X + Y * Y;
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Normalize()
         {
             float factor = LengthSquared();
             if (factor > 1e-6)
             {
-                factor = 1f / (float)Math.Sqrt(factor);
+                factor = 1f / MathF.Sqrt(factor);
                 X *= factor;
                 Y *= factor;
             }
@@ -249,7 +280,7 @@ namespace OpenMetaverse
 
         #region Static Methods
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Add(Vector2 value1, Vector2 value2)
         {
             return new Vector2(value1.X + value2.X, value1.Y + value2.Y);
@@ -263,7 +294,7 @@ namespace OpenMetaverse
                 Utils.Clamp(value1.Y, min, max));
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Clamp(Vector2 value1, Vector2 min, Vector2 max)
         {
             return new Vector2(
@@ -271,13 +302,13 @@ namespace OpenMetaverse
                 Utils.Clamp(value1.Y, min.Y, max.Y));
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Distance(Vector2 value1, Vector2 value2)
         {
-            return (float)Math.Sqrt(DistanceSquared(value1, value2));
+            return MathF.Sqrt(DistanceSquared(value1, value2));
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float DistanceSquared(Vector2 value1, Vector2 value2)
         {
             return
@@ -285,20 +316,20 @@ namespace OpenMetaverse
                 (value1.Y - value2.Y) * (value1.Y - value2.Y);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Divide(Vector2 value1, Vector2 value2)
         {
             return new Vector2(value1.X / value2.X, value1.Y / value2.Y);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Divide(Vector2 value1, float divider)
         {
             float factor = 1 / divider;
             return new Vector2(value1.X * factor, value1.Y * factor);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Dot(Vector2 value1, Vector2 value2)
         {
             return (value1.X * value2.X) + (value1.Y * value2.Y);
@@ -311,47 +342,47 @@ namespace OpenMetaverse
                 Utils.Lerp(value1.Y, value2.Y, amount));
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Max(Vector2 value1, Vector2 value2)
         {
             return new Vector2(
-                Math.Max(value1.X, value2.X),
-                Math.Max(value1.Y, value2.Y));
+                MathF.Max(value1.X, value2.X),
+                MathF.Max(value1.Y, value2.Y));
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Min(Vector2 value1, Vector2 value2)
         {
             return new Vector2(
-                Math.Min(value1.X, value2.X),
-                Math.Min(value1.Y, value2.Y));
+                MathF.Min(value1.X, value2.X),
+                MathF.Min(value1.Y, value2.Y));
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Multiply(Vector2 value1, Vector2 value2)
         {
             return new Vector2(value1.X * value2.X, value1.Y * value2.Y);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Multiply(Vector2 value1, float scaleFactor)
         {
             return new Vector2(value1.X * scaleFactor, value1.Y * scaleFactor);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Negate(Vector2 value)
         {
             return new Vector2(-value.X, -value.Y);
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Normalize(Vector2 value)
         {
             float factor = value.LengthSquared();
             if (factor > 1e-6)
             {
-                factor = 1f / (float)Math.Sqrt(factor);
+                factor = 1f / MathF.Sqrt(factor);
                 return new Vector2(value.X * factor, value.Y * factor);
             }
             return new Vector2();
@@ -362,29 +393,117 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="val">A string representation of a 2D vector, enclosed 
         /// in arrow brackets and separated by commas</param>
-        public static Vector2 Parse(string val)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe Vector2 Parse(string val)
         {
-            char[] splitChar = { ',' };
-            string[] split = val.Replace("<", String.Empty).Replace(">", String.Empty).Split(splitChar);
-            return new Vector2(
-                float.Parse(split[0].Trim(), Utils.EnUsCulture),
-                float.Parse(split[1].Trim(), Utils.EnUsCulture));
+            return Parse(val.AsSpan());
         }
 
+        public static Vector2 Parse(ReadOnlySpan<char> sp)
+        {
+            if (sp.Length < 3)
+                throw new FormatException("Invalid Vector2");
+
+            int start = 0;
+            int comma = 0;
+            char c;
+
+            do
+            {
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ',' || c == '<')
+                    break;
+            }
+            while (++comma < sp.Length);
+
+            if (c == '<')
+            {
+                start = ++comma;
+                while (++comma < sp.Length)
+                {
+                    if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                        break;
+                }
+            }
+            if (comma > sp.Length - 1)
+                throw new FormatException("Invalid Vector2");
+
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float x))
+                throw new FormatException("Invalid Vector2");
+
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == '>')
+                    break;
+            }
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float y))
+                throw new FormatException("Invalid Vector2");
+
+            return new Vector2(x, y);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryParse(string val, out Vector2 result)
         {
-            try
+            return TryParse(val.AsSpan(), out result);
+        }
+        public static bool TryParse(ReadOnlySpan<char> sp, out Vector2 result)
+        {
+            if (sp.Length < 3)
             {
-                result = Parse(val);
-                return true;
-            }
-            catch (Exception)
-            {
-                result = new Vector2();
+                result = Zero;
                 return false;
             }
-        }
 
+            int start = 0;
+            int comma = 0;
+            char c;
+            do
+            {
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ',' || c == '<')
+                    break;
+            }
+            while (++comma < sp.Length);
+
+            if (c == '<')
+            {
+                start = ++comma;
+                while (++comma < sp.Length)
+                {
+                    if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                        break;
+                }
+            }
+            if (comma > sp.Length - 1)
+            {
+                result = Zero;
+                return false;
+            }
+
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float x))
+            {
+                result = Zero;
+                return false;
+            }
+
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ' ' || c == '>')
+                    break;
+            }
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float y))
+            {
+                result = Zero;
+                return false;
+            }
+
+            result = new Vector2(x, y);
+            return true;
+        }
         /// <summary>
         /// Interpolates between two vectors using a cubic equation
         /// </summary>
@@ -395,7 +514,7 @@ namespace OpenMetaverse
                 Utils.SmoothStep(value1.Y, value2.Y, amount));
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector2 Subtract(Vector2 value1, Vector2 value2)
         {
             return new Vector2(value1.X - value2.X, value1.Y - value2.Y);
@@ -466,7 +585,13 @@ namespace OpenMetaverse
         /// <returns>A string representation of the vector</returns>
         public override string ToString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}>", X, Y);
+            StringBuilder sb = new();
+            sb.Append('<');
+            sb.Append(X.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(Y.ToString(Utils.EnUsCulture));
+            sb.Append('>');
+            return sb.ToString();
         }
 
         /// <summary>
@@ -479,7 +604,12 @@ namespace OpenMetaverse
             CultureInfo enUs = new CultureInfo("en-us");
             enUs.NumberFormat.NumberDecimalDigits = 3;
 
-            return String.Format(enUs, "{0} {1}", X, Y);
+            StringBuilder sb = new();
+            sb.Append(X.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(Y.ToString(enUs));
+            sb.Append(' ');
+            return sb.ToString();
         }
 
         #endregion Overrides

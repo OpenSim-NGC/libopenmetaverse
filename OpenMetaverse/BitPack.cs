@@ -69,18 +69,17 @@ namespace OpenMetaverse
         {
             Data = data;
             bytePos = pos;
-
-            if(bitp.HasValue)
+            if (bitp.HasValue)
             {
                 bitPos = bitp.Value;
-                if(bitPos < 0)
+                if (bitPos < 0)
                     bitPos = 0;
-                else if(bitPos > 7)
+                else if (bitPos > 7)
                     bitPos = 7; // this is wrong anyway
                 if (bitPos == 0)
                     Data[pos] = 0;
                 else
-                  Data[pos] &= (byte)~(0xff >> bitPos);
+                    Data[pos] &= (byte)~(0xff >> bitPos);
             }
             else
 			{
@@ -88,10 +87,30 @@ namespace OpenMetaverse
 			}
         }
 
+        public void Reset(byte[] data, int pos, int? bitp = null)
+        {
+            Data = data;
+            bytePos = pos;
+            if (bitp.HasValue)
+            {
+                bitPos = bitp.Value;
+                if (bitPos < 0)
+                    bitPos = 0;
+                else if (bitPos > 7)
+                    bitPos = 7; // this is wrong anyway
+                if (bitPos == 0)
+                    Data[pos] = 0;
+                else
+                    Data[pos] &= (byte)~(0xff >> bitPos);
+            }
+            else
+                bitPos = 0;
+        }
         /// <summary>
         /// Pack a floating point value in to the data
         /// </summary>
         /// <param name="data">Floating point value to pack</param>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public unsafe void PackFloat(float data)
         {
             int d = (*(int*)&data);
@@ -106,16 +125,10 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="data">Integer containing the data to pack</param>
         /// <param name="totalCount">Number of bits of the integer to pack</param>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void PackBits(int data, int totalCount)
         {
-            while (totalCount > 8)
-            {
-                PackBitsFromByte((byte)data);
-                data >>= 8;
-                totalCount -= 8;
-            }
-            if (totalCount > 0)
-                PackBitsFromByte((byte)data, totalCount);
+            PackBits((uint)data, totalCount);
         }
 
         /// <summary>
@@ -123,6 +136,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="data">Unsigned integer containing the data to pack</param>
         /// <param name="totalCount">Number of bits of the integer to pack</param>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void PackBits(uint data, int totalCount)
         {
             while (totalCount > 8)
@@ -135,6 +149,7 @@ namespace OpenMetaverse
                 PackBitsFromByte((byte)data, totalCount);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void PackBitsFromUInt(uint data)
         {
             PackBitsFromByte((byte)data);
@@ -143,6 +158,24 @@ namespace OpenMetaverse
             PackBitsFromByte((byte)(data >> 24));
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void PackBitsFromInt(int data)
+        {
+            PackBitsFromUInt((uint)data);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void PackBitsFromUShort(ushort data)
+        {
+            PackBitsFromByte((byte)data);
+            PackBitsFromByte((byte)(data >> 8));
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void PackBitsFromShort(short data)
+        {
+            PackBitsFromUShort((ushort) data);
+        }
 
         /// <summary>
         /// 
@@ -195,9 +228,50 @@ namespace OpenMetaverse
         /// <param name="data"></param>
         public void PackUUID(UUID data)
         {
-            byte[] bytes = data.GetBytes();
-            for (int i = 0; i < 16; i++)
-                PackBitsFromByte(bytes[i]);
+            if (BitConverter.IsLittleEndian)
+            {
+                PackBitsFromByte(data.bytea3);
+                PackBitsFromByte(data.bytea2);
+                PackBitsFromByte(data.bytea1);
+                PackBitsFromByte(data.bytea0);
+
+                PackBitsFromByte(data.byteb1);
+                PackBitsFromByte(data.byteb0);
+
+                PackBitsFromByte(data.bytec1);
+                PackBitsFromByte(data.bytec0);
+
+                PackBitsFromByte(data.d);
+                PackBitsFromByte(data.e);
+                PackBitsFromByte(data.f);
+                PackBitsFromByte(data.g);
+                PackBitsFromByte(data.h);
+                PackBitsFromByte(data.i);
+                PackBitsFromByte(data.j);
+                PackBitsFromByte(data.k);
+            }
+            else
+            {
+                PackBitsFromByte(data.bytea0);
+                PackBitsFromByte(data.bytea1);
+                PackBitsFromByte(data.bytea2);
+                PackBitsFromByte(data.bytea3);
+
+                PackBitsFromByte(data.byteb0);
+                PackBitsFromByte(data.byteb1);
+
+                PackBitsFromByte(data.bytec0);
+                PackBitsFromByte(data.bytec1);
+
+                PackBitsFromByte(data.k);
+                PackBitsFromByte(data.j);
+                PackBitsFromByte(data.i);
+                PackBitsFromByte(data.h);
+                PackBitsFromByte(data.g);
+                PackBitsFromByte(data.f);
+                PackBitsFromByte(data.e);
+                PackBitsFromByte(data.d);
+            }
         }
 
         /// <summary>
@@ -206,10 +280,10 @@ namespace OpenMetaverse
         /// <param name="data"></param>
         public void PackColor(Color4 data)
         {
-            PackBitsFromByte(Utils.FloatToByte(data.R, 0f, 1f));
-            PackBitsFromByte(Utils.FloatToByte(data.G, 0f, 1f));
-            PackBitsFromByte(Utils.FloatToByte(data.B, 0f, 1f));
-            PackBitsFromByte(Utils.FloatToByte(data.A, 0f, 1f));
+            PackBitsFromByte(Utils.FloatZeroOneToByte(data.R));
+            PackBitsFromByte(Utils.FloatZeroOneToByte(data.G));
+            PackBitsFromByte(Utils.FloatZeroOneToByte(data.B));
+            PackBitsFromByte(Utils.FloatZeroOneToByte(data.A));
         }
 
         /// <summary>
@@ -292,7 +366,6 @@ namespace OpenMetaverse
             tmp |= (byte)(UnpackByte() << 24);
             return tmp;
         }
-
         public byte UnpackByte()
         {
             byte o = Data[bytePos];
@@ -344,7 +417,6 @@ namespace OpenMetaverse
             bytePos += size;
             return str;
         }
-
         public UUID UnpackUUID()
         {
             if (bitPos != 0) throw new IndexOutOfRangeException();
@@ -393,7 +465,7 @@ namespace OpenMetaverse
             if (count > 8) //should not happen
                 count = 7;
             else
-                count = count - 1;
+                --count;
 
             while (count >= 0)
             {

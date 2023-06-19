@@ -28,6 +28,7 @@ using System;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace OpenMetaverse
 {
@@ -93,10 +94,7 @@ namespace OpenMetaverse
 
         public Vector4(Vector4 value)
         {
-            X = value.X;
-            Y = value.Y;
-            Z = value.Z;
-            W = value.W;
+            this = value;
         }
 
         #endregion Constructors
@@ -132,11 +130,19 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clamp(float min, float max)
         {
-            X = Utils.Clamp(X, min, max);
-            Y = Utils.Clamp(Y, min, max);
-            Z = Utils.Clamp(Z, min, max);
-            W = Utils.Clamp(W, min, max);
+            if (X < min) X = min;
+            else if (X > max) X = max;
+
+            if (Y < min) Y = min;
+            else if (Y > max) Y = max;
+
+            if (Z < min) Z = min;
+            else if (Z > max) Z = max;
+
+            if (W < min) W = min;
+            else if (W > max) W = max;
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Min(Vector4 v)
         {
@@ -222,6 +228,20 @@ namespace OpenMetaverse
                 return false;
             return true;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsNotZero()
+        {
+            if (X != 0)
+                return true;
+            if (Y != 0)
+                return true;
+            if (Z != 0)
+                return true;
+            if (W != 0)
+                return true;
+            return false;
+        }
         /// <summary>
         /// IComparable.CompareTo implementation
         /// </summary>
@@ -276,12 +296,35 @@ namespace OpenMetaverse
         /// <param name="dest">Destination byte array</param>
         /// <param name="pos">Position in the destination array to start
         /// writing. Must be at least 16 bytes before the end of the array</param>
-        public void ToBytes(byte[] dest, int pos)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ToBytes(byte[] dest, int pos)
         {
-            Utils.FloatToBytesSafepos(X, dest, pos);
-            Utils.FloatToBytesSafepos(Y, dest, pos + 4);
-            Utils.FloatToBytesSafepos(Z, dest, pos + 8);
-            Utils.FloatToBytesSafepos(W, dest, pos + 12);
+            if (Utils.CanDirectCopyLE)
+            {
+                fixed (byte* d = &dest[0])
+                    *(Vector4*)(d + pos) = this;
+            }
+            else
+            {
+                Utils.FloatToBytesSafepos(X, dest, pos);
+                Utils.FloatToBytesSafepos(Y, dest, pos + 4);
+                Utils.FloatToBytesSafepos(Z, dest, pos + 8);
+                Utils.FloatToBytesSafepos(W, dest, pos + 12);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ToBytes(byte* dest)
+        {
+            if (Utils.CanDirectCopyLE)
+                *(Vector4*)dest = this;
+            else
+            {
+                Utils.FloatToBytes(X, dest);
+                Utils.FloatToBytes(Y, dest + 4);
+                Utils.FloatToBytes(Z, dest + 8);
+                Utils.FloatToBytes(W, dest + 12);
+            }
         }
 
         #endregion Public Methods
@@ -470,29 +513,172 @@ namespace OpenMetaverse
                 (vector.X * matrix.M14) + (vector.Y * matrix.M24) + (vector.Z * matrix.M34) + (vector.W * matrix.M44));
         }
 
-        public static Vector4 Parse(string val)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static Vector4 Parse(string val)
         {
-            char[] splitChar = { ',' };
-            string[] split = val.Replace("<", String.Empty).Replace(">", String.Empty).Split(splitChar);
-            return new Vector4(
-                float.Parse(split[0].Trim(), Utils.EnUsCulture),
-                float.Parse(split[1].Trim(), Utils.EnUsCulture),
-                float.Parse(split[2].Trim(), Utils.EnUsCulture),
-                float.Parse(split[3].Trim(), Utils.EnUsCulture));
+            return Parse(val.AsSpan());
         }
 
+        public static Vector4 Parse(ReadOnlySpan<char> sp)
+        {
+            if (sp.Length < 7)
+                throw new FormatException("Invalid Vector4");
+
+            int start = 0;
+            int comma = 0;
+            char c;
+
+            do
+            {
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ',' || c == '<')
+                    break;
+            }
+            while (++comma < sp.Length);
+
+            if (c == '<')
+            {
+                start = ++comma;
+                while (++comma < sp.Length)
+                {
+                    if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                        break;
+                }
+            }
+            if (comma > sp.Length - 5)
+                throw new FormatException("Invalid Vector4");
+
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float x))
+                throw new FormatException("Invalid Vector4");
+
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                    break;
+            }
+            if (comma > sp.Length - 3)
+                throw new FormatException("Invalid Vector4");
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float y))
+                throw new FormatException("Invalid Vector4");
+
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                    break;
+            }
+            if (comma > sp.Length - 1)
+                throw new FormatException("Invalid Vector4");
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float z))
+                throw new FormatException("Invalid Vector4");
+
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == '>')
+                    break;
+            }
+
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float w))
+                throw new FormatException("Invalid Vector4");
+            return new Vector4(x, y, z, w);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryParse(string val, out Vector4 result)
         {
-            try
+            return TryParse(val.AsSpan(), out result);
+        }
+
+        public static bool TryParse(ReadOnlySpan<char> sp, out Vector4 result)
+        {
+            if (sp.Length < 7)
             {
-                result = Parse(val);
-                return true;
-            }
-            catch (Exception)
-            {
-                result = new Vector4();
+                result = Zero;
                 return false;
             }
+            int start = 0;
+            int comma = 0;
+            char c;
+            do
+            {
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if (c == ',' || c == '<')
+                    break;
+            }
+            while (++comma < sp.Length);
+
+            if (c == '<')
+            {
+                start = ++comma;
+                while (++comma < sp.Length)
+                {
+                    if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                        break;
+                }
+            }
+            if (comma > sp.Length - 5)
+            {
+                result = Zero;
+                return false;
+            }
+
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float x))
+            {
+                result = Zero;
+                return false;
+            }
+
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                    break;
+            }
+            if (comma > sp.Length - 5)
+            {
+                result = Zero;
+                return false;
+            }
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float y))
+            {
+                result = Zero;
+                return false;
+            }
+
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                if (Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma) == ',')
+                    break;
+            }
+            if (comma > sp.Length - 1)
+            {
+                result = Zero;
+                return false;
+            }
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float z))
+            {
+                result = Zero;
+                return false;
+            }
+
+            start = ++comma;
+            while (++comma < sp.Length)
+            {
+                c = Unsafe.Add(ref MemoryMarshal.GetReference(sp), comma);
+                if(c == ' ' || c == '>')
+                    break;
+            }
+            if (!float.TryParse(sp[start..comma], NumberStyles.Float, Utils.EnUsCulture, out float w))
+            {
+                result = Zero;
+                return false;
+            }
+
+            result = new Vector4(x, y, z, w);
+            return true;
         }
 
         #endregion Static Methods
@@ -501,10 +687,9 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            if (!(obj is Vector4))
+            if (obj is not Vector4 other)
                 return false;
 
-            Vector4 other = (Vector4)obj;
             if (X != other.X)
                 return false;
             if (Y != other.Y)
@@ -549,7 +734,17 @@ namespace OpenMetaverse
 
         public override string ToString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}, {2}, {3}>", X, Y, Z, W);
+            StringBuilder sb = new();
+            sb.Append('<');
+            sb.Append(X.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(Y.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(Z.ToString(Utils.EnUsCulture));
+            sb.Append(", ");
+            sb.Append(W.ToString(Utils.EnUsCulture));
+            sb.Append('>');
+            return sb.ToString();
         }
 
         /// <summary>
@@ -559,10 +754,18 @@ namespace OpenMetaverse
         /// <returns>Raw string representation of the vector</returns>
         public string ToRawString()
         {
-            CultureInfo enUs = new CultureInfo("en-us");
+            CultureInfo enUs = new("en-us");
             enUs.NumberFormat.NumberDecimalDigits = 3;
 
-            return String.Format(enUs, "{0} {1} {2} {3}", X, Y, Z, W);
+            StringBuilder sb = new();
+            sb.Append(X.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(Y.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(Z.ToString(enUs));
+            sb.Append(' ');
+            sb.Append(W.ToString(enUs));
+            return sb.ToString();
         }
 
         #endregion Overrides
@@ -658,18 +861,18 @@ namespace OpenMetaverse
         #endregion Operators
 
         /// <summary>A vector with a value of 0,0,0,0</summary>
-        public readonly static Vector4 Zero = new Vector4();
+        public readonly static Vector4 Zero = new();
         /// <summary>A vector with a value of 1,1,1,1</summary>
-        public readonly static Vector4 One = new Vector4(1f, 1f, 1f, 1f);
+        public readonly static Vector4 One = new(1f, 1f, 1f, 1f);
         /// <summary>A vector with a value of 1,0,0,0</summary>
-        public readonly static Vector4 UnitX = new Vector4(1f, 0f, 0f, 0f);
+        public readonly static Vector4 UnitX = new(1f, 0f, 0f, 0f);
         /// <summary>A vector with a value of 0,1,0,0</summary>
-        public readonly static Vector4 UnitY = new Vector4(0f, 1f, 0f, 0f);
+        public readonly static Vector4 UnitY = new(0f, 1f, 0f, 0f);
         /// <summary>A vector with a value of 0,0,1,0</summary>
-        public readonly static Vector4 UnitZ = new Vector4(0f, 0f, 1f, 0f);
+        public readonly static Vector4 UnitZ = new(0f, 0f, 1f, 0f);
         /// <summary>A vector with a value of 0,0,0,1</summary>
-        public readonly static Vector4 UnitW = new Vector4(0f, 0f, 0f, 1f);
-        public readonly static Vector4 MinValue = new Vector4(float.MinValue, float.MinValue, float.MinValue, float.MinValue);
-        public readonly static Vector4 MaxValue = new Vector4(float.MaxValue, float.MaxValue, float.MaxValue, float.MaxValue);
+        public readonly static Vector4 UnitW = new(0f, 0f, 0f, 1f);
+        public readonly static Vector4 MinValue = new(float.MinValue, float.MinValue, float.MinValue, float.MinValue);
+        public readonly static Vector4 MaxValue = new(float.MaxValue, float.MaxValue, float.MaxValue, float.MaxValue);
     }
 }

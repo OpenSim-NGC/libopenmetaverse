@@ -24,15 +24,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using Nwc.XmlRpc;
-using OpenMetaverse.Http;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+using OpenMetaverse.StructuredData;
+using OpenMetaverse.Http;
+using OpenMetaverse.Packets;
 using System.Threading;
+using XmlRpcCore;
+using System.Threading.Tasks;
+using System.Net.Http;
 
 namespace OpenMetaverse
 {
@@ -149,23 +153,25 @@ namespace OpenMetaverse
         /// </summary>
         public LoginParams()
         {
-            List<string> options = new List<string>(16);
-            options.Add("inventory-root");
-            options.Add("inventory-skeleton");
-            options.Add("inventory-lib-root");
-            options.Add("inventory-lib-owner");
-            options.Add("inventory-skel-lib");
-            options.Add("initial-outfit");
-            options.Add("gestures");
-            options.Add("event_categories");
-            options.Add("event_notifications");
-            options.Add("classified_categories");
-            options.Add("buddy-list");
-            options.Add("ui-config");
-            options.Add("tutorial_settings");
-            options.Add("login-flags");
-            options.Add("global-textures");
-            options.Add("adult_compliant");
+            var options = new List<string>(16)
+            {
+                "inventory-root",
+                "inventory-skeleton",
+                "inventory-lib-root",
+                "inventory-lib-owner",
+                "inventory-skel-lib",
+                "initial-outfit",
+                "gestures",
+                "event_categories",
+                "event_notifications",
+                "classified_categories",
+                "buddy-list",
+                "ui-config",
+                "tutorial_settings",
+                "login-flags",
+                "global-textures",
+                "adult_compliant"
+            };
 
             this.Options = options.ToArray();
             this.MethodName = "login_to_simulator";
@@ -899,6 +905,13 @@ namespace OpenMetaverse
         #endregion
 
         #region Private Members
+
+        public static readonly HttpClient HTTP_CLIENT = new HttpClient(new HttpClientHandler()
+        {
+            ServerCertificateCustomValidationCallback = delegate { return true; },
+            AllowAutoRedirect = true
+        });
+
         private LoginParams CurrentContext = null;
         private AutoResetEvent LoginEvent = new AutoResetEvent(false);
         private LoginStatus InternalStatusCode = LoginStatus.None;
@@ -1060,6 +1073,23 @@ namespace OpenMetaverse
         #endregion
 
         #region Private Methods
+        public static bool ValidateServerCertificate(
+            object sender,
+            X509Certificate certificate,
+            X509Chain chain,
+            SslPolicyErrors sslPolicyErrors)
+        {
+            //if (m_NoVerifyCertChain)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+
+            //if (m_NoVerifyCertHostname)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
+
+            return false;
+        }
 
         private void BeginLogin()
         {
@@ -1109,7 +1139,7 @@ namespace OpenMetaverse
 
             #endregion
 
-            ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            ServicePointManager.ServerCertificateValidationCallback = ValidateServerCertificate;
 
             if (Client.Settings.USE_LLSD_LOGIN)
             {
@@ -1176,64 +1206,69 @@ namespace OpenMetaverse
                 #region XML-RPC Based Login Code
 
                 // Create the Hashtable for XmlRpcCs
-                Hashtable loginXmlRpc = new Hashtable();
-                loginXmlRpc["first"] = loginParams.FirstName;
-                loginXmlRpc["last"] = loginParams.LastName;
-                loginXmlRpc["passwd"] = loginParams.Password;
-                loginXmlRpc["start"] = loginParams.Start;
-                loginXmlRpc["channel"] = loginParams.Channel;
-                loginXmlRpc["version"] = loginParams.Version;
-                loginXmlRpc["platform"] = loginParams.Platform;
-                loginXmlRpc["platform_version"] = loginParams.PlatformVersion;
-                loginXmlRpc["mac"] = loginParams.MAC;
-                if (loginParams.AgreeToTos)
-                    loginXmlRpc["agree_to_tos"] = "true";
-                if (loginParams.ReadCritical)
-                    loginXmlRpc["read_critical"] = "true";
-                loginXmlRpc["id0"] = loginParams.ID0;
-                loginXmlRpc["last_exec_event"] = (int)loginParams.LastExecEvent;
+                var loginXmlRpc = new Hashtable
+                {
+                    ["first"] = loginParams.FirstName,
+                    ["last"] = loginParams.LastName,
+                    ["passwd"] = loginParams.Password,
+                    ["start"] = loginParams.Start,
+                    ["channel"] = loginParams.Channel,
+                    ["version"] = loginParams.Version,
+                    ["platform"] = loginParams.Platform,
+                    ["platform_version"] = loginParams.PlatformVersion,
+                    ["mac"] = loginParams.MAC,
+                    ["id0"] = loginParams.ID0,
+                    ["last_exec_event"] = (int)loginParams.LastExecEvent
+                };
+                if (loginParams.AgreeToTos) { loginXmlRpc["agree_to_tos"] = "true"; }
+                if (loginParams.ReadCritical) { loginXmlRpc["read_critical"] = "true"; }
+                //if (loginParams.MfaEnabled)
+                //{
+                //    loginXmlRpc["token"] = loginParams.Token;
+                //    loginXmlRpc["mfa_hash"] = loginParams.MfaHash;
+                //}
 
                 // Create the options array
                 ArrayList options = new ArrayList();
                 for (int i = 0; i < loginParams.Options.Length; i++)
-                    options.Add(loginParams.Options[i]);
-
-                foreach (string[] callbackOpts in CallbackOptions.Values)
                 {
-                    if (callbackOpts != null)
+                    options.Add(loginParams.Options[i]);
+                }
+                foreach (var callbackOpts in CallbackOptions.Values)
+                {
+                    if (callbackOpts == null) continue;
+                    foreach (var t in callbackOpts)
                     {
-                        for (int i = 0; i < callbackOpts.Length; i++)
-                        {
-                            if (!options.Contains(callbackOpts[i]))
-                                options.Add(callbackOpts[i]);
-                        }
+                        if (!options.Contains(t))
+                            options.Add(t);
                     }
                 }
                 loginXmlRpc["options"] = options;
 
                 try
                 {
-                    ArrayList loginArray = new ArrayList(1);
-                    loginArray.Add(loginXmlRpc);
-                    XmlRpcRequest request = new XmlRpcRequest(CurrentContext.MethodName, loginArray);
+                    var loginArray = new ArrayList(1) { loginXmlRpc };
+                    var request = new XmlRpcRequest(CurrentContext.MethodName, loginArray);
                     var cc = CurrentContext;
+
                     // Start the request
-                    Thread requestThread = new Thread(
-                        delegate ()
+                    Task.Run(async () =>
+                    {
+                        try
                         {
-                            try
-                            {
-                                LoginReplyXmlRpcHandler(
-                                    request.Send(cc.URI, cc.Timeout),
-                                    loginParams);
-                            }
-                            catch (Exception e)
-                            {
-                                UpdateLoginStatus(LoginStatus.Failed, "Error opening the login server connection: " + e.Message);
-                            }
-                        });
-                    requestThread.Name = "XML-RPC Login";
-                    requestThread.Start();
+                            var cts = new CancellationTokenSource();
+                            cts.CancelAfter(cc.Timeout);
+                            var loginResponse = await HTTP_CLIENT.PostAsXmlRpcAsync(cc.URI, request, cts.Token);
+                            cts.Dispose();
+
+                            LoginReplyXmlRpcHandler(loginResponse, loginParams);
+                        }
+                        catch (Exception e)
+                        {
+                            UpdateLoginStatus(LoginStatus.Failed,
+                                $"Error opening the login server connection: {e.Message}");
+                        }
+                    });
                 }
                 catch (Exception e)
                 {

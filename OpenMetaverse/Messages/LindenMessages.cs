@@ -24,13 +24,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using ComponentAce.Compression.Libs.zlib;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using ComponentAce.Compression.Libs.zlib;
 
 namespace OpenMetaverse.Messages.Linden
 {

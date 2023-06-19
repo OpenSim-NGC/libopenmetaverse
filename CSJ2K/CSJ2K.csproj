@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <AssemblyTitle>CSJ2K</AssemblyTitle>
     <Product>CSJ2K</Product>
     <Description>JPEG2000 decoding library</Description>

@@ -1,18 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <NoWarn>1591,1574,0419,0618</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="log4net" Version="2.0.14" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="XMLRPC">
-      <Private>False</Private>
-      <HintPath>..\..\bin\XMLRPC.dll</HintPath>
-    </Reference>
+    <PackageReference Include="log4net" Version="2.0.15" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />

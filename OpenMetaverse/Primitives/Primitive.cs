@@ -24,8 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse.StructuredData;
 using System;
+using System.Collections.Generic;
+using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {
@@ -33,11 +34,17 @@ namespace OpenMetaverse
     {
         // Used for packing and unpacking parameters
         protected const float CUT_QUANTA = 0.00002f;
+        protected const float CUT_QUANTAINV = 1.0f / CUT_QUANTA;
         protected const float SCALE_QUANTA = 0.01f;
+        protected const float SCALE_QUANTAINV = 1-0f/ SCALE_QUANTA;
         protected const float SHEAR_QUANTA = 0.01f;
+        protected const float SHEAR_QUANTAINV = 1.0f / SHEAR_QUANTA;
         protected const float TAPER_QUANTA = 0.01f;
+        protected const float TAPER_QUANTAINV = 1.0f / TAPER_QUANTA;
         protected const float REV_QUANTA = 0.015f;
+        protected const float REV_QUANTAINV = 1.0f / REV_QUANTA;
         protected const float HOLLOW_QUANTA = 0.00002f;
+        protected const float HOLLOW_QUANTAINV = 1.0f / HOLLOW_QUANTA;
 
         #region Subclasses
 
@@ -129,7 +136,7 @@ namespace OpenMetaverse
             {
                 get
                 {
-                    Vector2 begin = new Vector2(1f, 1f);
+                    Vector2 begin = new(1f, 1f);
                     if (PathScaleX > 1f)
                         begin.X = 2f - PathScaleX;
                     if (PathScaleY > 1f)
@@ -143,7 +150,7 @@ namespace OpenMetaverse
             {
                 get
                 {
-                    Vector2 end = new Vector2(1f, 1f);
+                    Vector2 end = new(1f, 1f);
                     if (PathScaleX < 1f)
                         end.X = PathScaleX;
                     if (PathScaleY < 1f)
@@ -267,14 +274,15 @@ namespace OpenMetaverse
             /// <returns></returns>
             public OSD GetOSD()
             {
-                OSDMap map = new OSDMap();
-
-                map["simulate_lod"] = OSD.FromInteger(Softness);
-                map["gravity"] = OSD.FromReal(Gravity);
-                map["air_friction"] = OSD.FromReal(Drag);
-                map["wind_sensitivity"] = OSD.FromReal(Wind);
-                map["tension"] = OSD.FromReal(Tension);
-                map["user_force"] = OSD.FromVector3(Force);
+                OSDMap map = new()
+                {
+                    ["simulate_lod"] = OSD.FromInteger(Softness),
+                    ["gravity"] = OSD.FromReal(Gravity),
+                    ["air_friction"] = OSD.FromReal(Drag),
+                    ["wind_sensitivity"] = OSD.FromReal(Wind),
+                    ["tension"] = OSD.FromReal(Tension),
+                    ["user_force"] = OSD.FromVector3(Force)
+                };
 
                 return map;
             }
@@ -382,13 +390,14 @@ namespace OpenMetaverse
 
             public OSD GetOSD()
             {
-                OSDMap map = new OSDMap();
-
-                map["color"] = OSD.FromColor4(Color);
-                map["intensity"] = OSD.FromReal(Intensity);
-                map["radius"] = OSD.FromReal(Radius);
-                map["cutoff"] = OSD.FromReal(Cutoff);
-                map["falloff"] = OSD.FromReal(Falloff);
+                OSDMap map = new()
+                {
+                    ["color"] = OSD.FromColor4(Color),
+                    ["intensity"] = OSD.FromReal(Intensity),
+                    ["radius"] = OSD.FromReal(Radius),
+                    ["cutoff"] = OSD.FromReal(Cutoff),
+                    ["falloff"] = OSD.FromReal(Falloff)
+                };
 
                 return map;
             }
@@ -485,10 +494,11 @@ namespace OpenMetaverse
 
             public OSD GetOSD()
             {
-                OSDMap map = new OSDMap();
-
-                map["texture"] = OSD.FromUUID(LightTexture);
-                map["params"] = OSD.FromVector3(Params);
+                OSDMap map = new()
+                {
+                    ["texture"] = OSD.FromUUID(LightTexture),
+                    ["params"] = OSD.FromVector3(Params)
+                };
 
                 return map;
             }
@@ -519,7 +529,7 @@ namespace OpenMetaverse
             /// <returns></returns>
             public override string ToString()
             {
-                return String.Format("LightTexture: {0} Params; {1]", LightTexture, Params);
+                return String.Format("LightTexture: {0} Params; {1}", LightTexture, Params);
             }
         }
 
@@ -551,7 +561,7 @@ namespace OpenMetaverse
             public bool Mirror
             {
                 get { return ((type & (byte)SculptType.Mirror) != 0); }
-            }
+            }            
 
             /// <summary>
             /// Default constructor
@@ -591,10 +601,11 @@ namespace OpenMetaverse
 
             public OSD GetOSD()
             {
-                OSDMap map = new OSDMap();
-
-                map["texture"] = OSD.FromUUID(SculptTexture);
-                map["type"] = OSD.FromInteger(type);
+                OSDMap map = new()
+                {
+                    ["texture"] = OSD.FromUUID(SculptTexture),
+                    ["type"] = OSD.FromInteger(type)
+                };
 
                 return map;
             }
@@ -617,6 +628,236 @@ namespace OpenMetaverse
             public override int GetHashCode()
             {
                 return SculptTexture.GetHashCode() ^ type.GetHashCode();
+            }
+        }
+
+        /// <summary>
+        /// Information on the ReflectionProbe properties of a primitive
+        /// </summary>
+        public class ReflectionProbe
+        {
+            /// <summary>
+            /// Default constructor
+            /// </summary>
+            public ReflectionProbe()
+            {
+            }
+
+            public float Ambiance = 0;
+            public float ClipDistance = 0;
+            public byte Flags = 0;
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="data"></param>
+            /// <param name="pos"></param>
+            public ReflectionProbe(byte[] data, int pos)
+            {
+                if (data.Length - pos >= 9)
+                {
+                    Ambiance = Utils.Clamp(Utils.BytesToFloat(data, pos), 0, 1.0f);
+                    ClipDistance = Utils.Clamp(Utils.BytesToFloat(data, pos + 4), 0, 1024f);
+                    Flags = data[pos + 8];
+                }
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public byte[] GetBytes()
+            {
+                byte[] data = new byte[9];
+                Utils.FloatToBytes(Ambiance, data, 0);
+                Utils.FloatToBytes(ClipDistance, data, 4);
+                data[8] = Flags;
+                return data;
+            }
+
+            public OSD GetOSD()
+            {
+                OSDMap map = new()
+                {
+                    ["ambiance"] = OSD.FromReal(Ambiance),
+                    ["clip_distance"] = OSD.FromReal(ClipDistance),
+                    ["flags"] = OSD.FromInteger(Flags)
+                };
+                return map;
+            }
+
+            public static ReflectionProbe FromOSD(OSD osd)
+            {
+                ReflectionProbe probe = new ReflectionProbe();
+
+                if (osd.Type == OSDType.Map)
+                {
+                    OSDMap map = (OSDMap)osd;
+
+                    probe.Ambiance = (float)map["ambiance"].AsReal();
+                    probe.ClipDistance = (float)map["clip_distance"].AsReal();
+                    probe.Flags = (byte)map["flags"].AsInteger();
+                }
+
+                return probe;
+            }
+
+            public override int GetHashCode()
+            {
+                return Ambiance.GetHashCode() ^ ClipDistance.GetHashCode() ^ (int)Flags;
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public override string ToString()
+            {
+                return String.Format("ReflectionProbe:  amb {0} clip {1} flags {2}", Ambiance, ClipDistance, Flags);
+            }
+        }
+
+        /// <summary>
+        /// Information on the RenderMaterial properties of a primitive
+        /// </summary>
+        public class RenderMaterials
+        {
+            public struct RenderMaterialEntry : IComparable<RenderMaterialEntry>
+            {
+                public byte te_index;
+                public UUID id;
+                public int CompareTo(RenderMaterialEntry other)
+                {
+                    return te_index.CompareTo(other.te_index);
+                }
+            }
+
+            public struct RenderMaterialOverrideEntry : IComparable<RenderMaterialEntry>
+            {
+                public byte te_index;
+                public string data;
+                public int CompareTo(RenderMaterialEntry other)
+                {
+                    return te_index.CompareTo(other.te_index);
+                }
+            }
+
+            public RenderMaterialEntry[] entries = null;
+            public RenderMaterialOverrideEntry[] overrides = null;
+
+            /// <summary>
+            /// Default constructor
+            /// </summary>
+            public RenderMaterials()
+            {
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="data"></param>
+            /// <param name="pos"></param>
+            public RenderMaterials(byte[] data, int pos, int size)
+            {
+                if (size > 17)
+                {
+                    int count = data[pos];
+                    ++pos;
+                    if (size >= 1 + 17 * count)
+                    {
+                        entries = new RenderMaterialEntry[count];
+                        for (int i = 0; i < count; ++i)
+                        {
+                            entries[i].te_index = data[pos++];
+                            entries[i].id = new UUID(data, pos);
+                            pos += 16;
+                        }
+                    }
+                }
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public byte[] GetBytes()
+            {
+                if (entries == null || entries.Length == 0)
+                {
+                    return new byte[] {0};
+                }
+                byte[] data = new byte[1 + 17 * entries.Length];
+                data[0] = (byte)entries.Length;
+                int pos = 1;
+                for (int i = 0; i < entries.Length; ++i)
+                {
+                    data[pos++] = entries[i].te_index;
+                    entries[i].id.ToBytes(data, pos);
+                    pos += 16;
+                }
+                return data;
+            }
+
+            public OSD GetOSD()
+            {
+                OSDArray eMaterials = new OSDArray();
+                if(entries != null)
+                {
+                    for(int i = 0; i < entries.Length;++i)
+                    {                 
+                        OSDMap map = new OSDMap()
+                        {
+                            ["te_idx"] = OSD.FromInteger(entries[i].te_index),
+                            ["id"] = OSD.FromUUID(entries[i].id)
+                        };
+                        eMaterials[i] = map;
+                    }
+                }
+                return eMaterials;
+            }
+
+            public static RenderMaterials FromOSD(OSD osd)
+            {
+                RenderMaterials rm = new();
+                try
+                {
+                    if (osd.Type == OSDType.Array)
+                    {
+                        OSDArray mra = (OSDArray)osd;
+                        if(mra.Count > 0)
+                        {
+                            RenderMaterialEntry[] entries = new RenderMaterialEntry[mra.Count];
+                            for(int i = 0; i < mra.Count; ++i)
+                            {
+                                OSDMap map = (OSDMap)mra[i];
+                                entries[i].te_index = (byte)map["te_idx"].AsInteger();
+                                entries[i].id = map["id"].AsUUID();
+                            }
+                            rm.entries = entries;
+                        } 
+                    }
+                }
+                catch
+                {
+                    rm.entries = null;
+                }
+                return rm;
+            }
+
+            public override int GetHashCode()
+            {
+                int h = entries.Length.GetHashCode();
+                for(int i = 0 ; i < entries.Length; ++i)
+                    h ^= (int)entries[i].te_index ^ entries[i].id.GetHashCode();
+                return h;
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public override string ToString()
+            {
+                return String.Format("RenderMaterials: nentries  {0}}", entries==null? 0:entries.Length);
             }
         }
 
@@ -983,7 +1224,7 @@ namespace OpenMetaverse
             TextColor = prim.TextColor;
             MediaURL = prim.MediaURL;
             Joint = prim.Joint;
-            JointPivot = prim.JointPivot;
+            JointPivot = prim.JointPivot;            
             JointAxisOrAnchor = prim.JointAxisOrAnchor;
             if (prim.NameValues != null)
             {
@@ -1148,10 +1389,10 @@ namespace OpenMetaverse
             prim.Position = ((OSDArray)map["position"]).AsVector3();
             prim.Rotation = ((OSDArray)map["rotation"]).AsQuaternion();
             prim.Scale = ((OSDArray)map["scale"]).AsVector3();
-
+            
             if (map["flex"])
                 prim.Flexible = FlexibleData.FromOSD(map["flex"]);
-
+            
             if (map["light"])
                 prim.Light = LightData.FromOSD(map["light"]);
 
@@ -1162,7 +1403,7 @@ namespace OpenMetaverse
                 prim.Sculpt = SculptData.FromOSD(map["sculpt"]);
 
             prim.Textures = TextureEntry.FromOSD(map["textures"]);
-
+            
             if (map["texture_anim"])
                 prim.TextureAnim = TextureAnimation.FromOSD(map["texture_anim"]);
 
@@ -1412,22 +1653,22 @@ namespace OpenMetaverse
 
         public static ushort PackBeginCut(float beginCut)
         {
-            return (ushort)Math.Round(beginCut / CUT_QUANTA);
+            return (ushort)MathF.Round(beginCut * CUT_QUANTAINV);
         }
 
         public static ushort PackEndCut(float endCut)
         {
-            return (ushort)(50000 - (ushort)Math.Round(endCut / CUT_QUANTA));
+            return (ushort)(50000 - (ushort)MathF.Round(endCut * CUT_QUANTAINV));
         }
 
         public static byte PackPathScale(float pathScale)
         {
-            return (byte)(200 - (byte)Math.Round(pathScale / SCALE_QUANTA));
+            return (byte)(200 - (byte)MathF.Round(pathScale * SCALE_QUANTAINV));
         }
 
         public static sbyte PackPathShear(float pathShear)
         {
-            return (sbyte)Math.Round(pathShear / SHEAR_QUANTA);
+            return (sbyte)MathF.Round(pathShear * SHEAR_QUANTAINV);
         }
 
         /// <summary>
@@ -1438,22 +1679,22 @@ namespace OpenMetaverse
         /// <returns>Signed eight bit value containing the packed parameter</returns>
         public static sbyte PackPathTwist(float pathTwist)
         {
-            return (sbyte)Math.Round(pathTwist / SCALE_QUANTA);
+            return (sbyte)MathF.Round(pathTwist * SCALE_QUANTAINV);
         }
 
         public static sbyte PackPathTaper(float pathTaper)
         {
-            return (sbyte)Math.Round(pathTaper / TAPER_QUANTA);
+            return (sbyte)MathF.Round(pathTaper * TAPER_QUANTAINV);
         }
 
         public static byte PackPathRevolutions(float pathRevolutions)
         {
-            return (byte)Math.Round((pathRevolutions - 1f) / REV_QUANTA);
+            return (byte)MathF.Round((pathRevolutions - 1f) * REV_QUANTAINV);
         }
 
         public static ushort PackProfileHollow(float profileHollow)
         {
-            return (ushort)Math.Round(profileHollow / HOLLOW_QUANTA);
+            return (ushort)MathF.Round(profileHollow * HOLLOW_QUANTAINV);
         }
 
         #endregion Parameter Packing Methods

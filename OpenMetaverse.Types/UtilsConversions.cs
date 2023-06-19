@@ -32,6 +32,9 @@ using System.Text;
 using System.Reflection;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
+using System.Runtime.Intrinsics;
 
 namespace OpenMetaverse
 {
@@ -39,7 +42,19 @@ namespace OpenMetaverse
     {
 //        public static readonly bool NoAlignment = CheckNeedAlignment();
         public static readonly bool CanDirectCopyLE = CheckNeedAlignment();
-//        public static readonly bool CanDirectCopyBE = CheckDirectCopyBE();
+        //public static readonly bool CanDirectCopyBE = CheckDirectCopyBE();
+
+        [StructLayout(LayoutKind.Sequential, Size = 16, Pack = 1)]
+        public struct Bytes16 { }
+
+        [StructLayout(LayoutKind.Sequential, Size = 12, Pack = 1)]
+        public struct Bytes12 { }
+
+        [StructLayout(LayoutKind.Sequential, Size = 8, Pack = 1)]
+        public struct Bytes8 { }
+
+        [StructLayout(LayoutKind.Sequential, Size = 6, Pack = 1)]
+        public struct Bytes6 { }
 
         public unsafe static bool CheckNeedAlignment()
         {
@@ -157,7 +172,7 @@ namespace OpenMetaverse
             string.Empty, // 54
             string.Empty, // 55
             "settings",   // 56
-            string.Empty, // 57
+            "material"    // 57
         };
 
         private static readonly string[] _FolderTypeNames = new string[]
@@ -188,7 +203,7 @@ namespace OpenMetaverse
             "favorite",   // 23
             string.Empty, // 24
             "settings",   // 25
-            "ensemble",   // 26
+            "material",   // 26
             "ensemble",   // 27
             "ensemble",   // 28
             "ensemble",   // 29
@@ -247,7 +262,7 @@ namespace OpenMetaverse
             string.Empty, // 23
             string.Empty, // 24
             "settings",   // 25
-            string.Empty, // 26
+            "material", // 26
         };
 
         private static readonly string[] _SaleTypeNames = new string[]
@@ -322,17 +337,16 @@ namespace OpenMetaverse
 
         #endregion String Arrays
 
-        #region BytesTo
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool ApproxEqual(float a, float b, float tolerance, float reltolerance = float.Epsilon)
         {
-            float dif = Math.Abs(a - b);
+            float dif = MathF.Abs(a - b);
             if (dif <= tolerance)
                 return true;
 
-            a = Math.Abs(a);
-            b = Math.Abs(b);
+            a = MathF.Abs(a);
+            b = MathF.Abs(b);
             if (b > a)
                 a = b;
             return dif <= a * reltolerance;
@@ -341,24 +355,24 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool ApproxZero(float a, float tolerance)
         {
-            return Math.Abs(a) <= tolerance;
+            return MathF.Abs(a) <= tolerance;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool ApproxZero(float a)
         {
-            return Math.Abs(a) <= 1e-6;
+            return MathF.Abs(a) <= 1e-6;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool ApproxEqual(float a, float b)
         {
-            float dif = Math.Abs(a - b);
+            float dif = MathF.Abs(a - b);
             if (dif <= 1e-6f)
                 return true;
 
-            a = Math.Abs(a);
-            b = Math.Abs(b);
+            a = MathF.Abs(a);
+            b = MathF.Abs(b);
             if (b > a)
                 a = b;
             return dif <= a * float.Epsilon;
@@ -384,12 +398,13 @@ namespace OpenMetaverse
             //if (bytes.Length < 2 ) return 0;
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = bytes)
-                    return *(short*)p;
+                return Unsafe.As<byte, short>(ref MemoryMarshal.GetArrayDataReference(bytes));
             }
             else
                 return (short)(bytes[0] | (bytes[1] << 8));
         }
+
+        #region BytesTo
 
         /// <summary>
         /// Convert the first two bytes starting at the given position in
@@ -405,8 +420,7 @@ namespace OpenMetaverse
             //if (bytes.Length < pos + 2) return 0;
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = &bytes[pos])
-                    return *(short*)p;
+                return Unsafe.As<byte, short>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
             }
             else
                 return (short)(bytes[pos] | (bytes[pos + 1] << 8));
@@ -437,9 +451,8 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                if (bytes.Length < pos + 4) return 0;
-                fixed (byte* p = &bytes[pos])
-                    return *(int*)p;
+                //if (bytes.Length < pos + 4) return 0;
+                return Unsafe.As<byte, int>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
             }
 
             return bytes[pos] |
@@ -453,7 +466,7 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                    return *(int*)bytes;
+                return *(int*)bytes;
             }
 
             return *bytes |
@@ -467,8 +480,7 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = &bytes[pos])
-                    return *(int*)p;
+                return Unsafe.As<byte, int>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
             }
 
             return bytes[pos] |
@@ -489,8 +501,7 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = bytes)
-                    return *(int*)p;
+                return Unsafe.As<byte, int>(ref MemoryMarshal.GetArrayDataReference(bytes));
             }
             else
                 return bytes[0]      |
@@ -529,8 +540,7 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = bytes)
-                    return *(long*)p;
+                return Unsafe.As<byte, long>(ref MemoryMarshal.GetArrayDataReference(bytes));
             }
             else
                 return
@@ -591,8 +601,7 @@ namespace OpenMetaverse
             if (CanDirectCopyLE)
             {
                 if (bytes.Length < pos + 8) return 0;
-                fixed (byte* p = &bytes[pos])
-                    return *(long*)p;
+                return Unsafe.As<byte, long>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
             }
             else
                 return
@@ -611,8 +620,7 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = &bytes[pos])
-                    return *(long*)p;
+                return Unsafe.As<byte, long>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
             }
             else
                 return
@@ -640,8 +648,7 @@ namespace OpenMetaverse
             //if (bytes.Length < pos + 2) return 0;
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = &bytes[pos])
-                    return *(ushort*)p;
+                return Unsafe.As<byte, ushort>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
             }
             else
                 return (ushort)(bytes[pos] + (bytes[pos + 1] << 8));
@@ -669,8 +676,7 @@ namespace OpenMetaverse
             //if (bytes.Length < 2) return 0;
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = bytes)
-                    return *(ushort*)p;
+                return Unsafe.As<byte, ushort>(ref MemoryMarshal.GetArrayDataReference(bytes));
             }
             else
                 return (ushort)(bytes[0] + (bytes[1] << 8));
@@ -690,8 +696,7 @@ namespace OpenMetaverse
             if (CanDirectCopyLE)
             {
                 if (bytes.Length < pos + 4) return 0;
-                fixed (byte* p = &bytes[pos])
-                    return *(uint*)p;
+                return Unsafe.As<byte, uint>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
             }
             else
                 return (uint)(
@@ -706,8 +711,7 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = &bytes[pos])
-                    return *(uint*)p;
+                return Unsafe.As<byte, uint>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
             }
             else
                 return (uint)(
@@ -729,8 +733,7 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = bytes)
-                    return *(uint*)p;
+                return Unsafe.As<byte, uint>(ref MemoryMarshal.GetArrayDataReference(bytes));
             }
             else
                 return (uint)(
@@ -765,11 +768,10 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static ulong BytesToUInt64(byte[] bytes, int pos)
         {
+            if (bytes.Length < pos + 8) return 0;
             if (CanDirectCopyLE)
             {
-                if (bytes.Length < pos + 8) return 0;
-                fixed (byte* p = &bytes[pos])
-                    return *(ulong*)p;
+                return Unsafe.As<byte, ulong>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
             }
             else
                 return (ulong)(
@@ -788,8 +790,7 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = &bytes[pos])
-                    return *(ulong*)p;
+                return Unsafe.As<byte, ulong>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
             }
             else
                 return (ulong)(
@@ -815,8 +816,7 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = bytes)
-                    return *(ulong*)p;
+                return Unsafe.As<byte, ulong>(ref MemoryMarshal.GetArrayDataReference(bytes));
             }
             else
                 return (ulong)(
@@ -861,8 +861,7 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static float BytesToFloat(byte[] bytes)
         {
-                int tmp = BytesToInt(bytes);
-                return *(float*)&tmp;
+            return Unsafe.As<byte, float>(ref MemoryMarshal.GetArrayDataReference(bytes));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -875,22 +874,19 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static float BytesToFloat(byte[] bytes, int pos)
         {
-            int tmp = BytesToInt(bytes, pos);
-            return *(float*)&tmp;
+            return Unsafe.As<byte, float>(ref bytes[pos]);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static float BytesToFloatSafepos(byte[] bytes, int pos)
         {
-            int tmp = BytesToIntSafepos(bytes, pos);
-            return *(float*)&tmp;
+            return Unsafe.As<byte, float>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static double BytesToDouble(byte[] bytes)
         {
-            long tmp = BytesToInt64(bytes);
-            return *(double*)&tmp;
+            return Unsafe.As<byte, double>(ref MemoryMarshal.GetArrayDataReference(bytes));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -910,26 +906,24 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static double BytesToDouble(byte[] bytes, int pos)
         {
-            long tmp = BytesToInt64(bytes, pos);
-            return *(double*)&tmp;
+            return Unsafe.As<byte, double>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static double BytesToDoubleSafepos(byte[] bytes, int pos)
         {
-            long tmp = BytesToInt64Safepos(bytes, pos);
-            return *(double*)&tmp;
+            return Unsafe.As<byte, double>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bytes), pos));
         }
 
         #endregion BytesTo
-
         #region ToBytes
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] Int16ToBytes(short value)
         {
             byte[] bytes = new byte[2];
-            bytes[0] = (byte)(value);
-            bytes[1] = (byte)((value >> 8));
+            bytes[0] = (byte)value;
+            bytes[1] = (byte)(value >> 8);
             return bytes;
         }
 
@@ -943,52 +937,69 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Int16ToBytes(short value, byte[] dest, int pos)
         {
-            dest[pos] = (byte)(value);
-            dest[pos + 1] = (byte)((value >> 8));
+            Unsafe.As<byte, short>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void Int16ToBytes(short value, byte* dest)
         {
-            *dest = (byte)(value);
-            dest[1] = (byte)((value >> 8));
+            *(short*)dest = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void Int16ToBytes(short value, byte* dest, int pos)
+        {
+
+            *(short*)dest[pos] = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] UInt16ToBytes(ushort value)
         {
             byte[] bytes = new byte[2];
-            bytes[0] = (byte)(value);
-            bytes[1] = (byte)((value >> 8));
+            bytes[0] = (byte)value;
+            bytes[1] = (byte)(value >> 8);
             return bytes;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void UInt16ToBytes(ushort value, byte[] dest, int pos)
         {
-            dest[pos] = (byte)(value);
-            dest[pos + 1] = (byte)((value >> 8));
+            Unsafe.As<byte, ushort>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = value;
+
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void UInt16ToBytes(ushort value, byte* dest, int pos)
+        {
+            *(ushort*)dest[pos] = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void UInt16ToBytes(ushort value, byte* dest)
         {
-            *dest = (byte)(value);
-            dest[1] = (byte)((value >> 8));
+            *(ushort*)dest = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void UInt16ToBytesBig(ushort value, byte[] dest, int pos)
         {
-            dest[pos] = (byte)((value >> 8));
-            dest[pos + 1] = (byte)(value);
+            dest[pos] = (byte)(value >> 8);
+            dest[pos + 1] = (byte)value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void UInt16ToBytesBig(ushort value, byte* dest, int pos)
+        {
+            dest[pos] = (byte)(value >> 8);
+            dest[pos + 1] = (byte)value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void UInt16ToBytesBig(ushort value, byte* dest)
         {
-            *dest = (byte)((value >> 8));
-            dest[1] = (byte)(value);
+            *dest = (byte)(value >> 8);
+            dest[1] = (byte)value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1011,6 +1022,7 @@ namespace OpenMetaverse
             byte[] bytes = new byte[4];
             if (CanDirectCopyLE)
             {
+                //Unsafe.As<byte, int>(ref bytes[0]) = value;
                 fixed (byte* p = bytes)
                     *(int*)p = value;
             }
@@ -1027,11 +1039,25 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static void IntToBytes(int value, byte[] dest, int pos)
         {
+            if (dest.Length < pos + 4) return;
             if (CanDirectCopyLE)
             {
-                if (dest.Length < pos + 4) return;
-                fixed (byte* p = &dest[pos])
-                    *(int*)p = value;
+                Unsafe.As<byte, int>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = value;
+            }
+            else
+            {
+                dest[pos] = (byte)(value);
+                dest[pos + 1] = (byte)((value >> 8));
+                dest[pos + 2] = (byte)((value >> 16));
+                dest[pos + 3] = (byte)((value >> 24));
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void IntToBytes(int value, byte* dest, int pos)
+        {
+            if (CanDirectCopyLE)
+            {
+                *(int*)dest[pos] = value;
             }
             else
             {
@@ -1063,8 +1089,7 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = &dest[pos])
-                    *(int*)p = value;
+                Unsafe.As<byte, int>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = value;
             }
             else
             {
@@ -1104,6 +1129,15 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void IntToBytesBig(int value, byte* bytes, int pos)
+        {
+            bytes[pos] = (byte)(value >> 24);
+            bytes[pos + 1] = (byte)(value >> 16);
+            bytes[pos + 2] = (byte)(value >> 8);
+            bytes[pos + 3] = (byte)value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void IntToBytesBig(int value, byte* bytes)
         {
             *bytes = (byte)(value >> 24);
@@ -1119,7 +1153,19 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void UIntToBytes(uint value, byte* dest)
+        {
+            IntToBytes((int)value, dest);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static void UIntToBytes(uint value, byte[] dest, int pos)
+        {
+            IntToBytes((int)value, dest, pos);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void UIntToBytes(uint value, byte* dest, int pos)
         {
             IntToBytes((int)value, dest, pos);
         }
@@ -1147,8 +1193,7 @@ namespace OpenMetaverse
             byte[] bytes = new byte[8];
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = bytes)
-                    *(long*)p = value;
+                Unsafe.As<byte, long>(ref MemoryMarshal.GetArrayDataReference(bytes)) = value;
             }
             else
             {
@@ -1169,9 +1214,29 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
+                //Unsafe.As<byte, long>(ref dest[pos]) = value;
                 if (dest.Length < pos + 8) return;
-                fixed (byte* p = &dest[pos])
-                    *(long*)p = value;
+                    Unsafe.As<byte, long>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = value;
+            }
+            else
+            {
+                dest[pos] = (byte)value;
+                dest[pos + 1] = (byte)(value >> 8);
+                dest[pos + 2] = (byte)(value >> 16);
+                dest[pos + 3] = (byte)(value >> 24);
+                dest[pos + 4] = (byte)(value >> 32);
+                dest[pos + 5] = (byte)(value >> 40);
+                dest[pos + 6] = (byte)(value >> 48);
+                dest[pos + 7] = (byte)(value >> 56);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void Int64ToBytes(long value, byte* dest, int pos)
+        {
+            if (CanDirectCopyLE)
+            {
+                *(long*)dest[pos] = value;
             }
             else
             {
@@ -1211,8 +1276,7 @@ namespace OpenMetaverse
         {
             if (CanDirectCopyLE)
             {
-                fixed (byte* p = &dest[pos])
-                    *(long*)p = value;
+                Unsafe.As<byte, long>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = value;
             }
             else
             {
@@ -1240,7 +1304,6 @@ namespace OpenMetaverse
             ms.WriteByte((byte)(value >> 56));
         }
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] Int64ToBytesBig(long value)
         {
@@ -1258,6 +1321,19 @@ namespace OpenMetaverse
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Int64ToBytesBig(long value, byte[] dest, int pos)
+        {
+            dest[pos] = (byte)(value >> 56);
+            dest[pos + 1] = (byte)(value >> 48);
+            dest[pos + 2] = (byte)(value >> 40);
+            dest[pos + 3] = (byte)(value >> 32);
+            dest[pos + 4] = (byte)(value >> 24);
+            dest[pos + 5] = (byte)(value >> 16);
+            dest[pos + 6] = (byte)(value >> 8);
+            dest[pos + 7] = (byte)value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void Int64ToBytesBig(long value, byte* dest, int pos)
         {
             dest[pos] = (byte)(value >> 56);
             dest[pos + 1] = (byte)(value >> 48);
@@ -1301,7 +1377,19 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void UInt64ToBytes(ulong value, byte* dest)
+        {
+            Int64ToBytes((long)value, dest);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static void UInt64ToBytes(ulong value, byte[] dest, int pos)
+        {
+            Int64ToBytes((long)value, dest, pos);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void UInt64ToBytes(ulong value, byte* dest, int pos)
         {
             Int64ToBytes((long)value, dest, pos);
         }
@@ -1340,6 +1428,13 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static void FloatToBytes(float value, byte[] dest, int pos)
         {
+            Unsafe.As<byte, float>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void FloatToBytes(float value, byte* dest, int pos)
+        {
+            //Unsafe.As<byte, float>(ref dest[pos]) = value;
             IntToBytes(*(int*)&value, dest, pos);
         }
 
@@ -1352,7 +1447,7 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static void FloatToBytesSafepos(float value, byte[] dest, int pos)
         {
-            IntToBytesSafepos(*(int*)&value, dest, pos);
+            Unsafe.As<byte, float>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1376,6 +1471,12 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static void DoubleToBytes(double value, byte[] dest, int pos)
         {
+            Unsafe.As<byte, double>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void DoubleToBytes(double value, byte* dest, int pos)
+        {
             Int64ToBytes(*(long*)&value, dest, pos);
         }
 
@@ -1388,7 +1489,7 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static void DoubleToBytesSafepos(double value, byte[] dest, int pos)
         {
-            Int64ToBytesSafepos(*(long*)&value, dest, pos);
+            Unsafe.As<byte, double>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = value;
         }
 
         #endregion ToBytes
@@ -1423,7 +1524,7 @@ namespace OpenMetaverse
 
         public static string BytesToString(byte[] bytes, int index, int count)
         {
-            if (bytes.Length <= index + count)
+            if (bytes.Length < index + count)
                 return string.Empty;
             if (bytes[index + count - 1] == 0x00)
                 return Encoding.UTF8.GetString(bytes, index, count - 1);
@@ -1715,14 +1816,15 @@ namespace OpenMetaverse
             return ret;
         }
 
-        public static int osUTF8GetBytesCount(string str, out int maxsource)
+        public static int osUTF8GetBytesCount(string sstr, out int maxsource)
         {
             maxsource = 0;
             char c;
             char lastc = (char)0;
             int nbytes = 0;
             int i = 0;
-            while(i < str.Length)
+            var str = sstr.AsSpan();
+            while (i < str.Length)
             {
                 c = str[i++];
 
@@ -1766,16 +1868,17 @@ namespace OpenMetaverse
             return nbytes;
         }
 
-        public static int osUTF8GetBytesCount(string str, int maxnbytes, out int maxsourcelen)
+        public static int osUTF8GetBytesCount(string sstr, int maxnbytes, out int maxsourcelen)
         {
             maxsourcelen = 0;
             int max2 = maxnbytes - 2;
             int max3 = maxnbytes - 3;
             int max4 = maxnbytes - 4;
 
-            char c = ' ';
+            char c;
             int nbytes = 0;
             int i = 0;
+            var str = sstr.AsSpan();
             while(i < str.Length && nbytes < maxnbytes)
             {
                 c = str[i++];
@@ -1824,6 +1927,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="c">Character to test</param>
         /// <returns>true if hex digit, false if not</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsHexDigit(Char c)
         {
 
@@ -1846,7 +1950,7 @@ namespace OpenMetaverse
 
             return false;
         }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int HexNibbleWithChk(Char c)
         {
             const int numA = 65;
@@ -1868,7 +1972,7 @@ namespace OpenMetaverse
 
             return -1;
         }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int HexNibbleWithChk(byte c)
         {
             const int numA = 65;
@@ -1891,6 +1995,7 @@ namespace OpenMetaverse
             return -1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int HexNibble(Char c)
         {
 
@@ -1917,6 +2022,7 @@ namespace OpenMetaverse
             throw new FormatException("invalid hex char");
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int HexNibble(byte c)
         {
             const byte numA = (byte)'A';
@@ -1988,7 +2094,7 @@ namespace OpenMetaverse
             return (byte)(HexNibble(data[pos]) << 4 | HexNibble(data[pos + 1]));
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static byte HexToByte(char* hex, int pos)
         {
             return (byte)(HexNibble(hex[pos]) << 4 | HexNibble(hex[pos + 1]));
@@ -2063,6 +2169,30 @@ namespace OpenMetaverse
             return (byte)(255 * val);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte FloatZeroOneToByte(float val)
+        {
+            if (val <= 0)
+                return 0;
+            if (val >= 1.0f)
+                return 255;
+
+            return (byte)(255 * val);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ushort FloatZeroOneToushort(float val)
+        {
+            if (val <= 0)
+                return 0;
+
+            if (val >= 1.0f)
+                return 0xffff;
+
+            return (ushort)(val * 0xffff);
+        }
+
+
         /// <summary>
         /// Convert a byte to a float value given a minimum and maximum range
         /// </summary>
@@ -2130,6 +2260,7 @@ namespace OpenMetaverse
             return (ushort)(value * 0xffff);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort FloatToUInt16(float value, float range)
         {
             value += range;
@@ -2143,53 +2274,39 @@ namespace OpenMetaverse
             return (ushort)(value * 32767.5);
         }
 
-        public static void FloatToUInt16Bytes(float value, float range, byte[] dest, int pos)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ushort FloatToUnitUInt16(float value)
         {
-            value += range;
-            if (value <= 0)
-            {
-                dest[pos] = 0;
-                dest[pos + 1] = 0;
-                return;
-            }
+            if (value <= -1.0)
+                return 0;
 
-            value /= range;
-            if (value >= 2.0f)
-            {
-                dest[pos] = 0xff;
-                dest[pos + 1] = 0xff;
-                return;
-            }
+            if (value >= 1.0f)
+                return 0xffff;
 
-            ushort s = (ushort)(value * 32767.5);
-            dest[pos] = (byte)s;
-            dest[pos + 1] = (byte)(s >> 8);
+            return (ushort)(value * 32767.5 + 32767);
         }
 
-        public static byte[] FloatToUInt16Bytes(float value, float range)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void FloatToUInt16Bytes(float value, float range, byte[] dest, int pos)
         {
-            byte[] dest = new byte[2];
+            UInt16ToBytes(FloatToUInt16(value, range), dest, pos);
+        }
 
-            value += range;
-            if (value <= 0)
-            {
-                dest[0] = 0;
-                dest[1] = 0;
-                return dest;
-            }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void FloatToUInt16Bytes(float value, float range, byte* dest, int pos)
+        {
+            UInt16ToBytes(FloatToUInt16(value, range), dest, pos);
+        }
 
-            value /= range;
-            if (value >= 2.0f)
-            {
-                dest[0] = 0xff;
-                dest[1] = 0xff;
-                return dest;
-            }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static void FloatToUInt16Bytes(float value, float range, byte* dest)
+        {
+            UInt16ToBytes(FloatToUInt16(value, range), dest);
+        }
 
-            ushort s = (ushort)(value * 32767.5);
-            dest[0] = (byte)s;
-            dest[1] = (byte)(s >> 8);
-            return dest;
+        public unsafe static byte[] FloatToUInt16Bytes(float value, float range)
+        {
+            return UInt16ToBytes(FloatToUInt16(value, range));
         }
 
         #endregion Packed Values
@@ -2393,7 +2510,7 @@ namespace OpenMetaverse
                 return null;
 
             byte[] newBytes = new byte[bytes.Length];
-            Buffer.BlockCopy(bytes, 0, newBytes, 0, bytes.Length);
+            Array.Copy(bytes, newBytes, bytes.Length);
             return newBytes;
         }
 
@@ -2492,9 +2609,7 @@ namespace OpenMetaverse
         /// <param name="rhs">Second value</param>
         public static void Swap<T>(ref T lhs, ref T rhs)
         {
-            T temp = lhs;
-            lhs = rhs;
-            rhs = temp;
+            (rhs, lhs) = (lhs, rhs);
         }
 
         /// <summary>
@@ -2882,8 +2997,51 @@ namespace OpenMetaverse
             return (byte)(b > 9 ? b + 0x57 : b + ASCIIzero);
         }
 
-        public static unsafe void UUIDToByteDashString(ref UUID u, byte* dst)
+        public static unsafe void UUIDToByteDashString(UUID u, byte* dst)
         {
+            if (Sse41.IsSupported)
+            {
+                Vector128<byte> lower = Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in u));
+                if (BitConverter.IsLittleEndian)
+                    lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                Vector128<byte> upper = (Sse2.ShiftRightLogical(lower.AsInt32(), 4)).AsByte();
+
+                Vector128<byte> mask0f = Vector128.Create((byte)0x0f);
+                lower = Sse2.And(mask0f, lower);
+                upper = Sse2.And(mask0f, upper);
+
+                Vector128<sbyte> pastNine = Vector128.Create((sbyte)10);
+                Vector128<byte> lowerMask = Sse2.CompareLessThan(lower.AsSByte(), pastNine).AsByte();
+                Vector128<byte> upperMask = Sse2.CompareLessThan(upper.AsSByte(), pastNine).AsByte();
+
+                Vector128<byte> first = Vector128.Create((byte)'0');
+                Vector128<byte> second = Vector128.Create((byte)('a' - 10));
+                Vector128<byte> addlower = Sse41.BlendVariable(second, first, lowerMask);
+                Vector128<byte> addupper = Sse41.BlendVariable(second, first, upperMask);
+
+                lower = Sse2.Add(lower, addlower);
+                upper = Sse2.Add(upper, addupper);
+
+                Vector128<byte> mask1 = Ssse3.Shuffle(lower, Vector128.Create(0xff, 0, 0xff, 1, 0xff, 2, 0xff, 3, 0xff, 0xff, 4, 0xff, 5, 0xff, 0xff, 6));
+                Vector128<byte> mask2 = Ssse3.Shuffle(upper, Vector128.Create(0, 0xff, 1, 0xff, 2, 0xff, 3, 0xff, 0xff, 4, 0xff, 5, 0xff, 0xff, 6, 0xff));
+                Vector128<byte> mask3 = Ssse3.Shuffle(lower, Vector128.Create(0xff, 7, 0xff, 0xff, 8, 0xff, 9, 0xff, 0xff, 10, 0xff, 11, 0xff, 12, 0xff, 13));
+                Vector128<byte> mask4 = Ssse3.Shuffle(upper, Vector128.Create(7, 0xff, 0xff, 8, 0xff, 9, 0xff, 0xff, 10, 0xff, 11, 0xff, 12, 0xff, 13, 0xff));
+                Vector128<byte> hypens = Vector128.Create(0, 0, (byte)'-', 0, 0, 0, 0, (byte)'-', 0, 0, 0, 0, 0, 0, 0, 0);
+                Vector128<byte> hypens2 = Vector128.Create(0, 0, 0, 0, 0, 0, 0, 0, (byte)'-', 0, 0, 0, 0, (byte)'-', 0, 0);
+                Vector128<byte> upperSorted = Sse2.Or(Sse2.Or(mask1, mask2), hypens2);
+                Vector128<byte> lowerSorted = Sse2.Or(Sse2.Or(mask3, mask4), hypens);
+
+                Unsafe.As<byte, Vector128<byte>>(ref Unsafe.AsRef<byte>(dst)) = upperSorted;
+                Unsafe.As<byte, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(dst), 16)) = lowerSorted;
+
+                int v1 = Sse2.Extract(upper.AsUInt16(), 7);
+                int v2 = Sse2.Extract(lower.AsUInt16(), 7);
+                Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(dst), 32)) = (byte)(v1 & 0xff);
+                Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(dst), 33)) = (byte)(v2 & 0xff);
+                Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(dst), 34)) = (byte)((v1 >> 8) & 0xff);
+                Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(dst), 35)) = (byte)((v2 >> 8) & 0xff);
+                return;
+            }
             byte b;
             if (BitConverter.IsLittleEndian)
             {
@@ -2992,17 +3150,7 @@ namespace OpenMetaverse
         {
             osUTF8 ret = new osUTF8(36);
             fixed (byte* d = ret.m_data)
-                UUIDToByteDashString(ref v, d);
-            ret.m_len = 36;
-            return ret;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe osUTF8 UUIDToosUTF8(ref UUID v)
-        {
-            osUTF8 ret = new osUTF8(36);
-            fixed (byte* d = ret.m_data)
-                UUIDToByteDashString(ref v, d);
+                UUIDToByteDashString(v, d);
             ret.m_len = 36;
             return ret;
         }
@@ -3028,116 +3176,169 @@ namespace OpenMetaverse
             return (char)(b > 9 ? b + 0x57 : b + ASCIIzero);
         }
 
-        public static string UUIDToDashString(ref UUID u)
+        public static string UUIDToDashString(UUID u)
         {
-            char[] dst = new char[36];
-            byte b;
-            if (BitConverter.IsLittleEndian)
+            return string.Create(36, u, (dst, u) =>
             {
-                //a
-                b = u.bytea3;
-                dst[0] = charHighNibbleToHexChar(b);
-                dst[1] = charLowNibbleToHexChar(b);
-                b = u.bytea2;
-                dst[2] = charHighNibbleToHexChar(b);
-                dst[3] = charLowNibbleToHexChar(b);
-                b = u.bytea1;
-                dst[4] = charHighNibbleToHexChar(b);
-                dst[5] = charLowNibbleToHexChar(b);
-                b = u.bytea0;
-                dst[6] = charHighNibbleToHexChar(b);
-                dst[7] = charLowNibbleToHexChar(b);
+                if (Sse41.IsSupported)
+                {
+                    Vector128<byte> lower = Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in u));
+                    if (BitConverter.IsLittleEndian)
+                        lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                    Vector128<byte> upper = (Sse2.ShiftRightLogical(lower.AsInt32(), 4)).AsByte();
 
-                dst[8] = '-';
+                    Vector128<byte> mask0f = Vector128.Create((byte)0x0f);
+                    lower = Sse2.And(mask0f, lower);
+                    upper = Sse2.And(mask0f, upper);
 
-                //b
-                b = u.byteb1;
-                dst[9] = charHighNibbleToHexChar(b);
-                dst[10] = charLowNibbleToHexChar(b);
-                b = u.byteb0;
-                dst[11] = charHighNibbleToHexChar(b);
-                dst[12] = charLowNibbleToHexChar(b);
+                    Vector128<sbyte> pastNine = Vector128.Create((sbyte)10);
+                    Vector128<byte> lowerMask = Sse2.CompareLessThan(lower.AsSByte(), pastNine).AsByte();
+                    Vector128<byte> upperMask = Sse2.CompareLessThan(upper.AsSByte(), pastNine).AsByte();
 
-                dst[13] = '-';
+                    Vector128<byte> first = Vector128.Create((byte)'0');
+                    Vector128<byte> second = Vector128.Create((byte)('a' - 10));
+                    Vector128<byte> addlower = Sse41.BlendVariable(second, first, lowerMask);
+                    Vector128<byte> addupper = Sse41.BlendVariable(second, first, upperMask);
 
-                //c
-                b = u.bytec1;
-                dst[14] = charHighNibbleToHexChar(b);
-                dst[15] = charLowNibbleToHexChar(b);
-                b = u.bytec0;
-                dst[16] = charHighNibbleToHexChar(b);
-                dst[17] = charLowNibbleToHexChar(b);
-            }
-            else
-            {
-                //a
-                b = u.bytea0;
-                dst[0] = charHighNibbleToHexChar(b);
-                dst[1] = charLowNibbleToHexChar(b);
-                b = u.bytea1;
-                dst[2] = charHighNibbleToHexChar(b);
-                dst[3] = charLowNibbleToHexChar(b);
-                b = u.bytea2;
-                dst[4] = charHighNibbleToHexChar(b);
-                dst[5] = charLowNibbleToHexChar(b);
-                b = u.bytea3;
-                dst[6] = charHighNibbleToHexChar(b);
-                dst[7] = charLowNibbleToHexChar(b);
+                    lower = Sse2.Add(lower, addlower);
+                    upper = Sse2.Add(upper, addupper);
 
-                dst[8] = '-';
+                    Vector128<byte> mask1 = Ssse3.Shuffle(lower, Vector128.Create(0xff, 0, 0xff, 1, 0xff, 2, 0xff, 3, 0xff, 0xff, 4, 0xff, 5, 0xff, 0xff, 6));
+                    Vector128<byte> mask2 = Ssse3.Shuffle(upper, Vector128.Create(0, 0xff, 1, 0xff, 2, 0xff, 3, 0xff, 0xff, 4, 0xff, 5, 0xff, 0xff, 6, 0xff));
+                    Vector128<byte> mask3 = Ssse3.Shuffle(lower, Vector128.Create(0xff, 7, 0xff, 0xff, 8, 0xff, 9, 0xff, 0xff, 10, 0xff, 11, 0xff, 12, 0xff, 13));
+                    Vector128<byte> mask4 = Ssse3.Shuffle(upper, Vector128.Create(7, 0xff, 0xff, 8, 0xff, 9, 0xff, 0xff, 10, 0xff, 11, 0xff, 12, 0xff, 13, 0xff));
+                    Vector128<byte> hypens = Vector128.Create(0, 0, (byte)'-', 0, 0, 0, 0, (byte)'-', 0, 0, 0, 0, 0, 0, 0, 0);
+                    Vector128<byte> hypens2 = Vector128.Create(0, 0, 0, 0, 0, 0, 0, 0, (byte)'-', 0, 0, 0, 0, (byte)'-', 0, 0);
+                    Vector128<byte> upperSorted = Sse2.Or(Sse2.Or(mask1, mask2), hypens2);
+                    Vector128<byte> lowerSorted = Sse2.Or(Sse2.Or(mask3, mask4), hypens);
 
-                //b
-                b = u.byteb0;
-                dst[9] = charHighNibbleToHexChar(b);
-                dst[10] = charLowNibbleToHexChar(b);
-                b = u.byteb1;
-                dst[11] = charHighNibbleToHexChar(b);
-                dst[12] = charLowNibbleToHexChar(b);
+                    Vector128<byte> charsMask0 = Vector128.Create(0, 0xff, 1, 0xff, 2, 0xff, 3, 0xff, 4, 0xff, 5, 0xff, 6, 0xff, 7, 0xff);
+                    Vector128<byte> chars0 = Ssse3.Shuffle(upperSorted, charsMask0);
+                    Unsafe.As<char, Vector128<byte>>(ref MemoryMarshal.GetReference(dst)) = chars0;
 
-                dst[13] = '-';
+                    Vector128<byte> charsMask1 = Vector128.Create(8, 0xff, 9, 0xff, 10, 0xff, 11, 0xff, 12, 0xff, 13, 0xff, 14, 0xff, 15, 0xff);
+                    Vector128<byte> chars1 = Ssse3.Shuffle(upperSorted, charsMask1);
+                    Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 16)) = chars1;
 
-                //c
-                b = u.bytec0;
-                dst[14] = charHighNibbleToHexChar(b);
-                dst[15] = charLowNibbleToHexChar(b);
-                b = u.bytec1;
-                dst[16] = charHighNibbleToHexChar(b);
-                dst[17] = charLowNibbleToHexChar(b);
-            }
+                    chars0 = Ssse3.Shuffle(lowerSorted, charsMask0);
+                    Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 32)) = chars0;
 
+                    chars1 = Ssse3.Shuffle(lowerSorted, charsMask1);
+                    Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 48)) = chars1;
 
-            dst[18] = '-';
+                    int v1 = Sse2.Extract(upper.AsUInt16(), 7);
+                    int v2 = Sse2.Extract(lower.AsUInt16(), 7);
+                    Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 64)) = (byte)(v1 & 0xff);
+                    Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 66)) = (byte)(v2 & 0xff);
+                    Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 68)) = (byte)((v1 >> 8) & 0xff);
+                    Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref MemoryMarshal.GetReference(dst), 70)) = (byte)((v2 >> 8) & 0xff);
+                    return;
+                }
+                byte b;
+                if (BitConverter.IsLittleEndian)
+                {
+                    //a
+                    b = u.bytea3;
+                    dst[0] = charHighNibbleToHexChar(b);
+                    dst[1] = charLowNibbleToHexChar(b);
+                    b = u.bytea2;
+                    dst[2] = charHighNibbleToHexChar(b);
+                    dst[3] = charLowNibbleToHexChar(b);
+                    b = u.bytea1;
+                    dst[4] = charHighNibbleToHexChar(b);
+                    dst[5] = charLowNibbleToHexChar(b);
+                    b = u.bytea0;
+                    dst[6] = charHighNibbleToHexChar(b);
+                    dst[7] = charLowNibbleToHexChar(b);
 
-            b = u.d; //d
-            dst[19] = charHighNibbleToHexChar(b);
-            dst[20] = charLowNibbleToHexChar(b);
-            b = u.e; //e
-            dst[21] = charHighNibbleToHexChar(b);
-            dst[22] = charLowNibbleToHexChar(b);
+                    dst[8] = '-';
 
-            dst[23] = '-';
+                    //b
+                    b = u.byteb1;
+                    dst[9] = charHighNibbleToHexChar(b);
+                    dst[10] = charLowNibbleToHexChar(b);
+                    b = u.byteb0;
+                    dst[11] = charHighNibbleToHexChar(b);
+                    dst[12] = charLowNibbleToHexChar(b);
 
-            b = u.f; //f
-            dst[24] = charHighNibbleToHexChar(b);
-            dst[25] = charLowNibbleToHexChar(b);
-            b = u.g; //g
-            dst[26] = charHighNibbleToHexChar(b);
-            dst[27] = charLowNibbleToHexChar(b);
-            b = u.h; //h
-            dst[28] = charHighNibbleToHexChar(b);
-            dst[29] = charLowNibbleToHexChar(b);
-            b = u.i; //i
-            dst[30] = charHighNibbleToHexChar(b);
-            dst[31] = charLowNibbleToHexChar(b);
-            b = u.j; //j
-            dst[32] = charHighNibbleToHexChar(b);
-            dst[33] = charLowNibbleToHexChar(b);
-            b = u.k; //k
-            dst[34] = charHighNibbleToHexChar(b);
-            dst[35] = charLowNibbleToHexChar(b);
-            return new string(dst);
+                    dst[13] = '-';
+
+                    //c
+                    b = u.bytec1;
+                    dst[14] = charHighNibbleToHexChar(b);
+                    dst[15] = charLowNibbleToHexChar(b);
+                    b = u.bytec0;
+                    dst[16] = charHighNibbleToHexChar(b);
+                    dst[17] = charLowNibbleToHexChar(b);
+                }
+                else
+                {
+                    //a
+                    b = u.bytea0;
+                    dst[0] = charHighNibbleToHexChar(b);
+                    dst[1] = charLowNibbleToHexChar(b);
+                    b = u.bytea1;
+                    dst[2] = charHighNibbleToHexChar(b);
+                    dst[3] = charLowNibbleToHexChar(b);
+                    b = u.bytea2;
+                    dst[4] = charHighNibbleToHexChar(b);
+                    dst[5] = charLowNibbleToHexChar(b);
+                    b = u.bytea3;
+                    dst[6] = charHighNibbleToHexChar(b);
+                    dst[7] = charLowNibbleToHexChar(b);
+
+                    dst[8] = '-';
+
+                    //b
+                    b = u.byteb0;
+                    dst[9] = charHighNibbleToHexChar(b);
+                    dst[10] = charLowNibbleToHexChar(b);
+                    b = u.byteb1;
+                    dst[11] = charHighNibbleToHexChar(b);
+                    dst[12] = charLowNibbleToHexChar(b);
+
+                    dst[13] = '-';
+
+                    //c
+                    b = u.bytec0;
+                    dst[14] = charHighNibbleToHexChar(b);
+                    dst[15] = charLowNibbleToHexChar(b);
+                    b = u.bytec1;
+                    dst[16] = charHighNibbleToHexChar(b);
+                    dst[17] = charLowNibbleToHexChar(b);
+                }
+
+                dst[18] = '-';
+
+                b = u.d; //d
+                dst[19] = charHighNibbleToHexChar(b);
+                dst[20] = charLowNibbleToHexChar(b);
+                b = u.e; //e
+                dst[21] = charHighNibbleToHexChar(b);
+                dst[22] = charLowNibbleToHexChar(b);
+
+                dst[23] = '-';
+
+                b = u.f; //f
+                dst[24] = charHighNibbleToHexChar(b);
+                dst[25] = charLowNibbleToHexChar(b);
+                b = u.g; //g
+                dst[26] = charHighNibbleToHexChar(b);
+                dst[27] = charLowNibbleToHexChar(b);
+                b = u.h; //h
+                dst[28] = charHighNibbleToHexChar(b);
+                dst[29] = charLowNibbleToHexChar(b);
+                b = u.i; //i
+                dst[30] = charHighNibbleToHexChar(b);
+                dst[31] = charLowNibbleToHexChar(b);
+                b = u.j; //j
+                dst[32] = charHighNibbleToHexChar(b);
+                dst[33] = charLowNibbleToHexChar(b);
+                b = u.k; //k
+                dst[34] = charHighNibbleToHexChar(b);
+                dst[35] = charLowNibbleToHexChar(b);
+            });
         }
-
         #endregion Miscellaneous
     }
 }

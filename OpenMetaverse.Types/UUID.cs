@@ -29,6 +29,8 @@ using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Xml.Serialization;
+using System.Runtime.Intrinsics.X86;
+using System.Runtime.Intrinsics;
 
 namespace OpenMetaverse
 {
@@ -41,8 +43,6 @@ namespace OpenMetaverse
     [Serializable()]
     public struct UUID : IComparable,IComparable<UUID>, IEquatable<UUID>, IEqualityComparer<UUID>
     {
-        // still a big piece of *** because how stupid .net structs are.
-        // .net5 unsafe may remove the need for this union
         [XmlIgnore] [NonSerialized()] [FieldOffset(0)] public int a;
         [XmlIgnore] [NonSerialized()] [FieldOffset(4)] public short b;
         [XmlIgnore] [NonSerialized()] [FieldOffset(6)] public short c;
@@ -71,45 +71,39 @@ namespace OpenMetaverse
         [XmlIgnore] [NonSerialized()] [FieldOffset(8)] public int intc;
         [XmlIgnore] [NonSerialized()] [FieldOffset(12)] public int intd;
 
-        [XmlIgnore] [NonSerialized()] [FieldOffset(0)] public ulong ulonga;
+        [XmlIgnore] [NonSerialized()][FieldOffset(0)] public ulong ulonga;
         [XmlIgnore] [NonSerialized()] [FieldOffset(8)] public ulong ulongb;
 
         [FieldOffset(0)] public Guid Guid;
 
         #region Constructors
-
+        /*
+        public Guid Guid
+        {
+            get
+            {
+                return Unsafe.As<UUID, Guid>(ref this);
+            }
+            set
+            {
+                Unsafe.As<UUID, Guid>(ref this) = value;
+            }
+        }
+        */
         /// <summary>
         /// Constructor that takes a string UUID representation
         /// </summary>
         /// <param name="sval">A string representation of a UUID, case 
         /// insensitive and can either be hyphenated or non-hyphenated</param>
         /// <example>UUID("11f8aa9c-b071-4242-836b-13b7abe0d489")</example>
-        /*
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe UUID(string val)
+        public UUID(string sval) : this(sval.AsSpan())
         {
-            if (!string.IsNullOrEmpty(val))
-            {
-                try
-                {
-                    if (Guid.TryParse(val, out Guid gg))
-                    {
-                        this = *(UUID*)&gg;
-                        return;
-                    }
-                }
-                catch { }
-            }
-            this = new UUID();
         }
-        */
 
-        public unsafe UUID(string sval)
+        public unsafe UUID(ReadOnlySpan<char> sval)
         {
             this = new UUID();
-            if (sval == null)
-                throw new FormatException("Invalid UUID");
-
             int len = sval.Length;
             if (len < 32)
                 throw new FormatException("Invalid UUID");
@@ -132,63 +126,130 @@ namespace OpenMetaverse
                         if (len < 36)
                             throw new Exception();
 
-                        while (--len > 35)
-                        {
-                            if (val[len] != ' ')
-                                throw new Exception();
-                        }
-
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             throw new Exception();
 
+                        if (Sse42.IsSupported)
+                        {
+                            Vector128<byte> input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AsRef<char>(val));
+                            Vector128<byte> upper = Ssse3.Shuffle(input, Vector128.Create(0, 4, 8, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lower = Ssse3.Shuffle(input, Vector128.Create(2, 6, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 18));
+                            Vector128<byte> uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 34)), 7);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 38));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 54)), 11);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 56));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 8, 12));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 10, 14));
+
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            Vector128<byte> charTolower = Vector128.Create((byte)0x20);
+                            Vector128<byte> upperLetters = Sse2.Or(upper, charTolower);
+                            Vector128<byte> lowerLetters = Sse2.Or(lower, charTolower);
+
+                            Vector128<byte> letterTohex = Vector128.Create((byte)('a' - '0' - 10));
+                            upperLetters = Sse2.Subtract(upperLetters, letterTohex);
+                            lowerLetters = Sse2.Subtract(lowerLetters, letterTohex);
+
+                            Vector128<byte> char9 = Vector128.Create((byte)'9');
+                            Vector128<byte> above9upper = (Sse2.CompareGreaterThan(upper.AsSByte(), char9.AsSByte())).AsByte();
+                            Vector128<byte> above9lower = (Sse2.CompareGreaterThan(lower.AsSByte(), char9.AsSByte())).AsByte();
+
+                            Vector128<byte> ten = Vector128.Create((byte)('0' + 10));
+                            Vector128<byte> tmpcmpA = Sse2.Subtract(upperLetters, ten);
+                            Vector128<byte> tmpcmpB = Sse2.Subtract(lowerLetters, ten);
+
+                            Vector128<byte> fifteen = Vector128.Create((byte)('0' + 15));
+                            Vector128<byte> tmpcmpC = Sse2.Subtract(fifteen, upperLetters);
+                            Vector128<byte> tmpcmpD = Sse2.Subtract(fifteen, lowerLetters);
+
+                            tmpcmpA = Sse2.Or(tmpcmpC, tmpcmpA);
+                            tmpcmpB = Sse2.Or(tmpcmpD, tmpcmpB);
+
+                            tmpcmpA = Sse2.And(tmpcmpA, above9upper);
+                            tmpcmpB = Sse2.And(tmpcmpB, above9lower);
+
+                            tmpcmpA = Sse2.Or(tmpcmpB, tmpcmpA);
+                            int cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                throw new Exception();
+
+                            upper = Sse41.BlendVariable(upper, upperLetters, above9upper);
+                            lower = Sse41.BlendVariable(lower, lowerLetters, above9lower);
+
+                            Vector128<byte> charzero = Vector128.Create((byte)'0');
+                            upper = Sse2.Subtract(upper, charzero);
+                            lower = Sse2.Subtract(lower, charzero);
+
+                            tmpcmpA = Sse2.Or(lower, upper);
+                            cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                throw new Exception();
+
+                            upper = Sse2.ShiftLeftLogical(upper.AsUInt16(), 4).AsByte();
+                            lower = Sse2.Or(lower, upper);
+                            if (BitConverter.IsLittleEndian)
+                                lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                            Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in this)) = lower;
+                            return;
+                        }
+
                         if (BitConverter.IsLittleEndian)
                         {
-                            bytea3 = (byte)Utils.HexToByte(val, 0);
-                            bytea2 = (byte)Utils.HexToByte(val, 2);
-                            bytea1 = (byte)Utils.HexToByte(val, 4);
-                            bytea0 = (byte)Utils.HexToByte(val, 6);
+                            bytea3 = Utils.HexToByte(val, 0);
+                            bytea2 = Utils.HexToByte(val, 2);
+                            bytea1 = Utils.HexToByte(val, 4);
+                            bytea0 = Utils.HexToByte(val, 6);
 
-                            byteb1 = (byte)Utils.HexToByte(val, 9);
-                            byteb0 = (byte)Utils.HexToByte(val, 11);
+                            byteb1 = Utils.HexToByte(val, 9);
+                            byteb0 = Utils.HexToByte(val, 11);
 
-                            bytec1 = (byte)Utils.HexToByte(val, 14);
-                            bytec0 = (byte)Utils.HexToByte(val, 16);
+                            bytec1 = Utils.HexToByte(val, 14);
+                            bytec0 = Utils.HexToByte(val, 16);
                         }
                         else
                         {
-                            bytea0 = (byte)Utils.HexToByte(val, 0);
-                            bytea1 = (byte)Utils.HexToByte(val, 2);
-                            bytea2 = (byte)Utils.HexToByte(val, 4);
-                            bytea3 = (byte)Utils.HexToByte(val, 6);
+                            bytea0 = Utils.HexToByte(val, 0);
+                            bytea1 = Utils.HexToByte(val, 2);
+                            bytea2 = Utils.HexToByte(val, 4);
+                            bytea3 = Utils.HexToByte(val, 6);
 
-                            byteb0 = (byte)Utils.HexToByte(val, 9);
-                            byteb1 = (byte)Utils.HexToByte(val, 11);
+                            byteb0 = Utils.HexToByte(val, 9);
+                            byteb1 = Utils.HexToByte(val, 11);
 
-                            bytec0 = (byte)Utils.HexToByte(val, 14);
-                            bytec1 = (byte)Utils.HexToByte(val, 16);
+                            bytec0 = Utils.HexToByte(val, 14);
+                            bytec1 = Utils.HexToByte(val, 16);
                         }
 
+                        d = Utils.HexToByte(val, 19);
+                        e = Utils.HexToByte(val, 21);
 
-                        d = (byte)Utils.HexToByte(val, 19);
-                        e = (byte)Utils.HexToByte(val, 21);
 
-
-                        f = (byte)Utils.HexToByte(val, 24);
-                        g = (byte)Utils.HexToByte(val, 26);
-                        h = (byte)Utils.HexToByte(val, 28);
-                        i = (byte)Utils.HexToByte(val, 30);
-                        j = (byte)Utils.HexToByte(val, 32);
-                        k = (byte)Utils.HexToByte(val, 34);
+                        f = Utils.HexToByte(val, 24);
+                        g = Utils.HexToByte(val, 26);
+                        h = Utils.HexToByte(val, 28);
+                        i = Utils.HexToByte(val, 30);
+                        j = Utils.HexToByte(val, 32);
+                        k = Utils.HexToByte(val, 34);
                         return;
                     }
                     else
                     {
-                        while (--len > 31)
-                        {
-                            if (val[len] != ' ')
-                                throw new Exception();
-                        }
-
                         if (BitConverter.IsLittleEndian)
                         {
                             bytea3 = Utils.HexToByte(val, 0);
@@ -260,6 +321,15 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe UUID(byte[] source, int pos) : this()
         {
+            if(Ssse3.IsSupported)
+            {
+                Vector128<byte> rawval = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(source), pos));
+                if (BitConverter.IsLittleEndian)
+                    rawval = Ssse3.Shuffle(rawval, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                Unsafe.As<UUID, Vector128<byte>>(ref this) = rawval;
+                return;
+            }
+
             fixed (byte* ptr = &source[pos])
             {
                 if (BitConverter.IsLittleEndian)
@@ -332,13 +402,12 @@ namespace OpenMetaverse
         /// <summary>
         /// IComparable.CompareTo implementation
         /// </summary>
-        public int CompareTo(object val)
+        public readonly int CompareTo(object val)
         {
             if (val == null)
                 return 1;
 
             UUID id = (UUID)val;
-
             if (id.a != a)
                 return (uint)id.a > (uint)a ? -1 : 1;
             if (id.b != b)
@@ -365,7 +434,7 @@ namespace OpenMetaverse
             return 0;
         }
 
-        public int CompareTo(UUID id)
+        public readonly int CompareTo(UUID id)
         {
             if (id.a != a)
                 return (uint)id.a > (uint)a ? -1 : 1;
@@ -401,6 +470,15 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void FromBytes(byte[] source, int pos)
         {
+            if (Ssse3.IsSupported)
+            {
+                Vector128<byte> rawval = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(source), pos));
+                if (BitConverter.IsLittleEndian)
+                    rawval = Ssse3.Shuffle(rawval, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                Unsafe.As<UUID, Vector128<byte>>(ref this) = rawval;
+                return;
+            }
+
             fixed (byte* ptr = &source[pos])
             {
                 if (BitConverter.IsLittleEndian)
@@ -437,36 +515,10 @@ namespace OpenMetaverse
         /// </summary>
         /// <returns>A 16 byte array containing this UUID</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe byte[] GetBytes()
+        public readonly unsafe byte[] GetBytes()
         {
             byte[] dest = new byte[16];
-            fixed (byte* ptr = &dest[0])
-            {
-                if (BitConverter.IsLittleEndian)
-                {
-                    *ptr = bytea3;
-                    *(ptr + 1) = bytea2;
-                    *(ptr + 2) = bytea1;
-                    *(ptr + 3) = bytea0;
-                    *(ptr + 4) = byteb1;
-                    *(ptr + 5) = byteb0;
-                    *(ptr + 6) = bytec1;
-                    *(ptr + 7) = bytec0;
-                    *(ulong*)(ptr + 8) = ulongb;
-                }
-                else
-                {
-                    *(ulong*)(ptr) = ulonga;
-                    *(ptr + 8) = d;
-                    *(ptr + 9) = e;
-                    *(ptr + 10) = f;
-                    *(ptr + 11) = g;
-                    *(ptr + 12) = h;
-                    *(ptr + 13) = i;
-                    *(ptr + 14) = j;
-                    *(ptr + 15) = k;
-                }
-            }
+            ToBytes(dest, 0);
             return dest;
         }
 
@@ -477,8 +529,16 @@ namespace OpenMetaverse
         /// <param name="pos">Position in the destination array to start
         /// writing. Must be at least 16 bytes before the end of the array</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void ToBytes(byte[] dest, int pos)
+        public readonly unsafe void ToBytes(byte[] dest, int pos)
         {
+            if (Ssse3.IsSupported)
+            {
+                Vector128<byte> val = Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in this));
+                if (BitConverter.IsLittleEndian)
+                    val = Ssse3.Shuffle(val, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(dest), pos)) = val;
+                return;
+            }
             fixed (byte* ptr = &dest[pos])
             {
                 if (BitConverter.IsLittleEndian)
@@ -508,12 +568,41 @@ namespace OpenMetaverse
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly unsafe void ToBytes(byte* ptr)
+        {
+            if (BitConverter.IsLittleEndian)
+            {
+                *ptr = bytea3;
+                *(ptr + 1) = bytea2;
+                *(ptr + 2) = bytea1;
+                *(ptr + 3) = bytea0;
+                *(ptr + 4) = byteb1;
+                *(ptr + 5) = byteb0;
+                *(ptr + 6) = bytec1;
+                *(ptr + 7) = bytec0;
+                *(ulong*)(ptr + 8) = ulongb;
+            }
+            else
+            {
+                *(ulong*)(ptr) = ulonga;
+                *(ptr + 8) = d;
+                *(ptr + 9) = e;
+                *(ptr + 10) = f;
+                *(ptr + 11) = g;
+                *(ptr + 12) = h;
+                *(ptr + 13) = i;
+                *(ptr + 14) = j;
+                *(ptr + 15) = k;
+            }
+        }
+
         /// <summary>
         /// Calculate an LLCRC (cyclic redundancy check) for this UUID
         /// </summary>
         /// <returns>The CRC checksum for this UUID</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public uint CRC()
+        public readonly uint CRC()
         {
             return (uint)a + (uint)intb + (uint)intc + (uint)intd;
         }
@@ -522,7 +611,8 @@ namespace OpenMetaverse
         /// Create a 64-bit integer representation from the second half of this UUID
         /// </summary>
         /// <returns>An integer created from the last eight bytes of this UUID</returns>
-        public ulong GetULong()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly ulong GetULong()
         {
             if (BitConverter.IsLittleEndian)
                 return ulongb;
@@ -547,20 +637,17 @@ namespace OpenMetaverse
         /// <param name="sval">A string representation of a UUID, case 
         /// insensitive and can either be hyphenated or non-hyphenated</param>
         /// <example>UUID.Parse("11f8aa9c-b071-4242-836b-13b7abe0d489")</example>
-        /*
-        public static UUID Parse(string val)
-        {
-            Guid gg = Guid.Parse(val);
-            return new UUID(gg);          
-        }
-        */
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
 
         public unsafe static UUID Parse(string sval)
         {
-            UUID result = new UUID();
-            if (sval == null)
-                throw new FormatException("Invalid UUID");
+            return Parse(sval.AsSpan());
+        }
 
+        public unsafe static UUID Parse(ReadOnlySpan<char> sval)
+        {
+            UUID result = new();
             int len = sval.Length;
             if (len < 32)
                 throw new FormatException("Invalid UUID");
@@ -581,62 +668,131 @@ namespace OpenMetaverse
                     {
                         if (len < 36)
                             throw new Exception();
-                        while (--len > 35)
-                        {
-                            if (val[len] != ' ')
-                                throw new Exception();
-                        }
 
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             throw new Exception();
 
+                        if (Sse42.IsSupported)
+                        {
+                            Vector128<byte> input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AsRef<char>(val));
+                            Vector128<byte> upper = Ssse3.Shuffle(input, Vector128.Create(0, 4, 8, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lower = Ssse3.Shuffle(input, Vector128.Create(2, 6, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 18));
+                            Vector128<byte> uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 34)), 7);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 38));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 54)), 11);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 56));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 8, 12));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 10, 14));
+
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            Vector128<byte> charTolower = Vector128.Create((byte)0x20);
+                            Vector128<byte> upperLetters = Sse2.Or(upper, charTolower);
+                            Vector128<byte> lowerLetters = Sse2.Or(lower, charTolower);
+
+                            Vector128<byte> letterTohex = Vector128.Create((byte)('a' - '0' - 10));
+                            upperLetters = Sse2.Subtract(upperLetters, letterTohex);
+                            lowerLetters = Sse2.Subtract(lowerLetters, letterTohex);
+
+                            Vector128<byte> char9 = Vector128.Create((byte)'9');
+                            Vector128<byte> above9upper = (Sse2.CompareGreaterThan(upper.AsSByte(), char9.AsSByte())).AsByte();
+                            Vector128<byte> above9lower = (Sse2.CompareGreaterThan(lower.AsSByte(), char9.AsSByte())).AsByte();
+
+                            Vector128<byte> ten = Vector128.Create((byte)('0' + 10));
+                            Vector128<byte> tmpcmpA = Sse2.Subtract(upperLetters, ten);
+                            Vector128<byte> tmpcmpB = Sse2.Subtract(lowerLetters, ten);
+
+                            Vector128<byte> fifteen = Vector128.Create((byte)('0' + 15));
+                            Vector128<byte> tmpcmpC = Sse2.Subtract(fifteen, upperLetters);
+                            Vector128<byte> tmpcmpD = Sse2.Subtract(fifteen, lowerLetters);
+
+                            tmpcmpA = Sse2.Or(tmpcmpC, tmpcmpA);
+                            tmpcmpB = Sse2.Or(tmpcmpD, tmpcmpB);
+
+                            tmpcmpA = Sse2.And(tmpcmpA, above9upper);
+                            tmpcmpB = Sse2.And(tmpcmpB, above9lower);
+
+                            tmpcmpA = Sse2.Or(tmpcmpB, tmpcmpA);
+                            int cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                throw new Exception();
+
+                            upper = Sse41.BlendVariable(upper, upperLetters, above9upper);
+                            lower = Sse41.BlendVariable(lower, lowerLetters, above9lower);
+
+                            Vector128<byte> charzero = Vector128.Create((byte)'0');
+                            upper = Sse2.Subtract(upper, charzero);
+                            lower = Sse2.Subtract(lower, charzero);
+
+                            tmpcmpA = Sse2.Or(lower, upper);
+                            cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                throw new Exception();
+
+                            upper = Sse2.ShiftLeftLogical(upper.AsUInt16(), 4).AsByte();
+                            lower = Sse2.Or(lower, upper);
+                            if (BitConverter.IsLittleEndian)
+                                lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                            Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in result)) = lower;
+                            return result;
+                        }
+
                         if (BitConverter.IsLittleEndian)
                         {
-                            result.bytea3 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea0 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea3 = Utils.HexToByte(val, 0);
+                            result.bytea2 = Utils.HexToByte(val, 2);
+                            result.bytea1 = Utils.HexToByte(val, 4);
+                            result.bytea0 = Utils.HexToByte(val, 6);
 
-                            result.byteb1 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb0 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb1 = Utils.HexToByte(val, 9);
+                            result.byteb0 = Utils.HexToByte(val, 11);
 
-                            result.bytec1 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec0 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec1 = Utils.HexToByte(val, 14);
+                            result.bytec0 = Utils.HexToByte(val, 16);
                         }
                         else
                         {
-                            result.bytea0 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea3 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea0 = Utils.HexToByte(val, 0);
+                            result.bytea1 = Utils.HexToByte(val, 2);
+                            result.bytea2 = Utils.HexToByte(val, 4);
+                            result.bytea3 = Utils.HexToByte(val, 6);
 
-                            result.byteb0 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb1 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb0 = Utils.HexToByte(val, 9);
+                            result.byteb1 = Utils.HexToByte(val, 11);
 
-                            result.bytec0 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec1 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec0 = Utils.HexToByte(val, 14);
+                            result.bytec1 = Utils.HexToByte(val, 16);
                         }
 
-                        result.d = (byte)Utils.HexToByte(val, 19);
-                        result.e = (byte)Utils.HexToByte(val, 21);
+                        result.d = Utils.HexToByte(val, 19);
+                        result.e = Utils.HexToByte(val, 21);
 
 
-                        result.f = (byte)Utils.HexToByte(val, 24);
-                        result.g = (byte)Utils.HexToByte(val, 26);
-                        result.h = (byte)Utils.HexToByte(val, 28);
-                        result.i = (byte)Utils.HexToByte(val, 30);
-                        result.j = (byte)Utils.HexToByte(val, 32);
-                        result.k = (byte)Utils.HexToByte(val, 34);
+                        result.f = Utils.HexToByte(val, 24);
+                        result.g = Utils.HexToByte(val, 26);
+                        result.h = Utils.HexToByte(val, 28);
+                        result.i = Utils.HexToByte(val, 30);
+                        result.j = Utils.HexToByte(val, 32);
+                        result.k = Utils.HexToByte(val, 34);
                         return result;
                     }
                     else
                     {
-                        while (--len > 31)
-                        {
-                            if (val[len] != ' ')
-                                throw new Exception();
-                        }
-
                         if (BitConverter.IsLittleEndian)
                         {
                             result.bytea3 = Utils.HexToByte(val, 0);
@@ -692,11 +848,15 @@ namespace OpenMetaverse
         /// <returns>True if the string was successfully parse, otherwise false</returns>
         /// <example>UUID.TryParse("11f8aa9c-b071-4242-836b-13b7abe0d489", result)</example>
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe static bool TryParse(string sval, out UUID result)
         {
+            return TryParse(sval.AsSpan(), out result);
+        }
+
+        public unsafe static bool TryParse(ReadOnlySpan<char> sval, out UUID result)
+        {
             result = new UUID();
-            if (sval is null)
-                return false;
 
             int len = sval.Length;
             if (len < 32)
@@ -720,6 +880,7 @@ namespace OpenMetaverse
                     {
                         if (len < 36)
                             return false;
+
                         while (--len > 35)
                         {
                             if (val[len] != ' ')
@@ -729,43 +890,123 @@ namespace OpenMetaverse
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             return false;
 
+                        if (Sse42.IsSupported)
+                        {
+                            Vector128<byte> input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AsRef<char>(val));
+                            Vector128<byte> upper = Ssse3.Shuffle(input, Vector128.Create(0, 4, 8, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lower = Ssse3.Shuffle(input, Vector128.Create(2, 6, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 18));
+                            Vector128<byte> uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 34)), 7);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 38));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 10, 14, 0xff, 0xff, 0xff, 0xff));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 12, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            lower = Sse41.Insert(lower, Unsafe.As<char, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 54)), 11);
+
+                            input = Unsafe.As<char, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<char>(val), 56));
+                            uppertmp = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 4, 8, 12));
+                            lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 2, 6, 10, 14));
+
+                            upper = Sse2.Or(upper, uppertmp);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            Vector128<byte> charTolower = Vector128.Create((byte)0x20);
+                            Vector128<byte> upperLetters = Sse2.Or(upper, charTolower);
+                            Vector128<byte> lowerLetters = Sse2.Or(lower, charTolower);
+
+                            Vector128<byte> letterTohex = Vector128.Create((byte)('a' - '0' - 10));
+                            upperLetters = Sse2.Subtract(upperLetters, letterTohex);
+                            lowerLetters = Sse2.Subtract(lowerLetters, letterTohex);
+
+                            Vector128<byte> char9 = Vector128.Create((byte)'9');
+                            Vector128<byte> above9upper = (Sse2.CompareGreaterThan(upper.AsSByte(), char9.AsSByte())).AsByte();
+                            Vector128<byte> above9lower = (Sse2.CompareGreaterThan(lower.AsSByte(), char9.AsSByte())).AsByte();
+
+                            Vector128<byte> ten = Vector128.Create((byte)('0' + 10));
+                            Vector128<byte> tmpcmpA = Sse2.Subtract(upperLetters, ten);
+                            Vector128<byte> tmpcmpB = Sse2.Subtract(lowerLetters, ten);
+
+                            Vector128<byte> fifteen = Vector128.Create((byte)('0' + 15));
+                            Vector128<byte> tmpcmpC = Sse2.Subtract(fifteen, upperLetters);
+                            Vector128<byte> tmpcmpD = Sse2.Subtract(fifteen, lowerLetters);
+
+                            tmpcmpA = Sse2.Or(tmpcmpC, tmpcmpA);
+                            tmpcmpB = Sse2.Or(tmpcmpD, tmpcmpB);
+
+                            tmpcmpA = Sse2.And(tmpcmpA, above9upper);
+                            tmpcmpB = Sse2.And(tmpcmpB, above9lower);
+
+                            tmpcmpA = Sse2.Or(tmpcmpB, tmpcmpA);
+                            int cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                return false;
+
+                            upper = Sse41.BlendVariable(upper, upperLetters, above9upper);
+                            lower = Sse41.BlendVariable(lower, lowerLetters, above9lower);
+
+                            Vector128<byte> charzero = Vector128.Create((byte)'0');
+                            upper = Sse2.Subtract(upper, charzero);
+                            lower = Sse2.Subtract(lower, charzero);
+
+                            tmpcmpA = Sse2.Or(lower, upper);
+                            cmp = Sse2.MoveMask(tmpcmpA);
+                            if (cmp != 0)
+                                return false;
+
+                            upper = Sse2.ShiftLeftLogical(upper.AsUInt16(), 4).AsByte();
+                            lower = Sse2.Or(lower, upper);
+                            if (BitConverter.IsLittleEndian)
+                                lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                            Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in result)) = lower;
+                            return true;
+                        }
+
                         if (BitConverter.IsLittleEndian)
                         {
-                            result.bytea3 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea0 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea3 = Utils.HexToByte(val, 0);
+                            result.bytea2 = Utils.HexToByte(val, 2);
+                            result.bytea1 = Utils.HexToByte(val, 4);
+                            result.bytea0 = Utils.HexToByte(val, 6);
 
-                            result.byteb1 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb0 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb1 = Utils.HexToByte(val, 9);
+                            result.byteb0 = Utils.HexToByte(val, 11);
 
-                            result.bytec1 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec0 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec1 = Utils.HexToByte(val, 14);
+                            result.bytec0 = Utils.HexToByte(val, 16);
                         }
                         else
                         {
-                            result.bytea0 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea3 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea0 = Utils.HexToByte(val, 0);
+                            result.bytea1 = Utils.HexToByte(val, 2);
+                            result.bytea2 = Utils.HexToByte(val, 4);
+                            result.bytea3 = Utils.HexToByte(val, 6);
 
-                            result.byteb0 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb1 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb0 = Utils.HexToByte(val, 9);
+                            result.byteb1 = Utils.HexToByte(val, 11);
 
-                            result.bytec0 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec1 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec0 = Utils.HexToByte(val, 14);
+                            result.bytec1 = Utils.HexToByte(val, 16);
                         }
 
-                        result.d = (byte)Utils.HexToByte(val, 19);
-                        result.e = (byte)Utils.HexToByte(val, 21);
+                        result.d = Utils.HexToByte(val, 19);
+                        result.e = Utils.HexToByte(val, 21);
 
 
-                        result.f = (byte)Utils.HexToByte(val, 24);
-                        result.g = (byte)Utils.HexToByte(val, 26);
-                        result.h = (byte)Utils.HexToByte(val, 28);
-                        result.i = (byte)Utils.HexToByte(val, 30);
-                        result.j = (byte)Utils.HexToByte(val, 32);
-                        result.k = (byte)Utils.HexToByte(val, 34);
+                        result.f = Utils.HexToByte(val, 24);
+                        result.g = Utils.HexToByte(val, 26);
+                        result.h = Utils.HexToByte(val, 28);
+                        result.i = Utils.HexToByte(val, 30);
+                        result.j = Utils.HexToByte(val, 32);
+                        result.k = Utils.HexToByte(val, 34);
                         return true;
                     }
                     else
@@ -857,7 +1098,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <returns>An integer composed of all the UUID bytes XORed together</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
+        public readonly override int GetHashCode()
         {
             int h = Utils.CombineHash(intd, intc);
             h = Utils.CombineHash(h, intb);
@@ -865,9 +1106,9 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetHashCode(UUID u)
+        public readonly int GetHashCode(UUID u)
         {
-            return u.a ^ u.intb ^ u.intc ^ u.intd;
+            return u.GetHashCode();
         }
 
         /// <summary>
@@ -876,12 +1117,11 @@ namespace OpenMetaverse
         /// <param name="o">An object to compare to this UUID</param>
         /// <returns>True if the object is a UUID and both UUIDs are equal</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool Equals(object o)
+        public readonly override bool Equals(object o)
         {
-            if (!(o is UUID))
+            if (o is not UUID uuid)
                 return false;
 
-            UUID uuid = (UUID)o;
             if (ulonga != uuid.ulonga)
                 return false;
             if (ulongb != uuid.ulongb)
@@ -895,7 +1135,7 @@ namespace OpenMetaverse
         /// <param name="uuid">UUID to compare to</param>
         /// <returns>True if the UUIDs are equal, otherwise false</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(UUID uuid)
+        public readonly bool Equals(UUID uuid)
         {
             if (ulonga != uuid.ulonga)
                 return false;
@@ -905,7 +1145,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(UUID a, UUID b)
+        public readonly bool Equals(UUID a, UUID b)
         {
             if (a.ulonga != b.ulonga)
                 return false;
@@ -915,7 +1155,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsZero()
+        public readonly bool IsZero()
         {
             if (ulonga != 0)
                 return false;
@@ -925,7 +1165,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool NotEqual(UUID uuid)
+        public readonly bool NotEqual(in UUID uuid)
         {
             if (ulonga != uuid.ulonga)
                 return true;
@@ -935,7 +1175,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsNotZero()
+        public readonly bool IsNotZero()
         {
             if (ulonga != 0)
                 return true;
@@ -952,9 +1192,9 @@ namespace OpenMetaverse
         /// <example>11f8aa9c-b071-4242-836b-13b7abe0d489</example>
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override string ToString()
+        public readonly override string ToString()
         {
-            return Utils.UUIDToDashString(ref this);
+            return Utils.UUIDToDashString(this);
         }
 
         #endregion Overrides
@@ -968,7 +1208,7 @@ namespace OpenMetaverse
         /// <param name="rhs">Second UUID for comparison</param>
         /// <returns>True if the UUIDs are byte for byte equal, otherwise false</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(UUID lhs, UUID rhs)
+        public static bool operator ==(in UUID lhs, in UUID rhs)
         {
             if (lhs.ulonga != rhs.ulonga)
                 return false;
@@ -984,7 +1224,7 @@ namespace OpenMetaverse
         /// <param name="rhs">Second UUID for comparison</param>
         /// <returns>True if the UUIDs are not equal, otherwise true</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(UUID lhs, UUID rhs)
+        public static bool operator !=(in UUID lhs, in UUID rhs)
         {
             if (lhs.ulonga != rhs.ulonga)
                 return true;
@@ -1001,10 +1241,11 @@ namespace OpenMetaverse
         /// <returns>A UUID that is a XOR combination of the two input UUIDs</returns>
         public static UUID operator ^(UUID lhs, UUID rhs)
         {
-            UUID ret = new UUID();
-            ret.ulonga = lhs.ulonga ^ rhs.ulonga;
-            ret.ulongb = lhs.ulongb ^ rhs.ulongb;
-            return ret;
+            return new()
+            {
+                ulonga = lhs.ulonga ^ rhs.ulonga,
+                ulongb = lhs.ulongb ^ rhs.ulongb
+            };
         }
 
         /// <summary>
@@ -1021,7 +1262,7 @@ namespace OpenMetaverse
         #endregion Operators
 
         /// <summary>An UUID with a value of all zeroes</summary>
-        public static readonly UUID Zero = new UUID();
+        public static readonly UUID Zero = new();
 
         /// <summary>A cache of UUID.Zero as a string to optimize a common path</summary>
         public static readonly string ZeroString = "00000000-0000-0000-0000-000000000000";

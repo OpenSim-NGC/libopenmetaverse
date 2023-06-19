@@ -636,8 +636,7 @@ namespace OpenMetaverse.StructuredData
 
                     if (reader.Read())
                     {
-                        int value = 0;
-                        Int32.TryParse(reader.ReadString().Trim(), out value);
+                        Int32.TryParse(reader.ReadString().Trim(), out int value);
                         ret = OSD.FromInteger(value);
                         break;
                     }
@@ -653,7 +652,7 @@ namespace OpenMetaverse.StructuredData
 
                     if (reader.Read())
                     {
-                        double value = 0d;
+                        double value;
                         string str = reader.ReadString().Trim().ToLower();
 
                         if (str == "nan")
@@ -676,8 +675,7 @@ namespace OpenMetaverse.StructuredData
 
                     if (reader.Read())
                     {
-                        UUID value = UUID.Zero;
-                        UUID.TryParse(reader.ReadString().Trim(), out value);
+                        UUID.TryParse(reader.ReadString().AsSpan(), out UUID value);
                         ret = OSD.FromUUID(value);
                         break;
                     }
@@ -693,12 +691,12 @@ namespace OpenMetaverse.StructuredData
 
                     if (reader.Read())
                     {
-                        DateTime value = Utils.Epoch;
-                        DateTime.TryParse(reader.ReadString().Trim(), out value);
-                        ret = OSD.FromDate(value);
+                        if(DateTime.TryParse(reader.ReadString().Trim(), out DateTime value))
+                            ret = OSD.FromDate(value);
+                        else
+                            ret = OSD.FromDate(Utils.Epoch);
                         break;
                     }
-
                     ret = OSD.FromDate(Utils.Epoch);
                     break;
                 case "string":

@@ -656,9 +656,9 @@ namespace mapgenerator
                 r.Close();
                 map.Close();
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
             }
         }
 

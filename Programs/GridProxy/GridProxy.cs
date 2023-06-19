@@ -41,12 +41,15 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml;
 
-using Nwc.XmlRpc;
-
 using OpenMetaverse;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
+using log4net;
+using XmlRpcCore;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+using System.Net.Http;
 
 namespace GridProxy
 {
@@ -188,6 +191,8 @@ namespace GridProxy
         public ProxyConfig proxyConfig;
         private string loginURI;
 
+        private static readonly HttpClient HttpClient = new HttpClient();
+        
         static List<string> BinaryResponseCaps = new List<string>()
         {
             "ViewerAsset",
@@ -199,6 +204,23 @@ namespace GridProxy
         /*
          * Proxy Management
          */
+        public static bool ValidateServerCertificate(
+            object sender,
+            X509Certificate certificate,
+            X509Chain chain,
+            SslPolicyErrors sslPolicyErrors)
+        {
+            //if (m_NoVerifyCertChain)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+
+            //if (m_NoVerifyCertHostname)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
+
+            return false;
+        }
 
         // Proxy: construct a proxy server with the given configuration
         public Proxy(ProxyConfig proxyConfig)
@@ -207,7 +229,7 @@ namespace GridProxy
 
             ServicePointManager.Expect100Continue = false;
             ServicePointManager.DefaultConnectionLimit = 128;
-            ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            ServicePointManager.ServerCertificateValidationCallback = ValidateServerCertificate;
 
             InitializeLoginProxy();
             InitializeSimProxy();
@@ -585,7 +607,7 @@ namespace GridProxy
                 headers["method"] = meth;
                 if (contentType == "application/llsd+xml" || contentType == "application/xml+llsd" || contentType == "application/xml")
                 {
-                    ProxyLoginSD(netStream, content);
+                    ProxyLoginSD(netStream, content, headers);
                 }
                 else
                 {
@@ -1169,7 +1191,10 @@ namespace GridProxy
                 try
                 {
                     // forward the XML-RPC request to the server
-                    response = (XmlRpcResponse)request.Send(remoteLoginUri, 30 * 1000); // 30 second timeout
+                    var cts = new CancellationTokenSource();
+                    cts.CancelAfter(TimeSpan.FromSeconds(30)); // 30 second timeout
+                    response = HttpClient.PostAsXmlRpcAsync(proxyConfig.remoteLoginUri, request, cts.Token).Result;
+                    cts.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -1237,12 +1262,13 @@ namespace GridProxy
             }
         }
 
-        private void ProxyLoginSD(NetworkStream netStream, byte[] content)
+        private void ProxyLoginSD(NetworkStream netStream, byte[] content, Dictionary<string, string> headers)
         {
             lock (this)
             {
                 AutoResetEvent remoteComplete = new AutoResetEvent(false);
                 CapsClient loginRequest = new CapsClient(proxyConfig.remoteLoginUri);
+
                 OSD response = null;
                 loginRequest.OnComplete += new CapsClient.CompleteCallback(
                     delegate (CapsClient client, OSD result, Exception error)
@@ -1257,6 +1283,7 @@ namespace GridProxy
                         remoteComplete.Set();
                     }
                     );
+
                 loginRequest.BeginGetResponse(content, "application/llsd+xml", 1000 * 100);
                 remoteComplete.WaitOne(1000 * 100, false);
 
