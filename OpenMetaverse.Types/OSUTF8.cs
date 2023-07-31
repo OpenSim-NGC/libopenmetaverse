@@ -182,7 +182,7 @@ namespace OpenMetaverse
 
         public unsafe bool Equals(osUTF8Slice o)
         {
-            if (o == null || m_len != o.m_len)
+            if (o is null || m_len != o.m_len)
                 return false;
 
             byte[] otherdata = o.m_data;
@@ -237,7 +237,7 @@ namespace OpenMetaverse
 
         public unsafe bool Equals(osUTF8 o)
         {
-            if (o == null || m_len != o.m_len)
+            if (o is null || m_len != o.m_len)
                 return false;
 
             byte[] otherdata = o.m_data;
@@ -267,6 +267,22 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(osUTF8 value1, osUTF8 value2)
+        {
+            if (value1 is null)
+                return value2 is null;
+            return value1.Equals(value2);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(osUTF8 value1, osUTF8 value2)
+        {
+            if (value1 is null)
+                return !(value2 is null);
+            return !value1.Equals(value2);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(char c)
         {
             return m_len == 1 && m_data[0] == (byte)c;
@@ -274,7 +290,7 @@ namespace OpenMetaverse
 
         public unsafe bool ACSIILowerEquals(osUTF8 o)
         {
-            if (o == null || m_len != o.m_len)
+            if (o is null || m_len != o.m_len)
                 return false;
 
             fixed (byte* a = m_data, b = o.m_data)
@@ -299,7 +315,7 @@ namespace OpenMetaverse
 
         public unsafe bool ACSIILowerEquals(osUTF8Slice o)
         {
-            if (o == null || m_len != o.m_len)
+            if (o is null || m_len != o.m_len)
                 return false;
 
             fixed (byte* a = m_data, b = o.m_data)
@@ -1128,17 +1144,17 @@ namespace OpenMetaverse
 
         public static bool IsNullOrEmpty(osUTF8 u)
         {
-            return (u == null || u.m_len == 0);
+            return (u is null || u.m_len == 0);
         }
 
         public static bool IsEmpty(osUTF8 u)
         {
-            return (u == null || u.m_len == 0);
+            return (u is null || u.m_len == 0);
         }
 
         public static unsafe bool IsNullOrWhitespace(osUTF8 u)
         {
-            if(u == null || u.m_len == 0)
+            if(u is null || u.m_len == 0)
                 return true;
             byte[] data = u.m_data;
             for (int i = 0; i < u.m_len; ++i)

@@ -206,10 +206,10 @@ namespace OpenMetaverse
         /// <param name="data"></param>
         public void PackColor(Color4 data)
         {
-            PackBitsFromByte(Utils.FloatToByte(data.R, 0f, 1f));
-            PackBitsFromByte(Utils.FloatToByte(data.G, 0f, 1f));
-            PackBitsFromByte(Utils.FloatToByte(data.B, 0f, 1f));
-            PackBitsFromByte(Utils.FloatToByte(data.A, 0f, 1f));
+            PackBitsFromByte(Utils.FloatZeroOneToByte(data.R));
+            PackBitsFromByte(Utils.FloatZeroOneToByte(data.G));
+            PackBitsFromByte(Utils.FloatZeroOneToByte(data.B));
+            PackBitsFromByte(Utils.FloatZeroOneToByte(data.A));
         }
 
         /// <summary>

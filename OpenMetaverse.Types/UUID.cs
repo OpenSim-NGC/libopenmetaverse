@@ -508,6 +508,35 @@ namespace OpenMetaverse
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ToBytes(byte* ptr)
+        {
+            if (BitConverter.IsLittleEndian)
+            {
+                *ptr = bytea3;
+                *(ptr + 1) = bytea2;
+                *(ptr + 2) = bytea1;
+                *(ptr + 3) = bytea0;
+                *(ptr + 4) = byteb1;
+                *(ptr + 5) = byteb0;
+                *(ptr + 6) = bytec1;
+                *(ptr + 7) = bytec0;
+                *(ulong*)(ptr + 8) = ulongb;
+            }
+            else
+            {
+                *(ulong*)(ptr) = ulonga;
+                *(ptr + 8) = d;
+                *(ptr + 9) = e;
+                *(ptr + 10) = f;
+                *(ptr + 11) = g;
+                *(ptr + 12) = h;
+                *(ptr + 13) = i;
+                *(ptr + 14) = j;
+                *(ptr + 15) = k;
+            }
+        }
+
         /// <summary>
         /// Calculate an LLCRC (cyclic redundancy check) for this UUID
         /// </summary>
