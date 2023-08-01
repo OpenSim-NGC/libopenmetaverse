@@ -171,30 +171,37 @@ namespace WinGridProxy
         /// <returns></returns>
         private bool EventQueueGetHandler(CapsRequest req, CapsStage stage)
         {
-            if (stage == CapsStage.Response && req.Response is OSDMap)
+            if (stage == CapsStage.Response && req.Response is OSDMap map)
             {
-                OSDMap map = (OSDMap)req.Response;
+                if (OnEventMessageLog is null)
+                    return false;
 
-                if (map.ContainsKey("events"))
+                if (map.TryGetValue("events", out OSD tmposd))
                 {
-                    OSDArray eventsArray = (OSDArray)map["events"];
+                    OSDArray eventsArray = (OSDArray)tmposd;
+                    int EventID  = 0;
+                    if(map.TryGetValue("id", out OSD idsd))
+                        EventID = idsd.AsInteger();
+
+                    int events = eventsArray.Count;
 
                     for (int i = 0; i < eventsArray.Count; i++)
                     {
                         OSDMap bodyMap = (OSDMap)eventsArray[i];
-                        if (OnEventMessageLog != null)
-                        {
-                            CapInfo capInfo = new CapInfo(req.Info.URI, req.Info.Sim, bodyMap["message"].AsString());
-                            CapsRequest capReq = new CapsRequest(capInfo);
-                            capReq.RequestHeaders = req.RequestHeaders;
-                            capReq.ResponseHeaders = req.ResponseHeaders;
-                            capReq.Request = null;// req.Request;
-                            capReq.RawRequest = null;// req.RawRequest;
-                            capReq.RawResponse = OSDParser.SerializeLLSDXmlBytes(bodyMap);
-                            capReq.Response = bodyMap;
 
-                            OnEventMessageLog(capReq, CapsStage.Response);
-                        }
+                        CapInfo capInfo = new CapInfo(req.Info.URI, req.Info.Sim, bodyMap["message"].AsString());
+                        CapsRequest capReq = new CapsRequest(capInfo)
+                        {
+                            RequestHeaders = req.RequestHeaders,
+                            ResponseHeaders = req.ResponseHeaders,
+                            Request = null,// req.Request;
+                            RawRequest = null,// req.RawRequest;
+                            RawResponse = OSDParser.SerializeLLSDXmlBytes(bodyMap),
+                            Response = bodyMap
+                        };
+                        capReq.ExtraInfo = $"Event iD {EventID} Message {i + 1}/{events}";
+
+                        OnEventMessageLog?.Invoke(capReq, CapsStage.Response);
                     }
                 }
             }

@@ -265,7 +265,7 @@ namespace OpenMetaverse.StructuredData
                     case '"':
                         sb.Append("&quot;");
                         break;
-                    case '\\':
+                    case '\'':
                         sb.Append("&apos;");
                         break;
                     default:
@@ -295,7 +295,7 @@ namespace OpenMetaverse.StructuredData
                     case '"':
                         ms.Append(osUTF8Const.XMLamp_quot);
                         break;
-                    case '\\':
+                    case '\'':
                         ms.Append(osUTF8Const.XMLamp_apos);
                         break;
                     default:
@@ -325,7 +325,7 @@ namespace OpenMetaverse.StructuredData
                     case '"':
                         ms.Append(osUTF8Const.XMLamp_quot);
                         break;
-                    case '\\':
+                    case '\'':
                         ms.Append(osUTF8Const.XMLamp_apos);
                         break;
                     default:
@@ -355,7 +355,7 @@ namespace OpenMetaverse.StructuredData
                     case (byte)'"':
                         ms.Append(osUTF8Const.XMLamp_quot);
                         break;
-                    case (byte)'\\':
+                    case (byte)'\'':
                         ms.Append(osUTF8Const.XMLamp_apos);
                         break;
                     default:

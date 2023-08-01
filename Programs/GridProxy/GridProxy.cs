@@ -639,9 +639,11 @@ namespace GridProxy
         public ObservableDictionary<string, CapInfo> KnownCaps = new ObservableDictionary<string, CapInfo>();
         //private Dictionary<string, bool> SubHack = new Dictionary<string, bool>();
 
+        private static Regex CapMainRegex = new Regex(@"^(https?)://([^:/]+)(:\d+)?(/.*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static Regex CapUriRegex = new Regex(@"/?\?.*$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private void ProxyCaps(NetworkStream netStream, string meth, string uri, Dictionary<string, string> headers, byte[] content, int reqNo)
         {
-            Match match = new Regex(@"^(https?)://([^:/]+)(:\d+)?(/.*)$").Match(uri);
+            Match match = CapMainRegex.Match(uri);
             if (!match.Success)
             {
                 OpenMetaverse.Logger.Log("[" + reqNo + "] Malformed proxy URI: " + uri, Helpers.LogLevel.Error);
@@ -657,7 +659,7 @@ namespace GridProxy
             CapInfo cap = null;
             lock (this)
             {
-                string capuri = Regex.Replace(uri, @"/?\?.*$", string.Empty);
+                string capuri = CapUriRegex.Replace(uri, string.Empty);
                 // detect AIS url
                 int indx = capuri.IndexOf("/item/");
                 if (indx < 0)
@@ -665,9 +667,14 @@ namespace GridProxy
                 if(indx > 0)
                     capuri = capuri.Substring(0,indx);
 
-                if (KnownCaps.ContainsKey(capuri))
+                if (!KnownCaps.TryGetValue(capuri, out cap))
                 {
-                    cap = KnownCaps[capuri];
+                    indx = capuri.IndexOf("cap/");
+                    if(indx > 0)
+                    {
+                        capuri = capuri.Substring(0,indx + 36 + 4);
+                        _ = KnownCaps.TryGetValue(capuri, out cap);
+                    }
                 }
             }
 
@@ -1081,15 +1088,10 @@ namespace GridProxy
         {
             if (stage != CapsStage.Response) return false;
 
-            OSDMap map = null;
-            if (capReq.Response is OSDMap)
-                map = (OSDMap)capReq.Response;
-            else return false;
+            if (capReq.Response is not OSDMap map)
+                return false;
 
-            OSDArray array = null;
-            if (map.ContainsKey("events") && map["events"] is OSDArray)
-                array = (OSDArray)map["events"];
-            else
+            if(!map.TryGetValue("events", out OSD oarray) || oarray is not OSDArray array)
                 return false;
 
             for (int i = 0; i < array.Count; i++)
@@ -2188,8 +2190,7 @@ namespace GridProxy
 
 
         public CapInfo(string URI, IPEndPoint Sim, string CapType)
-            :
-            this(URI, Sim, CapType, CapsDataFormat.OSD, CapsDataFormat.OSD) { }
+            : this(URI, Sim, CapType, CapsDataFormat.OSD, CapsDataFormat.OSD) { }
         public CapInfo(string URI, IPEndPoint Sim, string CapType, CapsDataFormat ReqFmt, CapsDataFormat RespFmt)
         {
             uri = URI; sim = Sim; type = CapType; reqFmt = ReqFmt; respFmt = RespFmt;
@@ -2271,6 +2272,7 @@ namespace GridProxy
 
         public string FullUri = string.Empty;
         public string Method = string.Empty;
+        public string ExtraInfo = string.Empty;
     }
 
     // XmlRpcRequestDelegate: specifies a delegate to be called for XML-RPC requests

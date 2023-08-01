@@ -101,6 +101,7 @@ namespace OpenMetaverse.Messages
                 case "BulkUpdateInventory": message = new BulkUpdateInventoryMessage(); break;
                 case "RenderMaterials": message = new RenderMaterialsMessage(); break;
                 case "GetObjectCost": message = GetObjectCostMessage.GetMessageHandler(map); break;
+                case "LargeGenericMessage": message = new LargeGenericMessage(); break;
 
                 // Capabilities TODO:
                 // DispatchRegionInfo
