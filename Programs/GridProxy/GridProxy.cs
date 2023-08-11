@@ -662,12 +662,7 @@ namespace GridProxy
             CapInfo cap = null;
             lock (this)
             {
-<<<<<<< HEAD
-                string capuri = Regex.Replace(uri, @"/?\?.*$", string.Empty);
-                
-=======
                 string capuri = CapUriRegex.Replace(uri, string.Empty);
->>>>>>> upstream/dotnet6
                 // detect AIS url
                 int indx = capuri.IndexOf("/item/");
                 if (indx < 0)
@@ -2201,13 +2196,8 @@ namespace GridProxy
 
 
         public CapInfo(string URI, IPEndPoint Sim, string CapType)
-<<<<<<< HEAD
             :
-            this(URI, Sim, CapType, CapsDataFormat.OSD, CapsDataFormat.OSD)
-        { }
-=======
-            : this(URI, Sim, CapType, CapsDataFormat.OSD, CapsDataFormat.OSD) { }
->>>>>>> upstream/dotnet6
+            this(URI, Sim, CapType, CapsDataFormat.OSD, CapsDataFormat.OSD) { }
         public CapInfo(string URI, IPEndPoint Sim, string CapType, CapsDataFormat ReqFmt, CapsDataFormat RespFmt)
         {
             uri = URI; sim = Sim; type = CapType; reqFmt = ReqFmt; respFmt = RespFmt;
