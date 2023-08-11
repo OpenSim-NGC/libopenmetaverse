@@ -38,8 +38,8 @@ jobs:
     - name: Pack
       run: dotnet pack -p:Configuration=Release NGC.LibOpenMetaverse
 
-    # - name: Publish Package
-    #   run: dotnet nuget push Example.PackageName/bin/Release/*.nupkg --source https://nuget.pkg.github.com/YOUR_ACCOUNT/index.json
+    - name: Publish Package
+      run: dotnet nuget push build/Release/*.nupkg --source https://nuget.pkg.github.com/OpenSim-NGC/index.json
 
     - name: Create Release
       uses: actions/create-release@v1

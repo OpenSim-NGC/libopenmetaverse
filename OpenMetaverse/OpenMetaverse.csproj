@@ -6,6 +6,8 @@
     <NoWarn>1591,1574,0419,0618</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Utopia Skye LLC, OpenMetaverse Developers</Authors>
+    <PackageTags>OMV OpenMetaverse OpenSim OpenSim-NGC OpenMetaverseFoundation VirtualWorld VirtualReality 3D SecondLife</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.15" />
