@@ -76,7 +76,7 @@ namespace WinGridProxy
 
         public virtual byte[] ToBytes(Direction direction)
         {
-            return OpenMetaverse.Utils.EmptyBytes;
+            return Array.Empty<byte>();
         }
 
         public virtual string ToXml(Direction direction)
@@ -203,12 +203,12 @@ namespace WinGridProxy
             if (requestBytes != null)
                 RequestBytes = requestBytes;
             else
-                RequestBytes = OpenMetaverse.Utils.EmptyBytes;
+                RequestBytes = Array.Empty<byte>();
 
             if (responseBytes != null)
                 ResponseBytes = responseBytes;
             else
-                ResponseBytes = OpenMetaverse.Utils.EmptyBytes;
+                ResponseBytes = Array.Empty<byte>();
             RequestHeaders = requestHeaders;
             ResponseHeaders = responseHeaders;
             Protocol = proto;
@@ -666,10 +666,11 @@ namespace WinGridProxy
     {
         private byte[] ResponseBytes;
         private WebHeaderCollection ResponseHeaders;
+        private string ExtraInfo;
 
         public SessionEvent() : base() { this.Protocol = "EventQ"; }
         public SessionEvent(byte[] responseBytes, WebHeaderCollection responseHeaders,
-            String uri, String capsKey, String proto)
+            String uri, String capsKey, String proto, string ExtraInfo)
             : base()
         {
             this.Protocol = proto;
@@ -680,10 +681,15 @@ namespace WinGridProxy
             this.Name = capsKey;
             this.ContentType = responseHeaders.Get("Content-Type");
             var ContentLength = responseHeaders.Get("Content-Length");
+<<<<<<< HEAD
             if (ContentLength != null)
                 this.Length = Int32.Parse(ContentLength);
             else
                 this.Length = 0;
+=======
+            this.Length = ContentLength is null ? 0 : Int32.Parse (ContentLength);
+            this.ExtraInfo = ExtraInfo;
+>>>>>>> upstream/dotnet6
         }
 
         public override string ToPrettyString(Direction direction)
@@ -729,9 +735,16 @@ namespace WinGridProxy
                 StringBuilder result = new StringBuilder();
                 foreach (String key in ResponseHeaders.Keys)
                 {
-                    result.AppendFormat("{0} {1}" + Environment.NewLine, key, ResponseHeaders[key]);
+                    //result.AppendFormat("{0} {1}" + Environment.NewLine, key, ResponseHeaders[key]);
+                    result.AppendLine($"{key} {ResponseHeaders[key]}");
                 }
                 result.AppendLine();
+                if (!string.IsNullOrEmpty(this.ExtraInfo))
+                {
+                    result.Append(this.ExtraInfo);
+                    result.AppendLine();
+                    result.AppendLine();
+                }
                 result.AppendLine(this.ToXml(direction));
                 return result.ToString();
             }

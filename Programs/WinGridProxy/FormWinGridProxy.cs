@@ -309,7 +309,7 @@ namespace WinGridProxy
                     }
                     else
                     {
-                        capsSession = new SessionEvent(req.RawResponse, req.ResponseHeaders, req.Info.URI, req.Info.CapType, proto);
+                        capsSession = new SessionEvent(req.RawResponse, req.ResponseHeaders, req.Info.URI, req.Info.CapType, proto, req.ExtraInfo);
                     }
 
                     string[] s = { PacketCounter.ToString(), capsSession.TimeStamp.ToString("HH:mm:ss.fff"), capsSession.Protocol, capsSession.Name, capsSession.Length.ToString(), capsSession.Host, capsSession.ContentType };

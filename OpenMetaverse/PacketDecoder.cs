@@ -1938,7 +1938,7 @@ namespace OpenMetaverse.Packets
                     else
                     {
                         result.AppendFormat("{0, 30}: {1,-40} [{2}]" + Environment.NewLine,
-                        messageField.Name, messageField.GetValue(message), messageField.FieldType.Name);
+                            messageField.Name, messageField.GetValue(message), messageField.FieldType.Name);
                     }
                 }
             }
