@@ -208,6 +208,63 @@ namespace OpenMetaverse.Packets
 
             return header;
         }
+
+        public static bool TryParseHeader(byte[] bytes, int packetLen, out Header header, out int messageBody, out int messageEnd)
+        {
+            messageBody = 0;
+            messageEnd = packetLen;
+            header = new Header();
+
+            try
+            {
+                byte flags = bytes[0];
+
+                header.AppendedAcks = (flags & Helpers.MSG_APPENDED_ACKS) != 0;
+                header.Reliable = (flags & Helpers.MSG_RELIABLE) != 0;
+                header.Resent = (flags & Helpers.MSG_RESENT) != 0;
+                header.Zerocoded = (flags & Helpers.MSG_ZEROCODED) != 0;
+
+                header.Sequence = (uint)Utils.BytesToIntBig(bytes, 1);
+
+                messageBody += bytes[5];
+
+                header.ID = bytes[messageBody + 6];
+                // Set the frequency and packet ID number
+                if (header.ID == 0xFF)
+                {
+                    header.ID = bytes[messageBody + 7];
+                    if (header.ID == 0xFF)
+                    {
+                        header.Frequency = PacketFrequency.Low;
+                        if (header.Zerocoded && bytes[messageBody + 8] == 0)
+                            header.ID = bytes[messageBody + 10];
+                        else
+                            header.ID = (ushort)((bytes[messageBody + 8] << 8) + bytes[messageBody + 9]);
+
+                        messageBody += 10;
+                    }
+                    else
+                    {
+                        header.Frequency = PacketFrequency.Medium;
+                        messageBody += 8;
+                    }
+                }
+                else
+                {
+                    header.Frequency = PacketFrequency.High;
+                    messageBody += 7;
+                }
+                if (header.AppendedAcks)
+                {
+                    --messageEnd;
+                    int count = bytes[messageEnd];
+                    messageEnd -= 4 * count;
+                }
+                return messageEnd >= messageBody;
+            }
+            catch { }
+            return false;
+        }
     }
 
     /// <summary>

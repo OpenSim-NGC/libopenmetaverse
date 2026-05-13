@@ -1657,7 +1657,9 @@ namespace OpenMetaverse.Packets
             for (int i = 0; i < fields.Length; i++)
             {
                 // we're not interested in any of these here
-                if (fields[i].Name == "Type" || fields[i].Name == "Header" || fields[i].Name == "HasVariableBlocks")
+                if (fields[i].Name == "Type" || fields[i].Name == "Header" ||
+                    fields[i].Name == "HasVariableBlocks" ||
+                    fields[i].Name == "NeedValidateIDs")
                     continue;
 
                 if (fields[i].FieldType.IsArray)
@@ -1938,7 +1940,7 @@ namespace OpenMetaverse.Packets
                     else
                     {
                         result.AppendFormat("{0, 30}: {1,-40} [{2}]" + Environment.NewLine,
-                        messageField.Name, messageField.GetValue(message), messageField.FieldType.Name);
+                            messageField.Name, messageField.GetValue(message), messageField.FieldType.Name);
                     }
                 }
             }

@@ -128,7 +128,7 @@ namespace OpenMetaverse.StructuredData
         // undefined or null
         public static void AddUnknownElem(osUTF8 sb)
         {
-            sb.Append(osUTF8Const.XMLundef);
+            sb.Append("<undef/>"u8);
         }
 
         public static void AddElem(bool e, osUTF8 sb)

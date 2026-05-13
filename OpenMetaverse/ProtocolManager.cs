@@ -395,7 +395,7 @@ namespace OpenMetaverse
 		public static void DecodeMapFile(string mapFile, string outputFile)
         {
             byte magicKey = 0;
-            byte[] buffer = new byte[2048];
+			byte[] buffer = GC.AllocateUninitializedArray<byte>(2048);
             int nread;
 
             try

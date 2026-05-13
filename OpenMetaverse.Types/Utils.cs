@@ -34,45 +34,17 @@ namespace OpenMetaverse
 {
     public static partial class Utils
     {
-        /// <summary>
-        /// Operating system
-        /// </summary>
-        public enum Platform
-        {
-            /// <summary>Unknown</summary>
-            Unknown,
-            /// <summary>Microsoft Windows</summary>
-            Windows,
-            /// <summary>Microsoft Windows CE</summary>
-            WindowsCE,
-            /// <summary>Linux</summary>
-            Linux,
-            /// <summary>Apple OSX</summary>
-            OSX
-        }
-
-        /// <summary>
-        /// Runtime platform
-        /// </summary>
-        public enum Runtime
-        {
-            /// <summary>.NET runtime</summary>
-            Windows,
-            /// <summary>Mono runtime: http://www.mono-project.com/</summary>
-            Mono
-        }
-
-        public const float E = (float)Math.E;
+        public const float E = MathF.E;
         public const float LOG10E = 0.4342945f;
         public const float LOG2E = 1.442695f;
-        public const float PI = (float)Math.PI;
-        public const float TWO_PI = (float)(Math.PI * 2.0d);
-        public const float PI_OVER_TWO = (float)(Math.PI / 2.0d);
-        public const float PI_OVER_FOUR = (float)(Math.PI / 4.0d);
+        public const float PI = MathF.PI;
+        public const float TWO_PI = MathF.PI * 2.0f;
+        public const float PI_OVER_TWO = MathF.PI / 2.0f;
+        public const float PI_OVER_FOUR = MathF.PI / 4.0f;
         /// <summary>Used for converting degrees to radians</summary>
-        public const float DEG_TO_RAD = (float)(Math.PI / 180.0d);
+        public const float DEG_TO_RAD = MathF.PI / 180.0f;
         /// <summary>Used for converting radians to degrees</summary>
-        public const float RAD_TO_DEG = (float)(180.0d / Math.PI);
+        public const float RAD_TO_DEG = 180.0f / MathF.PI;
 
         /// <summary>Provide a single instance of the CultureInfo class to
         /// help parsing in situations where the grid assumes an en-us 
@@ -377,42 +349,5 @@ namespace OpenMetaverse
         }
 
         #endregion Math
-
-        #region Platform
-
-        /// <summary>
-        /// Get the current running platform
-        /// </summary>
-        /// <returns>Enumeration of the current platform we are running on</returns>
-        public static Platform GetRunningPlatform()
-        {
-            const string OSX_CHECK_FILE = "/Library/Extensions.kextcache";
-            switch(Environment.OSVersion.Platform)
-            {
-                case PlatformID.WinCE:
-                    return Platform.WindowsCE;
-                case PlatformID.Unix:
-                case PlatformID.MacOSX:
-                {
-                    if (System.IO.File.Exists(OSX_CHECK_FILE))
-                        return Platform.OSX;
-                    else
-                        return Platform.Linux;
-                }
-                default:
-                    return Platform.Windows;
-            }
-        }
-
-        /// <summary>
-        /// Get the current running runtime
-        /// </summary>
-        /// <returns>Enumeration of the current runtime we are running on</returns>
-        public static Runtime GetRunningRuntime()
-        {
-            return (Type.GetType("Mono.Runtime") == null) ? Runtime.Windows : Runtime.Mono;
-        }
-
-        #endregion Platform
     }
 }

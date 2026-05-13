@@ -138,7 +138,7 @@ namespace WinGridProxy
         {
             if (this.InvokeRequired)
             {
-                this.BeginInvoke(new MethodInvoker(() => ProxyManager_OnEventMessageLog(req, stage)));
+                this.BeginInvoke(new System.Windows.Forms.MethodInvoker(() => ProxyManager_OnEventMessageLog(req, stage)));
             }
             else
             {
@@ -169,7 +169,7 @@ namespace WinGridProxy
         {
             if (this.InvokeRequired)
             {
-                this.BeginInvoke(new MethodInvoker(() => ProxyManager_OnCapabilityAdded(cap)));
+                this.BeginInvoke(new System.Windows.Forms.MethodInvoker(() => ProxyManager_OnCapabilityAdded(cap)));
             }
             else
             {
@@ -194,7 +194,7 @@ namespace WinGridProxy
         {
             if (this.InvokeRequired)
             {
-                this.BeginInvoke(new MethodInvoker(() => ProxyManager_OnLoginResponse(request, rsize, headers, host, direction)));
+                this.BeginInvoke(new System.Windows.Forms.MethodInvoker(() => ProxyManager_OnLoginResponse(request, rsize, headers, host, direction)));
             }
             else
             {
@@ -262,7 +262,7 @@ namespace WinGridProxy
         {
             if (this.InvokeRequired)
             {
-                this.BeginInvoke(new MethodInvoker(() => ProxyManager_OnMessageLog(req, stage)));
+                this.BeginInvoke(new System.Windows.Forms.MethodInvoker(() => ProxyManager_OnMessageLog(req, stage)));
             }
             else
             {
@@ -309,7 +309,7 @@ namespace WinGridProxy
                     }
                     else
                     {
-                        capsSession = new SessionEvent(req.RawResponse, req.ResponseHeaders, req.Info.URI, req.Info.CapType, proto);
+                        capsSession = new SessionEvent(req.RawResponse, req.ResponseHeaders, req.Info.URI, req.Info.CapType, proto, req.ExtraInfo);
                     }
 
                     string[] s = { PacketCounter.ToString(), capsSession.TimeStamp.ToString("HH:mm:ss.fff"), capsSession.Protocol, capsSession.Name, capsSession.Length.ToString(), capsSession.Host, capsSession.ContentType };
@@ -1040,7 +1040,7 @@ namespace WinGridProxy
         {
             if (this.InvokeRequired)
             {
-                this.BeginInvoke(new MethodInvoker(() => SearchSessions(opts)));
+                this.BeginInvoke(new System.Windows.Forms.MethodInvoker(() => SearchSessions(opts)));
             }
             else
             {
@@ -1157,7 +1157,7 @@ namespace WinGridProxy
         {
             if (this.InvokeRequired)
             {
-                this.BeginInvoke(new MethodInvoker(() => timer1_Tick(sender, e)));
+                this.BeginInvoke(new System.Windows.Forms.MethodInvoker(() => timer1_Tick(sender, e)));
             }
             else
             {
@@ -1295,7 +1295,7 @@ namespace WinGridProxy
 
             if (InvokeRequired)
             {
-                BeginInvoke(new MethodInvoker(() => Instance_MessageLoggedEvent(sender, e)));
+                BeginInvoke(new System.Windows.Forms.MethodInvoker(() => Instance_MessageLoggedEvent(sender, e)));
             }
             else
             {

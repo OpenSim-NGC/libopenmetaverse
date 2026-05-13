@@ -38,6 +38,10 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
+using System.Runtime.Intrinsics;
+using System.IO;
 
 namespace OpenMetaverse
 {
@@ -46,56 +50,72 @@ namespace OpenMetaverse
         internal byte[] m_data;
         internal int m_len;
 
-        public static readonly osUTF8 Empty = new osUTF8();
+        public static readonly osUTF8 Empty = new();
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8()
         {
-            m_data = new byte[0];
+            m_data = Array.Empty<byte>();
             m_len = 0;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8(int capacity)
         {
             m_data = new byte[capacity];
             m_len = 0;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8(byte[] source)
         {
             m_data = source;
             m_len = source.Length;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8(byte[] source, int len)
         {
             m_data = source;
             m_len = len;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8(osUTF8Slice source)
         {
             m_data = source.ToArray();
             m_len = m_data.Length;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8(osUTF8 source)
         {
             m_data = source.ToArray();
             m_len = source.Length;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8(string source)
         {
             m_data = Utils.StringToBytesNoTerm(source);
             m_len = m_data.Length;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public osUTF8(ReadOnlySpan<byte> ut8)
+        {
+            m_data = ut8.ToArray();
+            m_len = m_data.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8(string source, int maxlen)
         {
             m_data = Utils.StringToBytesNoTerm(source, maxlen);
             m_len = m_data.Length;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8(string source, bool isascii)
         {
             if(isascii)
@@ -117,26 +137,29 @@ namespace OpenMetaverse
             {
                 if (i >= m_len)
                     i = m_len - 1;
-                if (i < 0)
-                    i = 0;
-                else if (i >= m_data.Length)
+                if (i >= m_data.Length)
                     i = m_data.Length - 1;
-                return m_data[i];
+                if (i <= 0)
+                    return Unsafe.As<byte, byte>(ref MemoryMarshal.GetArrayDataReference(m_data));
+                return Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i));
             }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 if (i > 0 && i < m_len)
-                    m_data[i] = value;
+                    Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i)) = value;
             }
         }
 
         public int Length
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get { return m_len; }
         }
 
         public int Capacity
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get { return m_data.Length; }
         }
 
@@ -165,17 +188,17 @@ namespace OpenMetaverse
             if (obj == null)
                 return false;
 
-            if (obj is osUTF8)
-                return Equals((osUTF8)obj);
+            if (obj is osUTF8 osUTF8obj)
+                return Equals(osUTF8obj);
 
-            if (obj is osUTF8Slice)
-                return Equals((osUTF8Slice)obj);
+            if (obj is osUTF8Slice osUTF8Sliceobj)
+                return Equals(osUTF8Sliceobj);
 
-            if (obj is string)
-                return Equals((string)obj);
+            if (obj is string v)
+                return Equals(v);
 
-            if (obj is byte[])
-                return Equals((byte[])obj);
+            if (obj is byte[] byteobj)
+                return Equals(byteobj);
 
             return false;
         }
@@ -258,12 +281,23 @@ namespace OpenMetaverse
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(string s)
         {
             if (string.IsNullOrEmpty(s))
                 return m_len == 0;
-            osUTF8 o = new osUTF8(s);
+            osUTF8 o = new(s);
             return Equals(o);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Equals(ReadOnlySpan<byte> s)
+        {
+            if(m_len != s.Length)
+                return false;
+  
+            ReadOnlySpan<byte> os = m_data.AsSpan(0, m_data.Length);
+            return os.SequenceEqual(s);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -278,7 +312,7 @@ namespace OpenMetaverse
         public static bool operator !=(osUTF8 value1, osUTF8 value2)
         {
             if (value1 is null)
-                return !(value2 is null);
+                return value2 is not null;
             return !value1.Equals(value2);
         }
 
@@ -311,7 +345,6 @@ namespace OpenMetaverse
             }
             return true;
         }
-
 
         public unsafe bool ACSIILowerEquals(osUTF8Slice o)
         {
@@ -386,11 +419,13 @@ namespace OpenMetaverse
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
             m_len = 0;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8 Clone()
         {
             byte[] b = new byte[m_data.Length];
@@ -398,6 +433,7 @@ namespace OpenMetaverse
             return new osUTF8(b);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8 Extract()
         {
             byte[] b = new byte[m_len];
@@ -405,6 +441,7 @@ namespace OpenMetaverse
             return new osUTF8(b);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte[] ToArray()
         {
             byte[] b = new byte[m_len];
@@ -412,11 +449,13 @@ namespace OpenMetaverse
             return b;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte[] GetArray()
         {
             return m_data;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8 Concat(osUTF8 other)
         {
             byte[] b = new byte[m_len + other.m_len];
@@ -445,17 +484,24 @@ namespace OpenMetaverse
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AppendASCII(char c)
         {
-            CheckCapacity(1);
-            m_data[m_len] = (byte)c;
-            ++m_len;
+            Append((byte)c);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Append(byte c)
         {
             CheckCapacity(1);
-            m_data[m_len] = c;
+            Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_len)) = c;
+            ++m_len;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void AppendSafe(byte c)
+        {
+            Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_len)) = c;
             ++m_len;
         }
 
@@ -496,6 +542,7 @@ namespace OpenMetaverse
             m_len = indx;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Append(byte[] b)
         {
             int nbytes = b.Length;
@@ -504,6 +551,18 @@ namespace OpenMetaverse
             m_len += nbytes;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Append(byte[] b, int bstart, int nbytes)
+        {
+            if(bstart + nbytes >= b.Length)
+                nbytes = b.Length - bstart;
+
+            CheckCapacity(nbytes);
+            Array.Copy(b, bstart, m_data, m_len, nbytes);
+            m_len += nbytes;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Append(osUTF8 b)
         {
             int nbytes = b.m_len;
@@ -512,6 +571,16 @@ namespace OpenMetaverse
             m_len += nbytes;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Append(ReadOnlySpan<byte> b)
+        {
+            int nbytes = b.Length;
+            CheckCapacity(nbytes);
+            b.CopyTo(new Span<byte>(m_data,m_len, nbytes));
+            m_len += nbytes;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void AppendInt(sbyte v)
         {
             CheckCapacity(4);
@@ -519,12 +588,15 @@ namespace OpenMetaverse
                 m_len += Utils.IntToByteString(v, d + m_len);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void AppendInt(byte v)
         {
-            CheckCapacity(4);
+            CheckCapacity(3);
             fixed (byte* d = m_data)
                 m_len += Utils.UIntToByteString(v, d + m_len);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void AppendInt(int v)
         {
             CheckCapacity(16);
@@ -532,6 +604,7 @@ namespace OpenMetaverse
                 m_len += Utils.IntToByteString(v, d + m_len);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void AppendInt(uint v)
         {
             CheckCapacity(16);
@@ -539,6 +612,7 @@ namespace OpenMetaverse
                 m_len += Utils.UIntToByteString(v, d + m_len);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void AppendInt(long v)
         {
             CheckCapacity(32);
@@ -559,7 +633,7 @@ namespace OpenMetaverse
         {
             CheckCapacity(36);
             fixed (byte* d = m_data)
-                Utils.UUIDToByteDashString(ref u, d + m_len);
+                Utils.UUIDToByteDashString(u, d + m_len);
             m_len += 36;
         }
 
@@ -607,7 +681,7 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice SubUTF8(int start, int len)
         {
-            osUTF8Slice oss = new osUTF8Slice(this);
+            osUTF8Slice oss = new(this);
             return oss.SubUTF8(start, len);
         }
 
@@ -621,91 +695,91 @@ namespace OpenMetaverse
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string SubString(int start, int len)
         {
-            osUTF8Slice oss = new osUTF8Slice(this);
+            osUTF8Slice oss = new(this);
             return oss.SubString(start, len);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice TrimStart()
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.TrimStart();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice TrimEnd()
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.TrimEnd();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice Trim()
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.Trim();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice TrimStart(byte b)
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.TrimStart(b);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice TrimEnd(byte b)
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.TrimEnd(b);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice Trim(byte b)
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.Trim(b);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice TrimStart(byte[] v)
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.TrimStart(v);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice TrimEnd(byte[] v)
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.TrimEnd(v);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice Trim(byte[] v)
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.Trim(v);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice TrimStart(char[] v)
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.TrimStart(v);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice TrimEnd(char[] v)
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.TrimEnd(v);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public osUTF8Slice Trim(char[] v)
         {
-            osUTF8Slice ret = new osUTF8Slice(this);
+            osUTF8Slice ret = new(this);
             return ret.Trim(v);
         }
 
@@ -728,32 +802,32 @@ namespace OpenMetaverse
 
         public bool StartsWith(string s)
         {
-            osUTF8 other = new osUTF8(s); // yeack
+            osUTF8 other = new(s); // yeack
             return StartsWith(other);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool StartsWith(byte b)
         {
-            return m_data[0] == b;
+            return Unsafe.As<byte, byte>(ref MemoryMarshal.GetArrayDataReference(m_data)) == b;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool StartsWith(char b)
         {
-            return m_data[0] == (byte)b;
+            return Unsafe.As<byte, byte>(ref MemoryMarshal.GetArrayDataReference(m_data)) == (byte)b;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool EndsWith(byte b)
         {
-            return m_data[m_len - 1] == b;
+            return Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_len - 1)) == b;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool EndsWith(char b)
         {
-            return m_data[m_len - 1] == (byte)b;
+            return Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_len - 1)) == (byte)b;
         }
 
         public unsafe bool EndsWith(osUTF8 other)
@@ -775,28 +849,15 @@ namespace OpenMetaverse
 
         public bool EndsWith(string s)
         {
-            osUTF8 other = new osUTF8(s); // yeack
+            osUTF8 other = new(s); // yeack
             return EndsWith(other);
         }
 
         public unsafe int IndexOf(byte b)
         {
-            if (m_len > 8)
-            {
-                fixed (byte* a = m_data)
-                {
-                    for (int i = 0; i < m_len; ++i)
-                    {
-                        if (a[i] == b)
-                            return i;
-                    }
-                    return -1;
-                }
-            }
-
             for (int i = 0; i < m_len; ++i)
             {
-                if (m_data[i] == b)
+                if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i)) == b)
                     return i;
             }
             return -1;
@@ -806,7 +867,7 @@ namespace OpenMetaverse
         {
             if (b < 0x80)
                 return IndexOf((byte)b);
-            string s = new string(new char[] { b });
+            string s = new(new char[] { b });
             return IndexOf(s);
         }
 
@@ -862,12 +923,12 @@ namespace OpenMetaverse
         {
             if (string.IsNullOrEmpty(s))
                 return -1;
-            osUTF8 o = new osUTF8(s);
+            osUTF8 o = new(s);
             return IndexOf(o);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool checkAny(byte b, byte[] bytes)
+        private static bool checkAny(byte b, byte[] bytes)
         {
             for (int i = 0; i < bytes.Length; ++i)
             {
@@ -878,7 +939,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool checkAny(byte b, char[] chars)
+        private static bool checkAny(byte b, char[] chars)
         {
             for (int i = 0; i < chars.Length; ++i)
             {
@@ -966,7 +1027,7 @@ namespace OpenMetaverse
             if (b < 0x80)
                 return Split((byte)b, ignoreEmpty);
 
-            return new osUTF8Slice[0];
+            return Array.Empty<osUTF8Slice>();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1003,43 +1064,113 @@ namespace OpenMetaverse
                         if (val[13] != '-' || val[18] != '-' || val[23] != '-')
                             return false;
 
+                        if (Sse42.IsSupported)
+                        {
+                            Vector128<byte> input = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.AsRef<byte>(val));
+                            Vector128<byte> upper = Ssse3.Shuffle(input, Vector128.Create(0, 2, 4, 6, 9, 11, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lower = Ssse3.Shuffle(input, Vector128.Create(1, 3, 5, 7, 10, 12, 15, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            input = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 16 + 3));
+                            Vector128<byte> upperhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 2, 5, 7, 9, 11, 13, 15));
+                            Vector128<byte> lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 1, 3, 6, 8, 10, 12, 14, 0xff));
+                            upper = Sse2.Or(upper, upperhalf);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            upper = Sse41.Insert(upper, Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 16)), 7);
+                            lower = Sse41.Insert(lower, Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 17)), 7);
+                            lower = Sse41.Insert(lower, Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 35)), 15);
+
+                            Vector128<byte> charf = Vector128.Create((byte)'f');
+                            Vector128<byte> tmpcmp = Sse2.Subtract(charf, lower);
+                            int cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+
+                            tmpcmp = Sse2.Subtract(charf, upper);
+                            cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+
+                            Vector128<byte> charTolower = Vector128.Create((byte)0x20);
+                            Vector128<byte> lowerLetters = Sse2.Or(lower, charTolower);
+                            Vector128<byte> upperLetters = Sse2.Or(upper, charTolower);
+
+                            Vector128<byte> letterTohex = Vector128.Create((byte)('a' - '0' - 10));
+                            lowerLetters = Sse2.Subtract(lowerLetters, letterTohex);
+                            upperLetters = Sse2.Subtract(upperLetters, letterTohex);
+
+                            Vector128<byte> char9 = Vector128.Create((byte)'9');
+                            Vector128<byte> above9lower = (Sse2.CompareGreaterThan(lower.AsSByte(), char9.AsSByte())).AsByte();
+
+                            Vector128<byte> ten = Vector128.Create((byte)('0' + 10));
+                            tmpcmp = Sse2.Subtract(lowerLetters, ten);
+                            tmpcmp = Sse2.And(tmpcmp, above9lower);
+                            cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+                            Vector128<byte> above9upper = (Sse2.CompareGreaterThan(upper.AsSByte(), char9.AsSByte())).AsByte();
+
+                            tmpcmp = Sse2.Subtract(upperLetters, ten);
+                            tmpcmp = Sse2.And(tmpcmp, above9upper);
+                            cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+
+                            lower = Sse41.BlendVariable(lower, lowerLetters, above9lower);
+                            upper = Sse41.BlendVariable(upper, upperLetters, above9upper);
+                            Vector128<byte> charzero = Vector128.Create((byte)'0');
+                            lower = Sse2.Subtract(lower, charzero);
+                            cmp = Sse2.MoveMask(lower);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+                            upper = Sse2.Subtract(upper, charzero);
+                            cmp = Sse2.MoveMask(upper);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+                            upper = Sse2.ShiftLeftLogical(upper.AsUInt16(), 4).AsByte();
+                            lower = Sse2.Or(lower, upper);
+                            if (BitConverter.IsLittleEndian)
+                                lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                            Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in result)) = lower;
+                            return true;
+                        }
+
                         if (BitConverter.IsLittleEndian)
                         {
-                            result.bytea3 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea0 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea3 = Utils.HexToByte(val, 0);
+                            result.bytea2 = Utils.HexToByte(val, 2);
+                            result.bytea1 = Utils.HexToByte(val, 4);
+                            result.bytea0 = Utils.HexToByte(val, 6);
 
-                            result.byteb1 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb0 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb1 = Utils.HexToByte(val, 9);
+                            result.byteb0 = Utils.HexToByte(val, 11);
 
-                            result.bytec1 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec0 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec1 = Utils.HexToByte(val, 14);
+                            result.bytec0 = Utils.HexToByte(val, 16);
                         }
                         else
                         {
-                            result.bytea0 = (byte)Utils.HexToByte(val, 0);
-                            result.bytea1 = (byte)Utils.HexToByte(val, 2);
-                            result.bytea2 = (byte)Utils.HexToByte(val, 4);
-                            result.bytea3 = (byte)Utils.HexToByte(val, 6);
+                            result.bytea0 = Utils.HexToByte(val, 0);
+                            result.bytea1 = Utils.HexToByte(val, 2);
+                            result.bytea2 = Utils.HexToByte(val, 4);
+                            result.bytea3 = Utils.HexToByte(val, 6);
 
-                            result.byteb0 = (byte)Utils.HexToByte(val, 9);
-                            result.byteb1 = (byte)Utils.HexToByte(val, 11);
+                            result.byteb0 = Utils.HexToByte(val, 9);
+                            result.byteb1 = Utils.HexToByte(val, 11);
 
-                            result.bytec0 = (byte)Utils.HexToByte(val, 14);
-                            result.bytec1 = (byte)Utils.HexToByte(val, 16);
+                            result.bytec0 = Utils.HexToByte(val, 14);
+                            result.bytec1 = Utils.HexToByte(val, 16);
                         }
 
-                        result.d = (byte)Utils.HexToByte(val, 19);
-                        result.e = (byte)Utils.HexToByte(val, 21);
+                        result.d = Utils.HexToByte(val, 19);
+                        result.e = Utils.HexToByte(val, 21);
 
 
-                        result.f = (byte)Utils.HexToByte(val, 24);
-                        result.g = (byte)Utils.HexToByte(val, 26);
-                        result.h = (byte)Utils.HexToByte(val, 28);
-                        result.i = (byte)Utils.HexToByte(val, 30);
-                        result.j = (byte)Utils.HexToByte(val, 32);
-                        result.k = (byte)Utils.HexToByte(val, 34);
+                        result.f = Utils.HexToByte(val, 24);
+                        result.g = Utils.HexToByte(val, 26);
+                        result.h = Utils.HexToByte(val, 28);
+                        result.i = Utils.HexToByte(val, 30);
+                        result.j = Utils.HexToByte(val, 32);
+                        result.k = Utils.HexToByte(val, 34);
                         return true;
                     }
                     else
@@ -1197,7 +1328,7 @@ namespace OpenMetaverse
             if (start >= m_len)
                 return Clone();
 
-            osUTF8 o = new osUTF8(m_len);
+            osUTF8 o = new(m_len);
             Array.Copy(m_data, 0, o.m_data, 0, start);
             o.m_len = start;
 
@@ -1211,6 +1342,27 @@ namespace OpenMetaverse
             Array.Copy(m_data, end, o.m_data, start, m_len - end);
             o.m_len = m_len - len;
             return o;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ToVarBin(Stream ms)
+        {
+            Utils.UIntToVarBytes(ms, (uint)m_len);
+            if (m_len > 0)
+                ms.Write(m_data, 0, m_len);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static osUTF8 FromVarBin(Stream ms)
+        {
+            int len = (int)Utils.VarBytestoUlong(ms);
+            if(len > 0)
+            {
+                byte[] data = new byte[len];
+                ms.Read(data,0, len);
+                return new osUTF8(data);
+            }
+            return new osUTF8();
         }
     }
 }

@@ -30,8 +30,6 @@ using System.IO;
 
 namespace OpenMetaverse.Imaging
 {
-#if !NO_UNSAFE
-
     /// <summary>
     /// Capability to load TGAs to Bitmap 
     /// </summary>
@@ -635,6 +633,4 @@ namespace OpenMetaverse.Imaging
             }
         }
     }
-
-#endif
 }

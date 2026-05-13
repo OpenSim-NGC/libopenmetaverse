@@ -1,14 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFrameworks>net48</TargetFrameworks>
+    <OutputType>Library</OutputType>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <NoWarn>1591,1574,0419,0618</NoWarn>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
-  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OpenMetaverse.PrimMesher\OpenMetaverse.PrimMesher.csproj" />
     <ProjectReference Include="..\OpenMetaverse.Rendering.Simple\OpenMetaverse.Rendering.Simple.csproj" />

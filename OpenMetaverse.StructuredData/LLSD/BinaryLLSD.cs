@@ -184,6 +184,7 @@ namespace OpenMetaverse.StructuredData
                     stream.Write(stringLengthNetEnd, 0, int32Length);
                     stream.Write(rawString, 0, rawString.Length);
                     break;
+                case OSDType.Long:
                 case OSDType.Binary:
                     stream.WriteByte(binaryBinaryMarker);
                     byte[] rawBinary = osd.AsBinary();

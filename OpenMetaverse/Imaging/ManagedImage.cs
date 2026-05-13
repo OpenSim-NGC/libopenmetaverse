@@ -53,7 +53,7 @@ namespace OpenMetaverse.Imaging
         /// Image height
         /// </summary>
         public int Height;
-
+        
         /// <summary>
         /// Image channel flags
         /// </summary>
@@ -63,12 +63,12 @@ namespace OpenMetaverse.Imaging
         /// Red channel data
         /// </summary>
         public byte[] Red;
-
+        
         /// <summary>
         /// Green channel data
         /// </summary>
         public byte[] Green;
-
+        
         /// <summary>
         /// Blue channel data
         /// </summary>
@@ -78,7 +78,7 @@ namespace OpenMetaverse.Imaging
         /// Alpha channel data
         /// </summary>
         public byte[] Alpha;
-
+        
         /// <summary>
         /// Bump channel data
         /// </summary>
@@ -116,7 +116,6 @@ namespace OpenMetaverse.Imaging
                 Bump = new byte[n];
         }
 
-#if !NO_UNSAFE
         /// <summary>
         /// 
         /// </summary>
@@ -131,10 +130,10 @@ namespace OpenMetaverse.Imaging
             if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
             {
                 Channels = ImageChannels.Alpha | ImageChannels.Color;
-                Red = new byte[pixelCount];
-                Green = new byte[pixelCount];
-                Blue = new byte[pixelCount];
-                Alpha = new byte[pixelCount];
+                Red = GC.AllocateUninitializedArray<byte>(pixelCount);
+                Green = GC.AllocateUninitializedArray<byte>(pixelCount);
+                Blue = GC.AllocateUninitializedArray<byte>(pixelCount);
+                Alpha = GC.AllocateUninitializedArray<byte>(pixelCount);
 
                 System.Drawing.Imaging.BitmapData bd = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, Width, Height),
                     System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
@@ -158,16 +157,16 @@ namespace OpenMetaverse.Imaging
             else if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format16bppGrayScale)
             {
                 Channels = ImageChannels.Gray;
-                Red = new byte[pixelCount];
+                Red = GC.AllocateUninitializedArray<byte>(pixelCount);
 
                 throw new NotImplementedException("16bpp grayscale image support is incomplete");
             }
             else if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format24bppRgb)
             {
                 Channels = ImageChannels.Color;
-                Red = new byte[pixelCount];
-                Green = new byte[pixelCount];
-                Blue = new byte[pixelCount];
+                Red = GC.AllocateUninitializedArray<byte>(pixelCount);
+                Green = GC.AllocateUninitializedArray<byte>(pixelCount);
+                Blue = GC.AllocateUninitializedArray<byte>(pixelCount);
 
                 System.Drawing.Imaging.BitmapData bd = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, Width, Height),
                         System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
@@ -187,38 +186,37 @@ namespace OpenMetaverse.Imaging
 
                 bitmap.UnlockBits(bd);
             }
-            else if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppRgb)
-            {
-                Channels = ImageChannels.Color;
-                Red = new byte[pixelCount];
-                Green = new byte[pixelCount];
-                Blue = new byte[pixelCount];
+			else if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppRgb)
+			{
+				Channels = ImageChannels.Color;
+				Red = GC.AllocateUninitializedArray<byte>(pixelCount);
+				Green = GC.AllocateUninitializedArray<byte>(pixelCount);
+				Blue = GC.AllocateUninitializedArray<byte>(pixelCount);
 
-                System.Drawing.Imaging.BitmapData bd = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, Width, Height),
-                        System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+				System.Drawing.Imaging.BitmapData bd = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, Width, Height),
+						System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
 
-                unsafe
-                {
-                    byte* pixel = (byte*)bd.Scan0;
+				unsafe
+				{
+					byte* pixel = (byte*)bd.Scan0;
 
-                    for (int i = 0; i < pixelCount; i++)
-                    {
-                        // GDI+ gives us BGR and we need to turn that in to RGB
-                        Blue[i] = *(pixel++);
-                        Green[i] = *(pixel++);
-                        Red[i] = *(pixel++);
-                        pixel++;    // Skip over the empty byte where the Alpha info would normally be
-                    }
-                }
+					for (int i = 0; i < pixelCount; i++)
+					{
+						// GDI+ gives us BGR and we need to turn that in to RGB
+						Blue[i] = *(pixel++);
+						Green[i] = *(pixel++);
+						Red[i] = *(pixel++);
+						pixel++;	// Skip over the empty byte where the Alpha info would normally be
+					}
+				}
 
-                bitmap.UnlockBits(bd);
-            }
-            else
+				bitmap.UnlockBits(bd);
+			}
+			else
             {
                 throw new NotSupportedException("Unrecognized pixel format: " + bitmap.PixelFormat.ToString());
             }
         }
-#endif
 
         /// <summary>
         /// Convert the channels in the image. Channels are created or destroyed as required.
@@ -235,9 +233,9 @@ namespace OpenMetaverse.Imaging
 
             if ((add & ImageChannels.Color) != 0)
             {
-                Red = new byte[n];
-                Green = new byte[n];
-                Blue = new byte[n];
+                Red = GC.AllocateUninitializedArray<byte>(n);
+                Green = GC.AllocateUninitializedArray<byte>(n);
+                Blue = GC.AllocateUninitializedArray<byte>(n);
             }
             else if ((del & ImageChannels.Color) != 0)
             {
@@ -273,10 +271,10 @@ namespace OpenMetaverse.Imaging
                 return;
 
             byte[]
-                red = null,
-                green = null,
-                blue = null,
-                alpha = null,
+                red = null, 
+                green = null, 
+                blue = null, 
+                alpha = null, 
                 bump = null;
             int n = width * height;
             int di = 0, si;
@@ -286,7 +284,7 @@ namespace OpenMetaverse.Imaging
             if (Blue != null) blue = new byte[n];
             if (Alpha != null) alpha = new byte[n];
             if (Bump != null) bump = new byte[n];
-
+            
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)

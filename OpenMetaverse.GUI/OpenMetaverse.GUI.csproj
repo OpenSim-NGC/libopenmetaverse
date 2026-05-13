@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFrameworks>net48</TargetFrameworks>
-    <NoWarn>1591,1574,0419,0618</NoWarn>
+    <OutputType>WinExe</OutputType>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
@@ -16,16 +15,5 @@
   <ItemGroup>
     <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
     <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Update="AvatarList.cs" />
-    <Compile Update="FriendList.cs" />
-    <Compile Update="GroupList.cs" />
-    <Compile Update="InventoryTree.cs" />
-    <Compile Update="LocalChat.cs" />
-    <Compile Update="LoginPanel.cs" />
-    <Compile Update="MessageBar.cs" />
-    <Compile Update="MiniMap.cs" />
-    <Compile Update="StatusOutput.cs" />
   </ItemGroup>
 </Project>

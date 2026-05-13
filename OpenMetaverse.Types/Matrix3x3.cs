@@ -25,7 +25,10 @@
  */
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
+using System.Runtime.Intrinsics;
 
 namespace OpenMetaverse
 {
@@ -105,22 +108,31 @@ namespace OpenMetaverse
 
         public  Matrix3x3(float roll, float pitch, float yaw)
         {
-            this = CreateFromEulers(roll, pitch, yaw);
+            float a = MathF.Cos(roll);
+            float b = MathF.Sin(roll);
+            float c = MathF.Cos(pitch);
+            float d = MathF.Sin(pitch);
+            float e = MathF.Cos(yaw);
+            float f = MathF.Sin(yaw);
+
+            float ad = a * d;
+            float bd = b * d;
+            M11 = c * e;
+            M12 = -c * f;
+            M13 = d;
+
+            M21 = bd * e + a * f;
+            M22 = -bd * f + a * e;
+            M23 = -b * c;
+
+            M31 = -ad * e + b * f;
+            M32 = ad * f + b * e;
+            M33 = a * c;
         }
 
-        public  Matrix3x3( Matrix3x3 m)
+        public Matrix3x3(Matrix3x3 m)
         {
-            M11 = m.M11;
-            M12 = m.M12;
-            M13 = m.M13;
-
-            M21 = m.M21;
-            M22 = m.M22;
-            M23 = m.M23;
-
-            M31 = m.M31;
-            M32 = m.M32;
-            M33 = m.M33;
+            this = m;
         }
 
         #endregion Constructors
@@ -157,25 +169,25 @@ namespace OpenMetaverse
         /// <param name="yaw">Z euler angle</param>
         public void GetEulerAngles(out float roll, out float pitch, out float yaw)
         {
-            double angleX, angleY, angleZ;
-            double cx, cy, cz; // cosines
-            double sx, sz; // sines
+            float angleX, angleY, angleZ;
+            float cx, cy, cz; // cosines
+            float sx, sz; // sines
 
-            angleY = Math.Asin(Utils.Clamp(M13, -1f, 1f));
-            cy = Math.Cos(angleY);
+            angleY = MathF.Asin(Utils.Clamp(M13, -1f, 1f));
+            cy = MathF.Cos(angleY);
 
-            if (Math.Abs(cy) > 0.005f)
+            if (MathF.Abs(cy) > 0.005f)
             {
                 // No gimbal lock
                 cx = M33 / cy;
                 sx = (-M23) / cy;
 
-                angleX = (float)Math.Atan2(sx, cx);
+                angleX = MathF.Atan2(sx, cx);
 
                 cz = M11 / cy;
                 sz = (-M12) / cy;
 
-                angleZ = (float)Math.Atan2(sz, cz);
+                angleZ = MathF.Atan2(sz, cz);
             }
             else
             {
@@ -185,13 +197,13 @@ namespace OpenMetaverse
                 cz = M22;
                 sz = M21;
 
-                angleZ = Math.Atan2(sz, cz);
+                angleZ = MathF.Atan2(sz, cz);
             }
 
             // Return only positive angles in [0,360]
-            if (angleX < 0) angleX += 360d;
-            if (angleY < 0) angleY += 360d;
-            if (angleZ < 0) angleZ += 360d;
+            if (angleX < 0) angleX += 360f;
+            if (angleY < 0) angleY += 360f;
+            if (angleZ < 0) angleZ += 360f;
 
             roll = (float)angleX;
             pitch = (float)angleY;
@@ -202,14 +214,15 @@ namespace OpenMetaverse
         /// Convert this matrix to a quaternion rotation
         /// </summary>
         /// <returns>A quaternion representation of this rotation matrix</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Quaternion GetQuaternion()
         {
             Quaternion quat = new Quaternion();
             float trace = Trace() + 1f;
 
-            if (trace > Single.Epsilon)
+            if (trace > float.Epsilon)
             {
-                float s = 0.5f / (float)Math.Sqrt(trace);
+                float s = 0.5f / MathF.Sqrt(trace);
 
                 quat.X = (M32 - M23) * s;
                 quat.Y = (M13 - M31) * s;
@@ -220,7 +233,7 @@ namespace OpenMetaverse
             {
                 if (M11 > M22 && M11 > M33)
                 {
-                    float s = 2.0f * (float)Math.Sqrt(1.0f + M11 - M22 - M33);
+                    float s = 2.0f * MathF.Sqrt(1.0f + M11 - M22 - M33);
 
                     quat.X = 0.25f * s;
                     quat.Y = (M12 + M21) / s;
@@ -229,7 +242,7 @@ namespace OpenMetaverse
                 }
                 else if (M22 > M33)
                 {
-                    float s = 2.0f * (float)Math.Sqrt(1.0f + M22 - M11 - M33);
+                    float s = 2.0f * MathF.Sqrt(1.0f + M22 - M11 - M33);
 
                     quat.X = (M12 + M21) / s;
                     quat.Y = 0.25f * s;
@@ -238,7 +251,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    float s = 2.0f * (float)Math.Sqrt(1.0f + M33 - M11 - M22);
+                    float s = 2.0f * MathF.Sqrt(1.0f + M33 - M11 - M22);
 
                     quat.X = (M13 + M31) / s;
                     quat.Y = (M23 + M32) / s;
@@ -252,9 +265,9 @@ namespace OpenMetaverse
 
         public bool Decompose(out Vector3 scale, out Quaternion rotation)
         {
-            float sx = (float)Math.Sqrt(M11 * M11 + M12 * M12 + M13 * M13);
-            float sy = (float)Math.Sqrt(M21 * M21 + M22 * M22 + M23 * M23);
-            float sz = (float)Math.Sqrt(M31 * M31 + M32 * M32 + M33 * M33);
+            float sx = MathF.Sqrt(M11 * M11 + M12 * M12 + M13 * M13);
+            float sy = MathF.Sqrt(M21 * M21 + M22 * M22 + M23 * M23);
+            float sz = MathF.Sqrt(M31 * M31 + M32 * M32 + M33 * M33);
 
             scale = new Vector3(sx, sy, sz);
             if (sx == 0.0 || sy == 0.0 || sz == 0.0)
@@ -270,13 +283,14 @@ namespace OpenMetaverse
 
             rotation = Quaternion.CreateFromRotationMatrix(m1);
             return true;
-        }	
+        }
 
         #endregion Public Methods
 
         #region Static Methods
 
-        public static  Matrix3x3 Add( Matrix3x3 matrix1,  Matrix3x3 matrix2)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Matrix3x3 Add(Matrix3x3 matrix1, in Matrix3x3 matrix2)
         {
             return new Matrix3x3(
                 matrix1.M11 + matrix2.M11,
@@ -295,12 +309,11 @@ namespace OpenMetaverse
 
         public static  Matrix3x3 CreateFromAxisAngle(Vector3 axis, float angle)
         {
-
             float x = axis.X;
             float y = axis.Y;
             float z = axis.Z;
-            float sin = (float)Math.Sin(angle);
-            float cos = (float)Math.Cos(angle);
+            float sin = MathF.Sin(angle);
+            float cos = MathF.Cos(angle);
             float xx = x * x;
             float yy = y * y;
             float zz = z * z;
@@ -331,12 +344,12 @@ namespace OpenMetaverse
         /// <param name="yaw">Z euler angle in radians</param>
         public static  Matrix3x3 CreateFromEulers(float roll, float pitch, float yaw)
         {
-            float a = (float)Math.Cos(roll);
-            float b = (float)Math.Sin(roll);
-            float c = (float)Math.Cos(pitch);
-            float d = (float)Math.Sin(pitch);
-            float e = (float)Math.Cos(yaw);
-            float f = (float)Math.Sin(yaw);
+            float a = MathF.Cos(roll);
+            float b = MathF.Sin(roll);
+            float c = MathF.Cos(pitch);
+            float d = MathF.Sin(pitch);
+            float e = MathF.Cos(yaw);
+            float f = MathF.Sin(yaw);
 
             float ad = a * d;
             float bd = b * d;
@@ -355,9 +368,10 @@ namespace OpenMetaverse
                 );
         }
 
-        public static  Matrix3x3 CreateFromQuaternion(Quaternion rot)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Matrix3x3 CreateFromQuaternion(Quaternion rot)
         {
-             float x2 = rot.X + rot.X;
+            float x2 = rot.X + rot.X;
             float y2 = rot.Y + rot.Y;
             float z2 = rot.Z + rot.Z;
 
@@ -372,24 +386,74 @@ namespace OpenMetaverse
             float zz2 = rot.Z * z2;
 
             return new Matrix3x3(
-                1.0f - yy2 - zz2,
-                xy2 - wz2,
-                xz2 + wy2,
+                1.0f - yy2 - zz2, xy2 + wz2, xz2 - wy2,
+                xy2 - wz2, 1.0f - xx2 - zz2, yz2 + wx2,
+                xz2 + wy2, yz2 - wx2, 1.0f - xx2 - yy2
+            );
+        }
 
-                xy2 + wz2,
-                1.0f - xx2 - zz2,
-                yz2 - wx2,
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Matrix3x3 CreateFromQuaternion(ref Quaternion rot)
+        {
+            float wx2, wy2, wz2;
+            float xx2, xy2, xz2;
+            float yy2, yz2;
+            float zz2;
 
-                xz2 - wy2,
-                yz2 + wx2,
-                1.0f - xx2 - yy2
+            if (Sse41.IsSupported)
+            {
+                unsafe
+                {
+                    Vector128<float> vrot = Sse.LoadVector128((float*)Unsafe.AsPointer(ref rot));
+                    Vector128<float> vrot2 = Sse.Add(vrot, vrot);
+                    Vector128<float> v2 = Sse.Multiply(vrot, vrot2);
+                    xx2 = Vector128.GetElement(v2, 0);
+                    yy2 = Vector128.GetElement(v2, 1);
+                    zz2 = Vector128.GetElement(v2, 3);
+
+                    v2 = Sse.Multiply(vrot2, Sse3.Shuffle(vrot, vrot, 0xff));
+                    wx2 = Vector128.GetElement(v2, 0);
+                    wy2 = Vector128.GetElement(v2, 1);
+                    wz2 = Vector128.GetElement(v2, 2);
+
+                    v2 = Sse.Multiply(vrot2, Sse3.Shuffle(vrot, vrot, 0x00));
+                    xy2 = Vector128.GetElement(v2, 1);
+                    xz2 = Vector128.GetElement(v2, 2);
+
+                    yz2 = Vector128.GetElement(vrot, 1) * Vector128.GetElement(vrot2, 2);
+
+                    return new Matrix3x3(
+                        1.0f - yy2 - zz2, xy2 + wz2, xz2 - wy2,
+                        xy2 - wz2, 1.0f - xx2 - zz2, yz2 + wx2,
+                        xz2 + wy2, yz2 - wx2, 1.0f - xx2 - yy2);
+                }
+            }
+
+            float x2 = rot.X + rot.X;
+            float y2 = rot.Y + rot.Y;
+            float z2 = rot.Z + rot.Z;
+
+            wx2 = rot.W * x2;
+            wy2 = rot.W * y2;
+            wz2 = rot.W * z2;
+            xx2 = rot.X * x2;
+            xy2 = rot.X * y2;
+            xz2 = rot.X * z2;
+            yy2 = rot.Y * y2;
+            yz2 = rot.Y * z2;
+            zz2 = rot.Z * z2;
+
+            return new Matrix3x3(
+                1.0f - yy2 - zz2, xy2 + wz2, xz2 - wy2,
+                xy2 - wz2, 1.0f - xx2 - zz2, yz2 + wx2,
+                xz2 + wy2, yz2 - wx2, 1.0f - xx2 - yy2
             );
         }
 
         public static  Matrix3x3 CreateRotationX(float radians)
         {
-            float cos = (float)Math.Cos(radians);
-            float sin = (float)Math.Sin(radians);
+            float cos = MathF.Cos(radians);
+            float sin = MathF.Sin(radians);
 
             return new Matrix3x3(
                 1f, 0f, 0f,
@@ -400,8 +464,8 @@ namespace OpenMetaverse
 
         public static  Matrix3x3 CreateRotationY(float radians)
         {
-            float cos = (float)Math.Cos(radians);
-            float sin = (float)Math.Sin(radians);
+            float cos = MathF.Cos(radians);
+            float sin = MathF.Sin(radians);
 
             return new Matrix3x3(
                 cos, 0f, -sin,
@@ -412,8 +476,8 @@ namespace OpenMetaverse
 
         public static  Matrix3x3 CreateRotationZ(float radians)
         {
-            float cos = (float)Math.Cos(radians);
-            float sin = (float)Math.Sin(radians);
+            float cos = MathF.Cos(radians);
+            float sin = MathF.Sin(radians);
 
             return new Matrix3x3(
                 cos, sin, 0f,
@@ -431,7 +495,7 @@ namespace OpenMetaverse
                 );
         }
 
-        public static  Matrix3x3 Divide( Matrix3x3 matrix1,  Matrix3x3 matrix2)
+        public static  Matrix3x3 Divide(Matrix3x3 matrix1, Matrix3x3 matrix2)
         {
             return new Matrix3x3(
                 matrix1.M11 / matrix2.M11,
@@ -448,7 +512,7 @@ namespace OpenMetaverse
             );
         }
 
-        public static  Matrix3x3 Divide( Matrix3x3 matrix1, float divider)
+        public static Matrix3x3 Divide(Matrix3x3 matrix1, float divider)
         {
             float oodivider = 1f / divider;
             return new Matrix3x3(
@@ -466,7 +530,7 @@ namespace OpenMetaverse
             );
         }
 
-        public static  Matrix3x3 Lerp( Matrix3x3 matrix1,  Matrix3x3 matrix2, float amount)
+        public static  Matrix3x3 Lerp(Matrix3x3 matrix1, Matrix3x3 matrix2, float amount)
         {
             return new Matrix3x3(
                 matrix1.M11 + ((matrix2.M11 - matrix1.M11) * amount),
@@ -483,7 +547,7 @@ namespace OpenMetaverse
                 );
         }
 
-        public static  Matrix3x3 Multiply( Matrix3x3 matrix1,  Matrix3x3 matrix2)
+        public static  Matrix3x3 Multiply(Matrix3x3 matrix1, Matrix3x3 matrix2)
         {
             return new Matrix3x3(
                 matrix1.M11 * matrix2.M11 + matrix1.M12 * matrix2.M21 + matrix1.M13 * matrix2.M31,
@@ -500,7 +564,7 @@ namespace OpenMetaverse
             );
         }
 
-        public static  Matrix3x3 Multiply( Matrix3x3 matrix1, float scaleFactor)
+        public static  Matrix3x3 Multiply(Matrix3x3 matrix1, float scaleFactor)
         {
             Matrix3x3 matrix;
             matrix.M11 = matrix1.M11 * scaleFactor;
@@ -518,7 +582,7 @@ namespace OpenMetaverse
             return matrix;
         }
 
-        public static  Matrix3x3 Negate( Matrix3x3 matrix)
+        public static  Matrix3x3 Negate(Matrix3x3 matrix)
         {
             return new Matrix3x3(
                 -matrix.M11, -matrix.M12, -matrix.M13,
@@ -527,7 +591,7 @@ namespace OpenMetaverse
                 );
         }
 
-        public static  Matrix3x3 Subtract( Matrix3x3 matrix1,  Matrix3x3 matrix2)
+        public static  Matrix3x3 Subtract(Matrix3x3 matrix1, Matrix3x3 matrix2)
         {
             return new Matrix3x3(
                 matrix1.M11 - matrix2.M11,
@@ -544,7 +608,7 @@ namespace OpenMetaverse
                 );
         }
 
-        public static  Matrix3x3 Transform( Matrix3x3 value, Quaternion rotation)
+        public static  Matrix3x3 Transform(Matrix3x3 value, Quaternion rotation)
         {
             float x2 = rotation.X + rotation.X;
             float y2 = rotation.Y + rotation.Y;
@@ -595,37 +659,24 @@ namespace OpenMetaverse
             if (matrix.Determinant3x3() == 0f)
                 throw new ArgumentException("Singular matrix inverse not possible");
 
-            return (Adjoint3x3(matrix) / matrix.Determinant3x3());
+            return (Adjoint(matrix) / matrix.Determinant3x3());
         }
 
-        public static  Matrix3x3 Adjoint3x3( Matrix3x3 matrix)
-        {
-             Matrix3x3 adjointMatrix = new  Matrix3x3();
-            for (int i = 0; i < 4; i++)
-            {
-                for (int j = 0; j < 4; j++)
-                    adjointMatrix[i,j] = (float)(Math.Pow(-1, i + j) * (Minor(matrix, i, j).Determinant3x3()));
-            }
-
-            adjointMatrix = Transpose(adjointMatrix);
-            return adjointMatrix;
-        }
-
-        public static  Matrix3x3 Inverse( Matrix3x3 matrix)
+        public static  Matrix3x3 Inverse(Matrix3x3 matrix)
         {
             if (matrix.Determinant() == 0f)
                 throw new ArgumentException("Singular matrix inverse not possible");
 
-            return (Adjoint(matrix) / matrix.Determinant());
+            return Adjoint(matrix) / matrix.Determinant();
         }
 
-        public static  Matrix3x3 Adjoint( Matrix3x3 matrix)
+        public static  Matrix3x3 Adjoint(Matrix3x3 matrix)
         {
-             Matrix3x3 adjointMatrix = new  Matrix3x3();
+             Matrix3x3 adjointMatrix = new();
             for (int i = 0; i < 3; i++)
             {
                 for (int j = 0; j < 3; j++)
-                    adjointMatrix[i,j] = (float)(Math.Pow(-1, i + j) * ((Minor(matrix, i, j)).Determinant3x3()));
+                    adjointMatrix[i,j] = MathF.Pow(-1, i + j) * ((Minor(matrix, i, j)).Determinant3x3());
             }
 
             adjointMatrix = Transpose(adjointMatrix);
@@ -634,7 +685,7 @@ namespace OpenMetaverse
 
         public static  Matrix3x3 Minor(Matrix3x3 matrix, int row, int col)
         {
-            Matrix3x3 minor = new  Matrix3x3();
+            Matrix3x3 minor = new();
             int m = 0, n = 0;
 
             for (int i = 0; i < 3; i++)
@@ -694,47 +745,47 @@ namespace OpenMetaverse
 
         #region Operators
 
-        public static bool operator ==( Matrix3x3 left,  Matrix3x3 right)
+        public static bool operator ==(Matrix3x3 left, Matrix3x3 right)
         {
             return left.Equals(right);
         }
 
-        public static bool operator !=( Matrix3x3 left,  Matrix3x3 right)
+        public static bool operator !=(Matrix3x3 left, Matrix3x3 right)
         {
             return !left.Equals(right);
         }
 
-        public static  Matrix3x3 operator +( Matrix3x3 left,  Matrix3x3 right)
+        public static  Matrix3x3 operator +(Matrix3x3 left, Matrix3x3 right)
         {
             return Add(left, right);
         }
 
-        public static  Matrix3x3 operator -( Matrix3x3 matrix)
+        public static  Matrix3x3 operator -(Matrix3x3 matrix)
         {
             return Negate(matrix);
         }
 
-        public static  Matrix3x3 operator -( Matrix3x3 left,  Matrix3x3 right)
+        public static  Matrix3x3 operator -(Matrix3x3 left, Matrix3x3 right)
         {
             return Subtract(left, right);
         }
 
-        public static  Matrix3x3 operator *( Matrix3x3 left,  Matrix3x3 right)
+        public static  Matrix3x3 operator *(Matrix3x3 left, Matrix3x3 right)
         {
             return Multiply(left, right);
         }
 
-        public static  Matrix3x3 operator *( Matrix3x3 left, float scalar)
+        public static  Matrix3x3 operator *(Matrix3x3 left, float scalar)
         {
             return Multiply(left, scalar);
         }
 
-        public static  Matrix3x3 operator /( Matrix3x3 left,  Matrix3x3 right)
+        public static  Matrix3x3 operator /(Matrix3x3 left, Matrix3x3 right)
         {
             return Divide(left, right);
         }
 
-        public static  Matrix3x3 operator /( Matrix3x3 matrix, float divider)
+        public static  Matrix3x3 operator /(Matrix3x3 matrix, float divider)
         {
             return Divide(matrix, divider);
         }
@@ -875,10 +926,10 @@ namespace OpenMetaverse
         #endregion Operators
 
         /// <summary>A 3x3 matrix containing all zeroes</summary>
-        public static readonly  Matrix3x3 Zero = new  Matrix3x3();
+        public static readonly  Matrix3x3 Zero = new();
 
         /// <summary>A 3x3 identity matrix</summary>
-        public static readonly  Matrix3x3 Identity = new  Matrix3x3(
+        public static readonly  Matrix3x3 Identity = new(
             1f, 0f, 0f,
             0f, 1f, 0f,
             0f, 0f, 1f);

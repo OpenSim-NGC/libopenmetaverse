@@ -267,7 +267,6 @@ namespace LitJson
         }
         #endregion
 
-
         public override string ToString()
         {
             if (inst_string_builder == null)
@@ -316,7 +315,7 @@ namespace LitJson
             string str = Convert.ToString(number, number_format);
             Put(str);
 
-            if (str.IndexOfAny(new char[] { '.', 'E' }) == -1)
+            if (str.IndexOfAny(['.', 'e' ,'E']) < 0)
                 writer.Write(".0");
 
             context.ExpectingValue = false;

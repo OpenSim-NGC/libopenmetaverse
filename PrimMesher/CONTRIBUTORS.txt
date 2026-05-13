@@ -1,0 +1,9 @@
+Original primary developer of PrimMesher is Dahlia Trimble. https://github.com/dahliaT/PrimMesher
+
+Additional contributors (in no particular order):
+Morgaine Dinova
+Latif Kalifa (lkalif)
+
+Some portions of PrimMesher are from the following projects:
+* OpenSimulator (original extrusion concept)
+* LibOpenMetaverse (quaternion multiplication routine)

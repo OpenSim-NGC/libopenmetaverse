@@ -484,7 +484,7 @@ namespace GridAccountant
             query.QueryData.QueryFlags = 1;
             query.QueryData.QueryID = UUID.Random();
             query.QueryData.QueryStart = 0;
-            query.QueryData.QueryText = Utils.StringToBytes(txtFind.Text);
+            query.QueryData.QueryText = Utils.StringToBytes(ref txtFind.Text);
             query.Header.Reliable = true;
 
             Client.Network.SendPacket(query);

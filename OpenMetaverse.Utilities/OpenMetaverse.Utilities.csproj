@@ -1,10 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFrameworks>net48</TargetFrameworks>
+    <OutputType>Library</OutputType>
     <AssemblyTitle>OpenMetaverse.Utilities</AssemblyTitle>
     <Product>OpenMetaverse.Utilities</Product>
-    <NoWarn>1591,1574,0419,0618</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

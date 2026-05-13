@@ -275,6 +275,8 @@ namespace OpenMetaverse
         /// <summary></summary>
         Mesh = 5,
         /// <summary></summary>
+        llGLTF = 6,
+        /// <summary></summary>
         Invert = 64,
         /// <summary></summary>
         Mirror = 128
