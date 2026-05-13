@@ -8,6 +8,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.14" />
+    <PackageReference Include="CoreJ2K" Version="2.1.2.38" />
+    <PackageReference Include="CoreJ2K.Skia" Version="2.1.2.38" />
+    <PackageReference Include="SkiaSharp" Version="3.119.1" />
     <PackageReference Include="ZeroFormatter" Version="1.6.4" />
   </ItemGroup>
   <ItemGroup>

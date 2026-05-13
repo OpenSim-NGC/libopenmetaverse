@@ -24,12 +24,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using ComponentAce.Compression.Libs.zlib;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 
 namespace OpenMetaverse.Messages.Linden
@@ -4504,15 +4504,9 @@ namespace OpenMetaverse.Messages.Linden
                 {
                     using (MemoryStream output = new MemoryStream())
                     {
-                        using (ZOutputStream zout = new ZOutputStream(output))
+                        using (ZLibStream zStream = new ZLibStream(input, CompressionMode.Decompress))
                         {
-                            byte[] buffer = new byte[2048];
-                            int len;
-                            while ((len = input.Read(buffer, 0, buffer.Length)) > 0)
-                            {
-                                zout.Write(buffer, 0, len);
-                            }
-                            zout.Flush();
+                            Helpers.CopyStream(zStream, output);
                             output.Seek(0, SeekOrigin.Begin);
                             MaterialData = OSDParser.DeserializeLLSDBinary(output);
                         }

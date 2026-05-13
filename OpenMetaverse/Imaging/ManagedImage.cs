@@ -25,6 +25,8 @@
  */
 
 using System;
+using System.Runtime.InteropServices;
+using SkiaSharp;
 
 namespace OpenMetaverse.Imaging
 {
@@ -120,101 +122,34 @@ namespace OpenMetaverse.Imaging
         /// 
         /// </summary>
         /// <param name="bitmap"></param>
-        public ManagedImage(System.Drawing.Bitmap bitmap)
+        public ManagedImage(SKBitmap bitmap)
         {
             Width = bitmap.Width;
             Height = bitmap.Height;
 
             int pixelCount = Width * Height;
 
-            if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb)
-            {
-                Channels = ImageChannels.Alpha | ImageChannels.Color;
-                Red = GC.AllocateUninitializedArray<byte>(pixelCount);
-                Green = GC.AllocateUninitializedArray<byte>(pixelCount);
-                Blue = GC.AllocateUninitializedArray<byte>(pixelCount);
+            bool hasAlpha = bitmap.AlphaType != SKAlphaType.Opaque;
+            Channels = ImageChannels.Color | (hasAlpha ? ImageChannels.Alpha : 0);
+            Red = GC.AllocateUninitializedArray<byte>(pixelCount);
+            Green = GC.AllocateUninitializedArray<byte>(pixelCount);
+            Blue = GC.AllocateUninitializedArray<byte>(pixelCount);
+            if (hasAlpha)
                 Alpha = GC.AllocateUninitializedArray<byte>(pixelCount);
 
-                System.Drawing.Imaging.BitmapData bd = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, Width, Height),
-                    System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-                unsafe
+            int i = 0;
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
                 {
-                    byte* pixel = (byte*)bd.Scan0;
-
-                    for (int i = 0; i < pixelCount; i++)
-                    {
-                        // GDI+ gives us BGRA and we need to turn that in to RGBA
-                        Blue[i] = *(pixel++);
-                        Green[i] = *(pixel++);
-                        Red[i] = *(pixel++);
-                        Alpha[i] = *(pixel++);
-                    }
+                    SKColor pixel = bitmap.GetPixel(x, y);
+                    Red[i] = pixel.Red;
+                    Green[i] = pixel.Green;
+                    Blue[i] = pixel.Blue;
+                    if (hasAlpha)
+                        Alpha[i] = pixel.Alpha;
+                    i++;
                 }
-
-                bitmap.UnlockBits(bd);
-            }
-            else if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format16bppGrayScale)
-            {
-                Channels = ImageChannels.Gray;
-                Red = GC.AllocateUninitializedArray<byte>(pixelCount);
-
-                throw new NotImplementedException("16bpp grayscale image support is incomplete");
-            }
-            else if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format24bppRgb)
-            {
-                Channels = ImageChannels.Color;
-                Red = GC.AllocateUninitializedArray<byte>(pixelCount);
-                Green = GC.AllocateUninitializedArray<byte>(pixelCount);
-                Blue = GC.AllocateUninitializedArray<byte>(pixelCount);
-
-                System.Drawing.Imaging.BitmapData bd = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, Width, Height),
-                        System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-
-                unsafe
-                {
-                    byte* pixel = (byte*)bd.Scan0;
-
-                    for (int i = 0; i < pixelCount; i++)
-                    {
-                        // GDI+ gives us BGR and we need to turn that in to RGB
-                        Blue[i] = *(pixel++);
-                        Green[i] = *(pixel++);
-                        Red[i] = *(pixel++);
-                    }
-                }
-
-                bitmap.UnlockBits(bd);
-            }
-			else if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppRgb)
-			{
-				Channels = ImageChannels.Color;
-				Red = GC.AllocateUninitializedArray<byte>(pixelCount);
-				Green = GC.AllocateUninitializedArray<byte>(pixelCount);
-				Blue = GC.AllocateUninitializedArray<byte>(pixelCount);
-
-				System.Drawing.Imaging.BitmapData bd = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, Width, Height),
-						System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
-
-				unsafe
-				{
-					byte* pixel = (byte*)bd.Scan0;
-
-					for (int i = 0; i < pixelCount; i++)
-					{
-						// GDI+ gives us BGR and we need to turn that in to RGB
-						Blue[i] = *(pixel++);
-						Green[i] = *(pixel++);
-						Red[i] = *(pixel++);
-						pixel++;	// Skip over the empty byte where the Alpha info would normally be
-					}
-				}
-
-				bitmap.UnlockBits(bd);
-			}
-			else
-            {
-                throw new NotSupportedException("Unrecognized pixel format: " + bitmap.PixelFormat.ToString());
             }
         }
 
@@ -380,7 +315,7 @@ namespace OpenMetaverse.Imaging
         /// origin, suitable for feeding directly into OpenGL
         /// </summary>
         /// <returns>A byte array containing raw texture data</returns>
-        public System.Drawing.Bitmap ExportBitmap()
+        public SKBitmap ExportBitmap()
         {
             byte[] raw = new byte[Width * Height * 4];
 
@@ -421,20 +356,9 @@ namespace OpenMetaverse.Imaging
                 }
             }
 
-            System.Drawing.Bitmap b = new System.Drawing.Bitmap(
-                        Width,
-                        Height,
-                        System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-            System.Drawing.Imaging.BitmapData bd = b.LockBits(new System.Drawing.Rectangle(0, 0, b.Width, b.Height),
-                System.Drawing.Imaging.ImageLockMode.WriteOnly,
-                System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-            System.Runtime.InteropServices.Marshal.Copy(raw, 0, bd.Scan0, Width * Height * 4);
-
-            b.UnlockBits(bd);
-
-            return b;
+            SKBitmap bitmap = new SKBitmap(new SKImageInfo(Width, Height, SKColorType.Bgra8888, SKAlphaType.Unpremul));
+            Marshal.Copy(raw, 0, bitmap.GetPixels(), Width * Height * 4);
+            return bitmap;
         }
 
         public byte[] ExportTGA()

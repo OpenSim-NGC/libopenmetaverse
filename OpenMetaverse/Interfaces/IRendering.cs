@@ -26,7 +26,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using SkiaSharp;
 
 namespace OpenMetaverse.Rendering
 {
@@ -68,7 +68,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="sculptTexture">Sculpt texture</param>
         /// <param name="lod">Level of detail to generate the mesh at</param>
         /// <returns>The generated mesh</returns>
-        SimpleMesh GenerateSimpleSculptMesh(Primitive prim, Bitmap sculptTexture, DetailLevel lod);
+        SimpleMesh GenerateSimpleSculptMesh(Primitive prim, SKBitmap sculptTexture, DetailLevel lod);
 
         /// <summary>
         /// Generates a series of faces, each face containing a mesh and
@@ -87,7 +87,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="sculptTexture">Sculpt texture</param>
         /// <param name="lod">Level of detail to generate the mesh at</param>
         /// <returns>The generated mesh</returns>
-        FacetedMesh GenerateFacetedSculptMesh(Primitive prim, Bitmap sculptTexture, DetailLevel lod);
+        FacetedMesh GenerateFacetedSculptMesh(Primitive prim, SKBitmap sculptTexture, DetailLevel lod);
 
         /// <summary>
         /// Apply texture coordinate modifications from a

@@ -25,8 +25,8 @@
  */
 
 using System;
-using System.Drawing;
 using System.IO;
+using SkiaSharp;
 
 namespace OpenMetaverse.Imaging
 {
@@ -130,6 +130,14 @@ namespace OpenMetaverse.Imaging
             public bool NeedNoConvert;
         }
 
+        struct TgaBitmapData
+        {
+            public int Width;
+            public int Height;
+            public int Stride;
+            public IntPtr Scan0;
+        }
+
         static uint UnpackColor(
             uint sourceColor, ref tgaCD cd)
         {
@@ -153,7 +161,7 @@ namespace OpenMetaverse.Imaging
         }
 
         static unsafe void decodeLine(
-            System.Drawing.Imaging.BitmapData b,
+            TgaBitmapData b,
             int line,
             int byp,
             byte[] data,
@@ -197,7 +205,7 @@ namespace OpenMetaverse.Imaging
         }
 
         static void decodeRle(
-            System.Drawing.Imaging.BitmapData b,
+            TgaBitmapData b,
             int byp, tgaCD cd, System.IO.BinaryReader br, bool bottomUp)
         {
             try
@@ -262,7 +270,7 @@ namespace OpenMetaverse.Imaging
         }
 
         static void decodePlain(
-            System.Drawing.Imaging.BitmapData b,
+            TgaBitmapData b,
             int byp, tgaCD cd, System.IO.BinaryReader br, bool bottomUp)
         {
             int w = b.Width;
@@ -280,7 +288,7 @@ namespace OpenMetaverse.Imaging
         }
 
         static void decodeStandard8(
-            System.Drawing.Imaging.BitmapData b,
+            TgaBitmapData b,
             tgaHeader hdr,
             System.IO.BinaryReader br)
         {
@@ -301,7 +309,7 @@ namespace OpenMetaverse.Imaging
         }
 
         static void decodeSpecial16(
-            System.Drawing.Imaging.BitmapData b, tgaHeader hdr, System.IO.BinaryReader br)
+            TgaBitmapData b, tgaHeader hdr, System.IO.BinaryReader br)
         {
             // i must convert the input stream to a sequence of uint values
             // which I then unpack.
@@ -323,7 +331,7 @@ namespace OpenMetaverse.Imaging
         }
 
         static void decodeStandard16(
-            System.Drawing.Imaging.BitmapData b,
+            TgaBitmapData b,
             tgaHeader hdr,
             System.IO.BinaryReader br)
         {
@@ -347,7 +355,7 @@ namespace OpenMetaverse.Imaging
         }
 
 
-        static void decodeSpecial24(System.Drawing.Imaging.BitmapData b,
+        static void decodeSpecial24(TgaBitmapData b,
             tgaHeader hdr, System.IO.BinaryReader br)
         {
             // i must convert the input stream to a sequence of uint values
@@ -369,7 +377,7 @@ namespace OpenMetaverse.Imaging
                 decodePlain(b, 3, cd, br, hdr.ImageSpec.BottomUp);
         }
 
-        static void decodeStandard24(System.Drawing.Imaging.BitmapData b,
+        static void decodeStandard24(TgaBitmapData b,
             tgaHeader hdr, System.IO.BinaryReader br)
         {
             // i must convert the input stream to a sequence of uint values
@@ -391,7 +399,7 @@ namespace OpenMetaverse.Imaging
                 decodePlain(b, 3, cd, br, hdr.ImageSpec.BottomUp);
         }
 
-        static void decodeStandard32(System.Drawing.Imaging.BitmapData b,
+        static void decodeStandard32(TgaBitmapData b,
             tgaHeader hdr, System.IO.BinaryReader br)
         {
             // i must convert the input stream to a sequence of uint values
@@ -415,7 +423,7 @@ namespace OpenMetaverse.Imaging
         }
 
 
-        public static System.Drawing.Size GetTGASize(string filename)
+        public static SKSizeI GetTGASize(string filename)
         {
             System.IO.FileStream f = System.IO.File.OpenRead(filename);
 
@@ -425,93 +433,14 @@ namespace OpenMetaverse.Imaging
             header.Read(br);
             br.Close();
 
-            return new Size(header.ImageSpec.Width, header.ImageSpec.Height);
+            return new SKSizeI(header.ImageSpec.Width, header.ImageSpec.Height);
 
         }
 
-        public static Bitmap LoadTGA(System.IO.Stream source)
+        public static SKBitmap LoadTGA(System.IO.Stream source)
         {
-            byte[] buffer = new byte[source.Length];
-            source.Read(buffer, 0, buffer.Length);
-
-            using (MemoryStream ms = new MemoryStream(buffer))
-            using (System.IO.BinaryReader br = new BinaryReader(ms))
-            {
-                tgaHeader header = new tgaHeader();
-                header.Read(br);
-
-                if (header.ImageSpec.PixelDepth != 8 &&
-                    header.ImageSpec.PixelDepth != 16 &&
-                    header.ImageSpec.PixelDepth != 24 &&
-                    header.ImageSpec.PixelDepth != 32)
-                    throw new ArgumentException("Not a supported tga file.");
-
-                if (header.ImageSpec.AlphaBits > 8)
-                    throw new ArgumentException("Not a supported tga file.");
-
-                if (header.ImageSpec.Width > 4096 ||
-                    header.ImageSpec.Height > 4096)
-                    throw new ArgumentException("Image too large.");
-
-                System.Drawing.Bitmap b;
-                System.Drawing.Imaging.BitmapData bd;
-
-                // Create a bitmap for the image.
-                // Only include an alpha layer when the image requires one.
-                if (header.ImageSpec.AlphaBits > 0 ||
-                    header.ImageSpec.PixelDepth == 8 || // Assume  8 bit images are alpha only
-                    header.ImageSpec.PixelDepth == 32)  // Assume 32 bit images are ARGB
-                {   // Image needs an alpha layer
-                    b = new System.Drawing.Bitmap(
-                        header.ImageSpec.Width,
-                        header.ImageSpec.Height,
-                        System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-                    bd = b.LockBits(new System.Drawing.Rectangle(0, 0, b.Width, b.Height),
-                        System.Drawing.Imaging.ImageLockMode.WriteOnly,
-                        System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-                }
-                else
-                {   // Image does not need an alpha layer, so do not include one.
-                    b = new System.Drawing.Bitmap(
-                        header.ImageSpec.Width,
-                        header.ImageSpec.Height,
-                        System.Drawing.Imaging.PixelFormat.Format32bppRgb);
-
-                    bd = b.LockBits(new System.Drawing.Rectangle(0, 0, b.Width, b.Height),
-                        System.Drawing.Imaging.ImageLockMode.WriteOnly,
-                        System.Drawing.Imaging.PixelFormat.Format32bppRgb);
-                }
-
-                switch (header.ImageSpec.PixelDepth)
-                {
-                    case 8:
-                        decodeStandard8(bd, header, br);
-                        break;
-                    case 16:
-                        if (header.ImageSpec.AlphaBits > 0)
-                            decodeSpecial16(bd, header, br);
-                        else
-                            decodeStandard16(bd, header, br);
-                        break;
-                    case 24:
-                        if (header.ImageSpec.AlphaBits > 0)
-                            decodeSpecial24(bd, header, br);
-                        else
-                            decodeStandard24(bd, header, br);
-                        break;
-                    case 32:
-                        decodeStandard32(bd, header, br);
-                        break;
-                    default:
-                        b.UnlockBits(bd);
-                        b.Dispose();
-                        return null;
-                }
-
-                b.UnlockBits(bd);
-                return b;
-            }
+            ManagedImage image = LoadTGAImage(source);
+            return image?.ExportBitmap();
         }
 
         public static unsafe ManagedImage LoadTGAImage(System.IO.Stream source)
@@ -544,13 +473,12 @@ namespace OpenMetaverse.Imaging
                     throw new ArgumentException("Image too large.");
 
                 byte[] decoded = new byte[header.ImageSpec.Width * header.ImageSpec.Height * 4];
-                System.Drawing.Imaging.BitmapData bd = new System.Drawing.Imaging.BitmapData();
+                TgaBitmapData bd = new TgaBitmapData();
 
                 fixed (byte* pdecoded = &decoded[0])
                 {
                     bd.Width = header.ImageSpec.Width;
                     bd.Height = header.ImageSpec.Height;
-                    bd.PixelFormat = System.Drawing.Imaging.PixelFormat.Format32bppPArgb;
                     bd.Stride = header.ImageSpec.Width * 4;
                     bd.Scan0 = (IntPtr)pdecoded;
 
@@ -614,7 +542,7 @@ namespace OpenMetaverse.Imaging
             }
         }
 
-        public static System.Drawing.Bitmap LoadTGA(string filename)
+        public static SKBitmap LoadTGA(string filename)
         {
             try
             {

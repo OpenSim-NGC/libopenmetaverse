@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 
 namespace OpenMetaverse
 {
@@ -357,7 +356,6 @@ namespace OpenMetaverse
             {
                 using (Stream stream = File.Open(filename, FileMode.Create))
                 {
-                    BinaryFormatter bformatter = new BinaryFormatter();
                     lock (Items)
                     {
                         Logger.Log("Caching " + Items.Count.ToString() + " inventory items to " + filename, Helpers.LogLevel.Info);

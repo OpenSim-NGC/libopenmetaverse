@@ -30,7 +30,6 @@ using OpenMetaverse.StructuredData;
 using System;
 using System.IO;
 using System.Net;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Xml.Serialization;
 
@@ -1249,7 +1248,6 @@ namespace OpenMetaverse.Tests
             TimeSpan duration = DateTime.UtcNow - messageTestTime;
             Console.WriteLine("DirLandReplyMessage: OMV Message System Serialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, duration);
 
-            BinaryFormatter formatter = new BinaryFormatter();
             DateTime xmlTestTime = DateTime.UtcNow;
             for (int x = 0; x < TEST_ITER; x++)
             {
@@ -1494,8 +1492,6 @@ namespace OpenMetaverse.Tests
             }
             TimeSpan duration = DateTime.UtcNow - messageTestTime;
             Console.WriteLine("ParcelPropertiesMessage: OMV Message System Serialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, duration);
-
-            BinaryFormatter formatter = new BinaryFormatter();
 
             DateTime xmlTestTime = DateTime.UtcNow;
             for (int x = 0; x < TEST_ITER; x++)

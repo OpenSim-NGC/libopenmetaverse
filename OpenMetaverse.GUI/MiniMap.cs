@@ -28,7 +28,9 @@ using OpenMetaverse.Assets;
 using OpenMetaverse.Imaging;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
+using SkiaSharp;
 
 namespace OpenMetaverse.GUI
 {
@@ -216,9 +218,22 @@ namespace OpenMetaverse.GUI
                     delegate (TextureRequestState state, AssetTexture asset)
                         {
                             if (state == TextureRequestState.Finished)
-                                OpenJPEG.DecodeToImage(asset.AssetData, out nullImage, out _MapLayer);
+                            {
+                                SKBitmap skMapLayer;
+                                OpenJPEG.DecodeToImage(asset.AssetData, out nullImage, out skMapLayer);
+                                _MapLayer = skMapLayer != null ? ConvertToBitmap(skMapLayer) : null;
+                            }
                         });
             }
+        }
+
+        private static Bitmap ConvertToBitmap(SKBitmap skBitmap)
+        {
+            using SKImage image = SKImage.FromBitmap(skBitmap);
+            using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
+            using MemoryStream stream = new MemoryStream(data.ToArray());
+            using Bitmap tmp = new Bitmap(stream);
+            return new Bitmap(tmp);
         }
 
     }

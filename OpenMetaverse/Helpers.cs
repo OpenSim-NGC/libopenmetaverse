@@ -24,13 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using ComponentAce.Compression.Libs.zlib;
 using OpenMetaverse.StructuredData;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Reflection;
 using System.Text;
+using System.IO.Compression;
 
 namespace OpenMetaverse
 {
@@ -621,35 +618,29 @@ namespace OpenMetaverse
 
         public static byte[] ZCompressOSD(OSD data)
         {
-            byte[] ret = null;
+            byte[] serialized = OSDParser.SerializeLLSDBinary(data, false);
 
             using (MemoryStream outMemoryStream = new MemoryStream())
-            using (ZOutputStream outZStream = new ZOutputStream(outMemoryStream, zlibConst.Z_BEST_COMPRESSION))
-            using (Stream inMemoryStream = new MemoryStream(OSDParser.SerializeLLSDBinary(data, false)))
             {
-                CopyStream(inMemoryStream, outZStream);
-                outZStream.finish();
-                ret = outMemoryStream.ToArray();
-            }
+                using (ZLibStream outZStream = new ZLibStream(outMemoryStream, CompressionLevel.SmallestSize, true))
+                {
+                    outZStream.Write(serialized, 0, serialized.Length);
+                }
 
-            return ret;
+                return outMemoryStream.ToArray();
+            }
         }
 
         public static OSD ZDecompressOSD(byte[] data)
         {
-            OSD ret;
-
             using (MemoryStream input = new MemoryStream(data))
+            using (ZLibStream zStream = new ZLibStream(input, CompressionMode.Decompress))
             using (MemoryStream output = new MemoryStream())
-            using (ZOutputStream zout = new ZOutputStream(output))
             {
-                CopyStream(input, zout);
-                zout.finish();
+                CopyStream(zStream, output);
                 output.Seek(0, SeekOrigin.Begin);
-                ret = OSDParser.DeserializeLLSDBinary(output);
+                return OSDParser.DeserializeLLSDBinary(output);
             }
-
-            return ret;
         }
     }
 }

@@ -6,10 +6,16 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\OpenMetaverse.PrimMesher\OpenMetaverse.PrimMesher.csproj" />
     <ProjectReference Include="..\OpenMetaverse.Rendering.Simple\OpenMetaverse.Rendering.Simple.csproj" />
     <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
     <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
     <ProjectReference Include="..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\PrimMesher\ObjMesh.cs" Link="PrimMesher\ObjMesh.cs" />
+    <Compile Include="..\PrimMesher\PrimMesher.cs" Link="PrimMesher\PrimMesher.cs" />
+    <Compile Include="..\PrimMesher\SculptMap.cs" Link="PrimMesher\SculptMap.cs" />
+    <Compile Include="..\PrimMesher\SculptMesh.cs" Link="PrimMesher\SculptMesh.cs" />
+    <Compile Include="..\PrimMesher\VertexIndexer.cs" Link="PrimMesher\VertexIndexer.cs" />
   </ItemGroup>
 </Project>

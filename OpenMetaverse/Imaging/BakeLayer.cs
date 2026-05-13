@@ -26,9 +26,9 @@
 
 using log4net;
 using OpenMetaverse.Assets;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Reflection;
 
@@ -340,7 +340,7 @@ namespace OpenMetaverse.Imaging
         {
             try
             {
-                Bitmap bitmap = null;
+                SKBitmap bitmap = null;
                 lock (ResourceSync)
                 {
                     using (Stream stream = Helpers.GetResourceStream(fileName, Settings.RESOURCE_DIR))
@@ -355,7 +355,8 @@ namespace OpenMetaverse.Imaging
                 }
                 else
                 {
-                    return new ManagedImage(bitmap);
+                    using (bitmap)
+                        return new ManagedImage(bitmap);
                 }
             }
             catch (Exception e)

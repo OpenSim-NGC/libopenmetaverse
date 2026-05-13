@@ -24,208 +24,39 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define SMARTHREADPOOL_REF
-
-
-#if SMARTHREADPOOL_REF
-using Amib.Threading;
-#else
 using System.Threading;
-#endif
 
 namespace OpenMetaverse
 {
-
-    // Use statically referenced SmartThreadPool.dll
-#if SMARTHREADPOOL_REF
     public static class WorkPool
     {
-        internal static SmartThreadPool Pool = null;
+        private static bool _initialized;
 
         public static bool Init(bool useSmartThredPool)
         {
-            if (Pool == null)
+            if (!_initialized)
             {
-                STPStartInfo param = new STPStartInfo();
-                param.MinWorkerThreads = 2;
-                param.MaxWorkerThreads = 50;
-                param.ThreadPoolName = "LibOpenMetaverse Main ThreadPool";
-                param.AreThreadsBackground = true;
-
-                Pool = new SmartThreadPool(param);
+                // Preserve previous tuning intent while using the runtime thread pool.
+                ThreadPool.SetMinThreads(2, 2);
+                _initialized = true;
             }
+
             return true;
         }
 
         public static void Shutdown()
         {
-            if (Pool != null)
-            {
-                Pool.Shutdown();
-                Pool = null;
-            }
+            // System.Threading.ThreadPool is process-wide and cannot be explicitly shut down.
         }
 
-        public static void QueueUserWorkItem(System.Threading.WaitCallback callback)
+        public static void QueueUserWorkItem(WaitCallback callback)
         {
-            if (Pool != null)
-            {
-                Pool.QueueWorkItem(state => { callback.Invoke(state); return null; });
-            }
-            else
-            {
-                System.Threading.ThreadPool.QueueUserWorkItem(state => callback.Invoke(state));
-            }
+            ThreadPool.QueueUserWorkItem(state => callback.Invoke(state));
         }
 
-        public static void QueueUserWorkItem(System.Threading.WaitCallback callback, object state)
+        public static void QueueUserWorkItem(WaitCallback callback, object state)
         {
-            if (Pool != null)
-            {
-                Pool.QueueWorkItem(sync => { callback.Invoke(sync); return null; }, state);
-            }
-            else
-            {
-                System.Threading.ThreadPool.QueueUserWorkItem(sync => callback.Invoke(sync), state);
-            }
+            ThreadPool.QueueUserWorkItem(sync => callback.Invoke(sync), state);
         }
     }
-
-#else
-
-    // Try to load SmartThreadPool.dll during initialization
-    // Fallback to System.Threading.ThreadPool if that fails
-    public static class WorkPoolDynamic
-    {
-        internal static object Pool = null;
-
-        private static Type SmartThreadPoolType;
-        private static Type WorkItemCallbackType;
-        private static MethodInfo QueueWorkItemFunc, QueueWorkItemFunc2;
-        private static MethodInfo ShutdownFunc;
-        private static Func<System.Threading.WaitCallback, object, object> Invoker;
-
-        public static bool Init()
-        {
-            try
-            {
-                string dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                Assembly assembly = Assembly.LoadFile(Path.Combine(dir, "SmartThreadPool.dll"));
-                Type STPStartInfo = assembly.GetType("Amib.Threading.STPStartInfo");
-                SmartThreadPoolType = assembly.GetType("Amib.Threading.SmartThreadPool");
-                WorkItemCallbackType = assembly.GetType("Amib.Threading.WorkItemCallback");
-                var param = Activator.CreateInstance(STPStartInfo);
-                STPStartInfo.GetProperty("MinWorkerThreads").SetValue(param, 2, null);
-                STPStartInfo.GetProperty("MaxWorkerThreads").SetValue(param, 50, null);
-                STPStartInfo.GetProperty("ThreadPoolName").SetValue(param, "LibOpenMetaverse Main ThreadPool", null);
-                STPStartInfo.GetProperty("AreThreadsBackground").SetValue(param, true, null);
-                STPStartInfo.GetProperty("MinWorkerThreads").SetValue(param, 2, null);
-                Pool = Activator.CreateInstance(SmartThreadPoolType, new object[] { param });
-                QueueWorkItemFunc = SmartThreadPoolType.GetMethod("QueueWorkItem", new Type[] { WorkItemCallbackType });
-                QueueWorkItemFunc2 = SmartThreadPoolType.GetMethod("QueueWorkItem", new Type[] { WorkItemCallbackType, typeof(object) });
-                ShutdownFunc = SmartThreadPoolType.GetMethod("Shutdown", new Type[] { });
-
-                Invoker = (inv, state) =>
-                {
-                    inv.Invoke(state);
-                    return null;
-                };
-
-                return true;
-            }
-            catch
-            {
-                Pool = null;
-                return false;
-            }
-        }
-
-        public static void Shutdown()
-        {
-            if (Pool != null)
-            {
-                ShutdownFunc.Invoke(Pool, null);
-                Pool = null;
-            }
-        }
-
-
-        public static void QueueUserWorkItem(System.Threading.WaitCallback callback)
-        {
-            if (Pool != null)
-            {
-                QueueWorkItemFunc.Invoke(Pool, new object[] { Delegate.CreateDelegate(WorkItemCallbackType, callback, Invoker.Method) });
-            }
-            else
-            {
-                System.Threading.ThreadPool.QueueUserWorkItem(state => callback.Invoke(state));
-            }
-        }
-
-        public static void QueueUserWorkItem(System.Threading.WaitCallback callback, object state)
-        {
-            if (Pool != null)
-            {
-                QueueWorkItemFunc2.Invoke(Pool, new object[] { Delegate.CreateDelegate(WorkItemCallbackType, callback, Invoker.Method), state });
-            }
-            else
-            {
-                System.Threading.ThreadPool.QueueUserWorkItem(sync => callback.Invoke(sync), state);
-            }
-        }
-    }
-
-
-    public static class WorkPool
-    {
-        private static bool UseSmartThreadPool = false;
-
-        public static bool Init(bool useSmartThredPool)
-        {
-            if (useSmartThredPool)
-            {
-                if (WorkPoolDynamic.Init())
-                {
-                    UseSmartThreadPool = true;
-                    return true;
-                }
-                return false;
-            }
-            return true;
-        }
-
-        public static void Shutdown()
-        {
-            if (UseSmartThreadPool)
-            {
-                WorkPoolDynamic.Shutdown();
-                UseSmartThreadPool = false;
-            }
-        }
-
-        public static void QueueUserWorkItem(System.Threading.WaitCallback callback)
-        {
-            if (UseSmartThreadPool)
-            {
-                WorkPoolDynamic.QueueUserWorkItem(sync => callback.Invoke(sync));
-            }
-            else
-            {
-                ThreadPool.QueueUserWorkItem(sync => callback.Invoke(sync));
-            }
-        }
-
-        public static void QueueUserWorkItem(System.Threading.WaitCallback callback, object state)
-        {
-            if (UseSmartThreadPool)
-            {
-                WorkPoolDynamic.QueueUserWorkItem(sync => callback.Invoke(sync), state);
-            }
-            else
-            {
-                ThreadPool.QueueUserWorkItem(sync => callback.Invoke(sync), state);
-            }
-        }
-    }
-#endif
 }
