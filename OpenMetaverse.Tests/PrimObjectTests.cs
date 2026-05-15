@@ -24,15 +24,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using NUnit.Framework;
+using Xunit;
 using System;
 
 namespace OpenMetaverse.Tests
 {
-    [TestFixture]
-    public class PrimObjectTests : Assert
+    
+    public class PrimObjectTests
     {
-        [Test]
+        [Fact]
         public void PathBegin()
         {
             for (byte i = 0; i < byte.MaxValue; i++)
@@ -40,12 +40,12 @@ namespace OpenMetaverse.Tests
                 float floatValue = Primitive.UnpackBeginCut(i);
                 ushort result = Primitive.PackBeginCut(floatValue);
 
-                Assert.IsTrue(result == i, "Started with " + i + ", float value was " + floatValue +
+                Assert.True(result == i, "Started with " + i + ", float value was " + floatValue +
                     ", and ended up with " + result);
             }
         }
 
-        [Test]
+        [Fact]
         public void PathEnd()
         {
             for (byte i = 0; i < byte.MaxValue; i++)
@@ -53,12 +53,12 @@ namespace OpenMetaverse.Tests
                 float floatValue = Primitive.UnpackEndCut(i);
                 ushort result = Primitive.PackEndCut(floatValue);
 
-                Assert.IsTrue(result == i, "Started with " + i + ", float value was " + floatValue +
+                Assert.True(result == i, "Started with " + i + ", float value was " + floatValue +
                     ", and ended up with " + result);
             }
         }
 
-        [Test]
+        [Fact]
         public void PathRevolutions()
         {
             for (byte i = 0; i < byte.MaxValue; i++)
@@ -66,12 +66,12 @@ namespace OpenMetaverse.Tests
                 float floatValue = Primitive.UnpackPathRevolutions(i);
                 byte result = Primitive.PackPathRevolutions(floatValue);
 
-                Assert.IsTrue(result == i, "Started with " + i + ", float value was " + floatValue +
+                Assert.True(result == i, "Started with " + i + ", float value was " + floatValue +
                     ", and ended up with " + result);
             }
         }
 
-        [Test]
+        [Fact]
         public void PathScale()
         {
             for (byte i = 0; i < byte.MaxValue; i++)
@@ -79,12 +79,12 @@ namespace OpenMetaverse.Tests
                 float floatValue = Primitive.UnpackPathScale(i);
                 byte result = Primitive.PackPathScale(floatValue);
 
-                Assert.IsTrue(result == i, "Started with " + i + ", float value was " + floatValue +
+                Assert.True(result == i, "Started with " + i + ", float value was " + floatValue +
                     ", and ended up with " + result);
             }
         }
 
-        //[Test]
+        //[Fact]
         //public void PathShear()
         //{
         //    for (byte i = 0; i < byte.MaxValue; i++)
@@ -92,12 +92,12 @@ namespace OpenMetaverse.Tests
         //        float floatValue = Primitive.UnpackPathShear(i);
         //        byte result = Primitive.PackPathShear(floatValue);
 
-        //        Assert.IsTrue(result == i, "Started with " + i + ", float value was " + floatValue +
+        //        Assert.True(result == i, "Started with " + i + ", float value was " + floatValue +
         //        ", and ended up with " + result);
         //    }
         //}
 
-        [Test]
+        [Fact]
         public void PathTaper()
         {
             for (sbyte i = sbyte.MinValue; i < sbyte.MaxValue; i++)
@@ -105,12 +105,12 @@ namespace OpenMetaverse.Tests
                 float floatValue = Primitive.UnpackPathTaper(i);
                 sbyte result = Primitive.PackPathTaper(floatValue);
 
-                Assert.IsTrue(result == i, "Started with " + i + ", float value was " + floatValue +
+                Assert.True(result == i, "Started with " + i + ", float value was " + floatValue +
                 ", and ended up with " + result);
             }
         }
 
-        [Test]
+        [Fact]
         public void TextureEntryOffsets()
         {
             for (float i = -1.0f; i <= 1.0f; i += 0.001f)
@@ -121,11 +121,11 @@ namespace OpenMetaverse.Tests
                 float foffset = Helpers.TEOffsetFloat(BitConverter.GetBytes(offset), 0);
                 foffset = (float)Math.Round(foffset, 3);
 
-                Assert.IsTrue(foffset - i < Single.Epsilon, foffset + " is not equal to " + i);
+                Assert.True(foffset - i < Single.Epsilon, foffset + " is not equal to " + i);
             }
         }
 
-        [Test]
+        [Fact]
         public void TextureEntry()
         {
             Primitive.TextureEntry te = new Primitive.TextureEntry(UUID.Random());
@@ -149,11 +149,11 @@ namespace OpenMetaverse.Tests
 
             byte[] teBytes2 = te2.GetBytes();
 
-            Assert.IsTrue(teBytes.Length == teBytes2.Length);
+            Assert.True(teBytes.Length == teBytes2.Length);
 
             for (int i = 0; i < teBytes.Length; i++)
             {
-                Assert.IsTrue(teBytes[i] == teBytes2[i], "Byte " + i + " is not equal");
+                Assert.True(teBytes[i] == teBytes2[i], "Byte " + i + " is not equal");
             }
         }
     }
