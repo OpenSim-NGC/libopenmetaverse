@@ -2,6 +2,8 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
+    <PackageId>OpenMetaverse</PackageId>
+    <Description>Client library for OpenMetaverse-compatible virtual world servers such as OpenSimulator. Provides login, inventory, asset, object, and messaging APIs.</Description>
     <AssemblyTitle>OpenMetaverse</AssemblyTitle>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

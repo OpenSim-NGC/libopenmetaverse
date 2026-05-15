@@ -2,6 +2,8 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
+    <PackageId>OpenMetaverse.Types</PackageId>
+    <Description>Core value types for the OpenMetaverse library: UUID, Vector2/3/4, Quaternion, Matrix4, Color4, and related utilities.</Description>
     <RootNamespace>OpenMetaverse</RootNamespace>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

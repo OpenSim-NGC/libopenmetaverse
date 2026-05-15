@@ -22,4 +22,12 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryBranch>master</RepositoryBranch>
   </PropertyGroup>
+  <PropertyGroup>
+    <!-- Symbol package settings: produce .snupkg alongside every .nupkg -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- Embed all source files so debuggers can step into them without a source server -->
+    <EmbedAllSources>true</EmbedAllSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
 </Project>
