@@ -4353,6 +4353,9 @@ version 2.0
 }
 
 // ScriptTeleportRequest
+// Interestingly, this message does not actually "Request a Teleport"
+// on the viewer. Instead it opens the world map and places a beacon
+// at the indicated location.
 // reliable
 {
 	ScriptTeleportRequest Low 195 Trusted Unencoded
@@ -4363,6 +4366,10 @@ version 2.0
 		{	SimPosition		LLVector3		}
 		{	LookAt			LLVector3		}
 	}
+    {
+        Options Variable
+        {   Flags           U32 }
+    }
 }
 
 
@@ -5780,6 +5787,24 @@ version 2.0
 	}
 }
 
+// GenericStreamingMessage
+// Optimized generic message for streaming arbitrary data to viewer
+// Avoid payloads over 7KB (8KB ceiling)
+// Method -- magic number indicating method to use to decode payload:
+//      0x4175 - GLTF material override data
+// Payload -- data to be decoded
+{
+    GenericStreamingMessage High 31 Trusted Unencoded
+    {
+        MethodData Single
+        { Method    U16 }
+    }
+
+    {
+        DataBlock Single
+        { Data Variable 2 }
+    }
+}
 // LargeGenericMessage
 // Similar to the above messages, but can handle larger payloads and serialized 
 // LLSD.  Uses HTTP transport 

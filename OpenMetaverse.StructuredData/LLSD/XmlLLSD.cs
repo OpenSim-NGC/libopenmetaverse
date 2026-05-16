@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) OpenSimulator Contributors, http://opensimulator.org/
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -40,11 +41,6 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public static partial class OSDParser
     {
-        private static XmlSchema XmlSchema;
-        private static XmlTextReader XmlTextReader;
-        private static string LastXmlErrors = String.Empty;
-        private static object XmlValidationLock = new object();
-
         /// <summary>
         /// 
         /// </summary>
@@ -52,14 +48,14 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(byte[] xmlData)
         {
-            using (MemoryStream ms = new MemoryStream(xmlData))
-            using (XmlTextReader xrd = new XmlTextReader(ms))
+            using(MemoryStream ms =  new MemoryStream(xmlData))
+            using(XmlTextReader xrd =  new XmlTextReader(ms))
                 return DeserializeLLSDXml(xrd);
         }
 
         public static OSD DeserializeLLSDXml(Stream xmlStream)
         {
-            using (XmlTextReader xrd = new XmlTextReader(xmlStream))
+            using(XmlTextReader xrd = new XmlTextReader(xmlStream))
                 return DeserializeLLSDXml(xrd);
         }
 
@@ -71,7 +67,7 @@ namespace OpenMetaverse.StructuredData
         public static OSD DeserializeLLSDXml(string xmlData)
         {
             using (StringReader sr = new StringReader(xmlData))
-            using (XmlTextReader xrd = new XmlTextReader(sr))
+            using(XmlTextReader xrd = new XmlTextReader(sr))
                 return DeserializeLLSDXml(xrd);
         }
 
@@ -82,6 +78,8 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(XmlTextReader xmlData)
         {
+            xmlData.DtdProcessing = DtdProcessing.Ignore;
+ 
             try
             {
                 xmlData.Read();
@@ -143,7 +141,7 @@ namespace OpenMetaverse.StructuredData
         public static string SerializeLLSDXmlString(OSD data, bool formal = false)
         {
             StringBuilder sb = osStringBuilderCache.Acquire();
-            if (formal)
+            if(formal)
                 sb.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
 
             sb.Append("<llsd>");
@@ -164,7 +162,7 @@ namespace OpenMetaverse.StructuredData
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="writer"></param>
+        /// <param name="sb"></param>
         /// <param name="data"></param>
         public static void SerializeLLSDXmlElement(StringBuilder sb, OSD data, bool formal)
         {
@@ -174,7 +172,7 @@ namespace OpenMetaverse.StructuredData
                     sb.Append("<undef />");
                     break;
                 case OSDType.Boolean:
-                    if (data.AsBoolean())
+                    if(data.AsBoolean())
                         sb.Append("<boolean>1</boolean>");
                     else
                         sb.Append("<boolean>0</boolean>");
@@ -209,8 +207,9 @@ namespace OpenMetaverse.StructuredData
                     sb.Append(data.AsString());
                     sb.Append("</uri>");
                     break;
+                case OSDType.Long:
                 case OSDType.Binary:
-                    if (formal)
+                    if(formal)
                         sb.Append("<binary encoding=\"base64\">");
                     else
                         sb.Append("<binary>");
@@ -267,7 +266,7 @@ namespace OpenMetaverse.StructuredData
                     case '"':
                         sb.Append("&quot;");
                         break;
-                    case '\\':
+                    case '\'':
                         sb.Append("&apos;");
                         break;
                     default:
@@ -297,7 +296,7 @@ namespace OpenMetaverse.StructuredData
                     case '"':
                         ms.Append(osUTF8Const.XMLamp_quot);
                         break;
-                    case '\\':
+                    case '\'':
                         ms.Append(osUTF8Const.XMLamp_apos);
                         break;
                     default:
@@ -310,7 +309,7 @@ namespace OpenMetaverse.StructuredData
         public static void EscapeToXML(osUTF8 ms, string s)
         {
             char c;
-            for (int i = 0; i < s.Length; i++)
+            for (int i = 0; i <  s.Length; i++)
             {
                 c = s[i];
                 switch (c)
@@ -327,7 +326,7 @@ namespace OpenMetaverse.StructuredData
                     case '"':
                         ms.Append(osUTF8Const.XMLamp_quot);
                         break;
-                    case '\\':
+                    case '\'':
                         ms.Append(osUTF8Const.XMLamp_apos);
                         break;
                     default:
@@ -357,7 +356,7 @@ namespace OpenMetaverse.StructuredData
                     case (byte)'"':
                         ms.Append(osUTF8Const.XMLamp_quot);
                         break;
-                    case (byte)'\\':
+                    case (byte)'\'':
                         ms.Append(osUTF8Const.XMLamp_apos);
                         break;
                     default:
@@ -372,10 +371,10 @@ namespace OpenMetaverse.StructuredData
             switch (data.Type)
             {
                 case OSDType.Unknown:
-                    mb.Append(osUTF8Const.XMLundef);
+                    mb.Append("<undef/>"u8);
                     break;
                 case OSDType.Boolean:
-                    if (data.AsBoolean())
+                    if(data.AsBoolean())
                         mb.Append(osUTF8Const.XMLfullbooleanOne);
                     else
                         mb.Append(osUTF8Const.XMLfullbooleanZero);
@@ -410,6 +409,7 @@ namespace OpenMetaverse.StructuredData
                     EscapeToXML(mb, data.ToString());
                     mb.Append(osUTF8Const.XMLuriEnd);
                     break;
+                case OSDType.Long:
                 case OSDType.Binary:
                     if (formal)
                         mb.Append(osUTF8Const.XMLformalBinaryStart);
@@ -452,40 +452,40 @@ namespace OpenMetaverse.StructuredData
             int lenMod3 = data.Length % 3;
             int len = data.Length - lenMod3;
 
-            mb.CheckCapacity(4 * data.Length / 3);
+            mb.CheckCapacity(((data.Length + 2) / 3) * 4);
 
             fixed (byte* d = data, b64 = osUTF8Const.base64Bytes)
             {
                 int i = 0;
                 while (i < len)
                 {
-                    mb.Append(b64[d[i] >> 2]);
-                    mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
-                    mb.Append(b64[((d[i + 1] & 0x0f) << 2) | ((d[i + 2] & 0xc0) >> 6)]);
-                    mb.Append(b64[d[i + 2] & 0x3f]);
+                    mb.AppendSafe(b64[d[i] >> 2]);
+                    mb.AppendSafe(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                    mb.AppendSafe(b64[((d[i + 1] & 0x0f) << 2) | ((d[i + 2] & 0xc0) >> 6)]);
+                    mb.AppendSafe(b64[d[i + 2] & 0x3f]);
                     i += 3;
                 }
 
                 switch (lenMod3)
                 {
                     case 2:
-                        {
-                            i = len;
-                            mb.Append(b64[d[i] >> 2]);
-                            mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
-                            mb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
-                            mb.Append((byte)'=');
-                            break;
-                        }
+                    {
+                        i = len;
+                        mb.AppendSafe(b64[d[i] >> 2]);
+                        mb.AppendSafe(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                        mb.AppendSafe(b64[((d[i + 1] & 0x0f) << 2)]);
+                        mb.AppendSafe((byte)'=');
+                        break;
+                    }
                     case 1:
-                        {
-                            i = len;
-                            mb.Append(b64[d[i] >> 2]);
-                            mb.Append(b64[(d[i] & 0x03) << 4]);
-                            mb.Append((byte)'=');
-                            mb.Append((byte)'=');
-                            break;
-                        }
+                    {
+                        i = len;
+                        mb.AppendSafe(b64[d[i] >> 2]);
+                        mb.AppendSafe(b64[(d[i] & 0x03) << 4]);
+                        mb.AppendSafe((byte)'=');
+                        mb.AppendSafe((byte)'=');
+                        break;
+                    }
                 }
             }
         }
@@ -495,38 +495,39 @@ namespace OpenMetaverse.StructuredData
             int lenMod3 = lenght % 3;
             int len = lenght - lenMod3;
 
+            mb.CheckCapacity(((lenght + 2) / 3) * 4);
             fixed (byte* d = &data[start], b64 = osUTF8Const.base64Bytes)
             {
                 int i = 0;
                 while (i < len)
                 {
-                    mb.Append(b64[d[i] >> 2]);
-                    mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
-                    mb.Append(b64[((d[i + 1] & 0x0f) << 2) | ((d[i + 2] & 0xc0) >> 6)]);
-                    mb.Append(b64[d[i + 2] & 0x3f]);
+                    mb.AppendSafe(b64[d[i] >> 2]);
+                    mb.AppendSafe(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                    mb.AppendSafe(b64[((d[i + 1] & 0x0f) << 2) | ((d[i + 2] & 0xc0) >> 6)]);
+                    mb.AppendSafe(b64[d[i + 2] & 0x3f]);
                     i += 3;
                 }
 
                 switch (lenMod3)
                 {
                     case 2:
-                        {
-                            i = len;
-                            mb.Append(b64[d[i] >> 2]);
-                            mb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
-                            mb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
-                            mb.Append((byte)'=');
-                            break;
-                        }
+                    {
+                        i = len;
+                        mb.AppendSafe(b64[d[i] >> 2]);
+                        mb.AppendSafe(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                        mb.AppendSafe(b64[((d[i + 1] & 0x0f) << 2)]);
+                        mb.AppendSafe((byte)'=');
+                        break;
+                    }
                     case 1:
-                        {
-                            i = len;
-                            mb.Append(b64[d[i] >> 2]);
-                            mb.Append(b64[(d[i] & 0x03) << 4]);
-                            mb.Append((byte)'=');
-                            mb.Append((byte)'=');
-                            break;
-                        }
+                    {
+                        i = len;
+                        mb.AppendSafe(b64[d[i] >> 2]);
+                        mb.AppendSafe(b64[(d[i] & 0x03) << 4]);
+                        mb.AppendSafe((byte)'=');
+                        mb.AppendSafe((byte)'=');
+                        break;
+                    }
                 }
             }
         }
@@ -542,6 +543,7 @@ namespace OpenMetaverse.StructuredData
             int lenMod3 = data.Length % 3;
             int len = data.Length - lenMod3;
 
+            sb.EnsureCapacity(((data.Length + 2) / 3) * 4);
             fixed (byte* d = data)
             {
                 fixed (char* b64 = base64Chars)
@@ -559,76 +561,29 @@ namespace OpenMetaverse.StructuredData
                     switch (lenMod3)
                     {
                         case 2:
-                            {
-                                i = len;
-                                sb.Append(b64[d[i] >> 2]);
-                                sb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
-                                sb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
-                                sb.Append('=');
-                                break;
-                            }
+                        {
+                            i = len;
+                            sb.Append(b64[d[i] >> 2]);
+                            sb.Append(b64[((d[i] & 0x03) << 4) | ((d[i + 1] & 0xf0) >> 4)]);
+                            sb.Append(b64[((d[i + 1] & 0x0f) << 2)]);
+                            sb.Append('=');
+                            break;
+                        }
                         case 1:
-                            {
-                                i = len;
-                                sb.Append(b64[d[i] >> 2]);
-                                sb.Append(b64[(d[i] & 0x03) << 4]);
-                                sb.Append("==");
-                                break;
-                            }
+                        {
+                            i = len;
+                            sb.Append(b64[d[i] >> 2]);
+                            sb.Append(b64[(d[i] & 0x03) << 4]);
+                            sb.Append("==");
+                            break;
+                        }
                     }
                 }
             }
         }
 
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="xmlData"></param>
-        /// <param name="error"></param>
-        /// <returns></returns>
-        public static bool TryValidateLLSDXml(XmlTextReader xmlData, out string error)
-        {
-            lock (XmlValidationLock)
-            {
-                LastXmlErrors = String.Empty;
-                XmlTextReader = xmlData;
-
-                CreateLLSDXmlSchema();
-
-                XmlReaderSettings readerSettings = new XmlReaderSettings();
-                readerSettings.ValidationType = ValidationType.Schema;
-                readerSettings.Schemas.Add(XmlSchema);
-                readerSettings.ValidationEventHandler += new ValidationEventHandler(LLSDXmlSchemaValidationHandler);
-
-                using (XmlReader reader = XmlReader.Create(xmlData, readerSettings))
-                {
-
-                    try
-                    {
-                        while (reader.Read()) { }
-                    }
-                    catch (XmlException)
-                    {
-                        error = LastXmlErrors;
-                        return false;
-                    }
-
-                    if (LastXmlErrors == String.Empty)
-                    {
-                        error = null;
-                        return true;
-                    }
-                    else
-                    {
-                        error = LastXmlErrors;
-                        return false;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
+   /// <summary>
         /// 
         /// </summary>
         /// <param name="reader"></param>
@@ -685,8 +640,7 @@ namespace OpenMetaverse.StructuredData
 
                     if (reader.Read())
                     {
-                        int value = 0;
-                        Int32.TryParse(reader.ReadString().Trim(), out value);
+                        Int32.TryParse(reader.ReadString().Trim(), out int value);
                         ret = OSD.FromInteger(value);
                         break;
                     }
@@ -702,7 +656,7 @@ namespace OpenMetaverse.StructuredData
 
                     if (reader.Read())
                     {
-                        double value = 0d;
+                        double value;
                         string str = reader.ReadString().Trim().ToLower();
 
                         if (str == "nan")
@@ -725,8 +679,7 @@ namespace OpenMetaverse.StructuredData
 
                     if (reader.Read())
                     {
-                        UUID value = UUID.Zero;
-                        UUID.TryParse(reader.ReadString().Trim(), out value);
+                        UUID.TryParse(reader.ReadString().AsSpan(), out UUID value);
                         ret = OSD.FromUUID(value);
                         break;
                     }
@@ -742,12 +695,12 @@ namespace OpenMetaverse.StructuredData
 
                     if (reader.Read())
                     {
-                        DateTime value = Utils.Epoch;
-                        DateTime.TryParse(reader.ReadString().Trim(), out value);
-                        ret = OSD.FromDate(value);
+                        if(DateTime.TryParse(reader.ReadString().Trim(), out DateTime value))
+                            ret = OSD.FromDate(value);
+                        else
+                            ret = OSD.FromDate(Utils.Epoch);
                         break;
                     }
-
                     ret = OSD.FromDate(Utils.Epoch);
                     break;
                 case "string":
@@ -769,7 +722,7 @@ namespace OpenMetaverse.StructuredData
                     if (reader.IsEmptyElement)
                     {
                         reader.Read();
-                        return OSD.FromBinary(Utils.EmptyBytes);
+                        return OSD.FromBinary(Array.Empty<byte>());
                     }
 
                     if (reader.GetAttribute("encoding") != null && reader.GetAttribute("encoding") != "base64")
@@ -788,7 +741,7 @@ namespace OpenMetaverse.StructuredData
                         }
                     }
 
-                    ret = OSD.FromBinary(Utils.EmptyBytes);
+                    ret = OSD.FromBinary(Array.Empty<byte>());
                     break;
                 case "uri":
                     if (reader.IsEmptyElement)
@@ -899,7 +852,7 @@ namespace OpenMetaverse.StructuredData
             }
 
             return array;
-        }
+        }        
 
         private static void SkipWhitespace(XmlTextReader reader)
         {
@@ -912,120 +865,6 @@ namespace OpenMetaverse.StructuredData
                 reader.Read();
             }
         }
-
-        private static void CreateLLSDXmlSchema()
-        {
-            if (XmlSchema == null)
-            {
-                #region XSD
-                string schemaText = @"
-<?xml version=""1.0"" encoding=""utf-8""?>
-<xs:schema elementFormDefault=""qualified"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"">
-  <xs:import schemaLocation=""xml.xsd"" namespace=""http://www.w3.org/XML/1998/namespace"" />
-  <xs:element name=""uri"" type=""xs:string"" />
-  <xs:element name=""uuid"" type=""xs:string"" />
-  <xs:element name=""KEYDATA"">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref=""key"" />
-        <xs:element ref=""DATA"" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""date"" type=""xs:string"" />
-  <xs:element name=""key"" type=""xs:string"" />
-  <xs:element name=""boolean"" type=""xs:string"" />
-  <xs:element name=""undef"">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref=""EMPTY"" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""map"">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element minOccurs=""0"" maxOccurs=""unbounded"" ref=""KEYDATA"" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""real"" type=""xs:string"" />
-  <xs:element name=""ATOMIC"">
-    <xs:complexType>
-      <xs:choice>
-        <xs:element ref=""undef"" />
-        <xs:element ref=""boolean"" />
-        <xs:element ref=""integer"" />
-        <xs:element ref=""real"" />
-        <xs:element ref=""uuid"" />
-        <xs:element ref=""string"" />
-        <xs:element ref=""date"" />
-        <xs:element ref=""uri"" />
-        <xs:element ref=""binary"" />
-      </xs:choice>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""DATA"">
-    <xs:complexType>
-      <xs:choice>
-        <xs:element ref=""ATOMIC"" />
-        <xs:element ref=""map"" />
-        <xs:element ref=""array"" />
-      </xs:choice>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""llsd"">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref=""DATA"" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""binary"">
-    <xs:complexType>
-      <xs:simpleContent>
-        <xs:extension base=""xs:string"">
-          <xs:attribute default=""base64"" name=""encoding"" type=""xs:string"" />
-        </xs:extension>
-      </xs:simpleContent>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""array"">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element minOccurs=""0"" maxOccurs=""unbounded"" ref=""DATA"" />
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name=""integer"" type=""xs:string"" />
-  <xs:element name=""string"">
-    <xs:complexType>
-      <xs:simpleContent>
-        <xs:extension base=""xs:string"">
-          <xs:attribute ref=""xml:space"" />
-        </xs:extension>
-      </xs:simpleContent>
-    </xs:complexType>
-  </xs:element>
-</xs:schema>
-";
-                #endregion XSD
-
-                XmlSchema = new XmlSchema();
-                using (MemoryStream stream = new MemoryStream(Encoding.ASCII.GetBytes(schemaText)))
-                    XmlSchema = XmlSchema.Read(stream, new ValidationEventHandler(LLSDXmlSchemaValidationHandler));
-            }
-        }
-
-        private static void LLSDXmlSchemaValidationHandler(object sender, ValidationEventArgs args)
-        {
-            string error = String.Format("Line: {0} - Position: {1} - {2}", XmlTextReader.LineNumber, XmlTextReader.LinePosition,
-                args.Message);
-
-            if (LastXmlErrors == String.Empty)
-                LastXmlErrors = error;
-            else
-                LastXmlErrors += Environment.NewLine + error;
-        }
     }
 }
+ 

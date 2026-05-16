@@ -108,7 +108,7 @@ namespace OpenMetaverse
         /// </summary>
         public GridClient()
         {
-            // Initialise SmartThreadPool when using mono
+            // Initialize work pool settings when using mono
             if (Type.GetType("Mono.Runtime") != null)
             {
                 WorkPool.Init(true);

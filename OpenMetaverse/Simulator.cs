@@ -1052,7 +1052,7 @@ namespace OpenMetaverse
 
             #region Packet Decoding
 
-            int packetEnd = buffer.DataLength - 1;
+            int packetEnd = buffer.DataLength;
 
             try
             {

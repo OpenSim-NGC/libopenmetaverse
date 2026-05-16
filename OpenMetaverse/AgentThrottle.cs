@@ -178,13 +178,14 @@ namespace OpenMetaverse
                 adjData = data;
             }
 
-            Resend = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Land = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Wind = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Cloud = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Task = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Texture = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Asset = BitConverter.ToSingle(adjData, pos);
+            Resend = Utils.BytesToFloat(adjData, 0);
+            Land = Utils.BytesToFloat(adjData, 4);
+            Wind = Utils.BytesToFloat(adjData, 8);
+            Cloud = Utils.BytesToFloat(adjData, 12);
+            Task = Utils.BytesToFloat(adjData, 16);
+            Texture = Utils.BytesToFloat(adjData, 20);
+            Asset = Utils.BytesToFloat(adjData, 24);
+            pos += 28;
         }
 
         /// <summary>
@@ -220,15 +221,14 @@ namespace OpenMetaverse
         public byte[] ToBytes()
         {
             byte[] data = new byte[7 * 4];
-            int i = 0;
 
-            Buffer.BlockCopy(Utils.FloatToBytes(Resend), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Land), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Wind), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Cloud), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Task), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Texture), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Asset), 0, data, i, 4); i += 4;
+            Utils.FloatToBytes(Resend, data, 0);
+            Utils.FloatToBytes(Land, data, 4);
+            Utils.FloatToBytes(Wind, data, 8);
+            Utils.FloatToBytes(Cloud, data, 12);
+            Utils.FloatToBytes(Task, data, 16);
+            Utils.FloatToBytes(Texture, data, 20);
+            Utils.FloatToBytes(Asset, data, 24);
 
             return data;
         }

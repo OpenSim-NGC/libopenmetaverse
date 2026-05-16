@@ -1,27 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFrameworks>net48</TargetFrameworks>
+    <OutputType>Library</OutputType>
+    <PackageId>OpenMetaverse</PackageId>
+    <Description>Client library for OpenMetaverse-compatible virtual world servers such as OpenSimulator. Provides login, inventory, asset, object, and messaging APIs.</Description>
     <AssemblyTitle>OpenMetaverse</AssemblyTitle>
-    <NoWarn>1591,1574,0419,0618</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="log4net" Version="2.0.12" />
-    <PackageReference Include="System.Drawing.Common" Version="5.0.0" />
+    <PackageReference Include="log4net" Version="3.3.1" />
+    <PackageReference Include="MessagePack" Version="2.5.192" />
+    <PackageReference Include="CoreJ2K" Version="2.1.2.38" />
+    <PackageReference Include="CoreJ2K.Skia" Version="2.1.2.38" />
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="SmartThreadPool">
-      <HintPath>..\bin\SmartThreadPool.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="XMLRPC">
-      <HintPath>..\bin\XMLRPC.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="zlib.net">
-      <HintPath>..\bin\zlib.net.dll</HintPath>
+      <HintPath>..\AppData\XMLRPC.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

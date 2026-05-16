@@ -104,7 +104,14 @@ namespace OpenMetaverse
         /// <summary>Linden mesh format</summary>
         Mesh = 49,
 
-        Settings = 56
+        Settings = 56,
+        /// <summary>Render material</summary>
+        Material = 57,
+
+        GLTF = 58,
+        GLTF_bin = 59,
+
+        OSMaterial = -2 // OpenSimulator specific
     }
 
     /// <summary>
@@ -149,7 +156,7 @@ namespace OpenMetaverse
         /// <summary>Ensemble beginning range</summary>
         EnsembleStart = 26,
         /// <summary>Ensemble ending range</summary>
-        EnsembleEnd = 45,
+        EnsembleEnd= 45,
         /// <summary>Current outfit folder</summary>
         CurrentOutfit = 46,
         /// <summary>Outfit folder</summary>
@@ -170,6 +177,8 @@ namespace OpenMetaverse
         MarkplaceStock = 54,
         /// <summary>Settings folder</summary>
         Settings = 56,
+        /// <summary>Render materials folder</summary>
+        Material = 57,
         /// <summary>Hypergrid Suitcase folder</summary>
         Suitcase = 100
     }
@@ -236,6 +245,11 @@ namespace OpenMetaverse
         Mesh = 22,
 
         Settings = 25,
+
+        Material = 26,
+
+        GLTF = 27,
+        GLTF_bin = 28
     }
 
     /// <summary>

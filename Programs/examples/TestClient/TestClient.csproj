@@ -1,13 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
-    <TargetFramework>net48</TargetFramework>
     <OutputType>Exe</OutputType>
     <AssemblyTitle>TestClient</AssemblyTitle>
     <Product>TestClient</Product>
     <Copyright>Copyright ©  2006</Copyright>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <NoWarn>1591,1574,0419,0618</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Web">

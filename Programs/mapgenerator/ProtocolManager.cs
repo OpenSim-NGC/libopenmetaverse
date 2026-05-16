@@ -310,17 +310,13 @@ namespace mapgenerator
         /// <returns></returns>
         public MapPacket Command(ushort command, PacketFrequency frequency)
         {
-            switch (frequency)
+            return frequency switch
             {
-                case PacketFrequency.High:
-                    return HighMaps[command];
-                case PacketFrequency.Medium:
-                    return MediumMaps[command];
-                case PacketFrequency.Low:
-                    return LowMaps[command];
-            }
-
-            throw new Exception("Cannot find map for command \"" + command + "\" with frequency \"" + frequency + "\"");
+                PacketFrequency.High => HighMaps[command],
+                PacketFrequency.Medium => MediumMaps[command],
+                PacketFrequency.Low => LowMaps[command],
+                _ => throw new Exception("Cannot find map for command \"" + command + "\" with frequency \"" + frequency + "\""),
+            };
         }
 
         /// <summary>
@@ -656,9 +652,9 @@ namespace mapgenerator
                 r.Close();
                 map.Close();
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
             }
         }
 

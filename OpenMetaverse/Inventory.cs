@@ -27,7 +27,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
+using MessagePack;
+using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {
@@ -50,6 +51,41 @@ namespace OpenMetaverse
     /// </summary>
     public class Inventory
     {
+        [MessagePackObject]
+        private sealed class InventoryCacheEntry
+        {
+            [Key(0)]
+            public UUID ParentID { get; set; }
+
+            [Key(1)]
+            public bool IsFolder { get; set; }
+
+            [Key(2)]
+            public string Data { get; set; }
+        }
+
+        private static InventoryCacheEntry SerializeInventoryNode(InventoryNode node)
+        {
+            InventoryBase data = node.Data;
+            return new InventoryCacheEntry
+            {
+                ParentID = data.ParentUUID,
+                IsFolder = data is InventoryFolder,
+                Data = OSDParser.SerializeLLSDXmlString(data.GetOSD())
+            };
+        }
+
+        private static InventoryNode DeserializeInventoryNode(InventoryCacheEntry cacheNode)
+        {
+            OSD osd = OSDParser.DeserializeLLSDXml(cacheNode.Data);
+            InventoryBase data = cacheNode.IsFolder
+                ? (InventoryBase)InventoryFolder.FromOSD(osd)
+                : (InventoryBase)InventoryItem.FromOSD(osd);
+
+            data.ParentUUID = cacheNode.ParentID;
+            return new InventoryNode(data);
+        }
+
 
         /// <summary>The event subscribers, null of no subscribers</summary>
         private EventHandler<InventoryObjectUpdatedEventArgs> m_InventoryObjectUpdated;
@@ -187,7 +223,7 @@ namespace OpenMetaverse
             Client = client;
             //Manager = manager;
             _Owner = owner;
-            if (owner == UUID.Zero)
+            if (owner.IsZero())
                 Logger.Log("Inventory owned by nobody!", Helpers.LogLevel.Warning, Client);
             Items = new Dictionary<UUID, InventoryNode>();
         }
@@ -357,14 +393,17 @@ namespace OpenMetaverse
             {
                 using (Stream stream = File.Open(filename, FileMode.Create))
                 {
-                    BinaryFormatter bformatter = new BinaryFormatter();
                     lock (Items)
                     {
                         Logger.Log("Caching " + Items.Count.ToString() + " inventory items to " + filename, Helpers.LogLevel.Info);
+                        List<InventoryCacheEntry> cacheNodes = new List<InventoryCacheEntry>(Items.Count);
+
                         foreach (KeyValuePair<UUID, InventoryNode> kvp in Items)
                         {
-                            bformatter.Serialize(stream, kvp.Value);
+                            cacheNodes.Add(SerializeInventoryNode(kvp.Value));
                         }
+
+                        MessagePackSerializer.Serialize(stream, cacheNodes);
                     }
                 }
             }
@@ -391,13 +430,15 @@ namespace OpenMetaverse
 
                 using (Stream stream = File.Open(filename, FileMode.Open))
                 {
-                    BinaryFormatter bformatter = new BinaryFormatter();
-
-                    while (stream.Position < stream.Length)
+                    List<InventoryCacheEntry> cacheNodes = MessagePackSerializer.Deserialize<List<InventoryCacheEntry>>(stream);
+                    if (cacheNodes != null)
                     {
-                        OpenMetaverse.InventoryNode node = (InventoryNode)bformatter.Deserialize(stream);
-                        nodes.Add(node);
-                        item_count++;
+                        foreach (InventoryCacheEntry cacheNode in cacheNodes)
+                        {
+                            OpenMetaverse.InventoryNode node = DeserializeInventoryNode(cacheNode);
+                            nodes.Add(node);
+                            item_count++;
+                        }
                     }
                 }
             }
@@ -423,7 +464,8 @@ namespace OpenMetaverse
                 foreach (InventoryNode node in nodes)
                 {
                     InventoryNode pnode;
-                    if (node.ParentID == UUID.Zero)
+                    UUID parentID = (node.Data != null) ? node.Data.ParentUUID : UUID.Zero;
+                    if (parentID.IsZero())
                     {
                         //We don't need the root nodes "My Inventory" etc as they will already exist for the correct
                         // user of this cache.
@@ -452,7 +494,7 @@ namespace OpenMetaverse
                             del_nodes.Add(node);
                         }
                     }
-                    else if (Items.TryGetValue(node.ParentID, out pnode))
+                    else if (Items.TryGetValue(parentID, out pnode))
                     {
                         if (node.Data != null)
                         {

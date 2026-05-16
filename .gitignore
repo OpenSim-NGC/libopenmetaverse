@@ -3,9 +3,12 @@ compile.bat
 *.userprefs
 *.suo
 *.cache
-
+*.csproj.lscache
 .vs/
 [Oo]bj/
 [Bb]in/
+[Bb]uild/
 PublishProfiles/
-
+build_log.txt
+build_output.txt
+build_status.txt

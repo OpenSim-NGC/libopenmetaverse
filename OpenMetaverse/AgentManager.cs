@@ -4215,7 +4215,7 @@ namespace OpenMetaverse
                 {
                     if (msg.Updates[i].Transition.Equals("ENTER"))
                     {
-                        if (fndMbr.AvatarKey == UUID.Zero)
+                        if (fndMbr.AvatarKey.IsZero())
                         {
                             fndMbr = new ChatSessionMember();
                             fndMbr.AvatarKey = msg.Updates[i].AgentID;

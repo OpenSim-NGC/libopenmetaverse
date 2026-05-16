@@ -24,15 +24,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using NUnit.Framework;
+using Xunit;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.Tests
 {
-    [TestFixture]
-    public class PacketTests : Assert
+    
+    public class PacketTests
     {
-        [Test]
+        [Fact]
         public void HeaderFlags()
         {
             TestMessagePacket packet = new TestMessagePacket();
@@ -42,53 +42,53 @@ namespace OpenMetaverse.Tests
             packet.Header.Resent = false;
             packet.Header.Zerocoded = false;
 
-            Assert.IsFalse(packet.Header.AppendedAcks, "AppendedAcks: Failed to initially set the flag to false");
-            Assert.IsFalse(packet.Header.Reliable, "Reliable: Failed to initially set the flag to false");
-            Assert.IsFalse(packet.Header.Resent, "Resent: Failed to initially set the flag to false");
-            Assert.IsFalse(packet.Header.Zerocoded, "Zerocoded: Failed to initially set the flag to false");
+            Assert.False(packet.Header.AppendedAcks, "AppendedAcks: Failed to initially set the flag to false");
+            Assert.False(packet.Header.Reliable, "Reliable: Failed to initially set the flag to false");
+            Assert.False(packet.Header.Resent, "Resent: Failed to initially set the flag to false");
+            Assert.False(packet.Header.Zerocoded, "Zerocoded: Failed to initially set the flag to false");
 
             packet.Header.AppendedAcks = false;
             packet.Header.Reliable = false;
             packet.Header.Resent = false;
             packet.Header.Zerocoded = false;
 
-            Assert.IsFalse(packet.Header.AppendedAcks, "AppendedAcks: Failed to set the flag to false a second time");
-            Assert.IsFalse(packet.Header.Reliable, "Reliable: Failed to set the flag to false a second time");
-            Assert.IsFalse(packet.Header.Resent, "Resent: Failed to set the flag to false a second time");
-            Assert.IsFalse(packet.Header.Zerocoded, "Zerocoded: Failed to set the flag to false a second time");
+            Assert.False(packet.Header.AppendedAcks, "AppendedAcks: Failed to set the flag to false a second time");
+            Assert.False(packet.Header.Reliable, "Reliable: Failed to set the flag to false a second time");
+            Assert.False(packet.Header.Resent, "Resent: Failed to set the flag to false a second time");
+            Assert.False(packet.Header.Zerocoded, "Zerocoded: Failed to set the flag to false a second time");
 
             packet.Header.AppendedAcks = true;
             packet.Header.Reliable = true;
             packet.Header.Resent = true;
             packet.Header.Zerocoded = true;
 
-            Assert.IsTrue(packet.Header.AppendedAcks, "AppendedAcks: Failed to set the flag to true");
-            Assert.IsTrue(packet.Header.Reliable, "Reliable: Failed to set the flag to true");
-            Assert.IsTrue(packet.Header.Resent, "Resent: Failed to set the flag to true");
-            Assert.IsTrue(packet.Header.Zerocoded, "Zerocoded: Failed to set the flag to true");
+            Assert.True(packet.Header.AppendedAcks, "AppendedAcks: Failed to set the flag to true");
+            Assert.True(packet.Header.Reliable, "Reliable: Failed to set the flag to true");
+            Assert.True(packet.Header.Resent, "Resent: Failed to set the flag to true");
+            Assert.True(packet.Header.Zerocoded, "Zerocoded: Failed to set the flag to true");
 
             packet.Header.AppendedAcks = true;
             packet.Header.Reliable = true;
             packet.Header.Resent = true;
             packet.Header.Zerocoded = true;
 
-            Assert.IsTrue(packet.Header.AppendedAcks, "AppendedAcks: Failed to set the flag to true a second time");
-            Assert.IsTrue(packet.Header.Reliable, "Reliable: Failed to set the flag to true a second time");
-            Assert.IsTrue(packet.Header.Resent, "Resent: Failed to set the flag to true a second time");
-            Assert.IsTrue(packet.Header.Zerocoded, "Zerocoded: Failed to set the flag to true a second time");
+            Assert.True(packet.Header.AppendedAcks, "AppendedAcks: Failed to set the flag to true a second time");
+            Assert.True(packet.Header.Reliable, "Reliable: Failed to set the flag to true a second time");
+            Assert.True(packet.Header.Resent, "Resent: Failed to set the flag to true a second time");
+            Assert.True(packet.Header.Zerocoded, "Zerocoded: Failed to set the flag to true a second time");
 
             packet.Header.AppendedAcks = false;
             packet.Header.Reliable = false;
             packet.Header.Resent = false;
             packet.Header.Zerocoded = false;
 
-            Assert.IsFalse(packet.Header.AppendedAcks, "AppendedAcks: Failed to set the flag back to false");
-            Assert.IsFalse(packet.Header.Reliable, "Reliable: Failed to set the flag back to false");
-            Assert.IsFalse(packet.Header.Resent, "Resent: Failed to set the flag back to false");
-            Assert.IsFalse(packet.Header.Zerocoded, "Zerocoded: Failed to set the flag back to false");
+            Assert.False(packet.Header.AppendedAcks, "AppendedAcks: Failed to set the flag back to false");
+            Assert.False(packet.Header.Reliable, "Reliable: Failed to set the flag back to false");
+            Assert.False(packet.Header.Resent, "Resent: Failed to set the flag back to false");
+            Assert.False(packet.Header.Zerocoded, "Zerocoded: Failed to set the flag back to false");
         }
 
-        [Test]
+        [Fact]
         public void ToBytesMultiple()
         {
             UUID testID = UUID.Random();
@@ -131,16 +131,16 @@ namespace OpenMetaverse.Tests
             for (int i = 0; i < splitPackets.Length; i++)
             {
                 byte[] packetData = splitPackets[i];
-                int len = packetData.Length - 1;
+                int len = packetData.Length;
                 DirPlacesReplyPacket packet = (DirPlacesReplyPacket)Packet.BuildPacket(packetData, ref len, packetData);
 
-                Assert.IsTrue(packet.AgentData.AgentID == bigPacket.AgentData.AgentID);
+                Assert.True(packet.AgentData.AgentID == bigPacket.AgentData.AgentID);
 
                 for (int j = 0; j < packet.QueryReplies.Length; j++)
                 {
-                    Assert.IsTrue(packet.QueryReplies[j].Dwell == (float)(queryRepliesCount + j),
+                    Assert.True(packet.QueryReplies[j].Dwell == (float)(queryRepliesCount + j),
                         "Expected Dwell of " + (float)(queryRepliesCount + j) + " but got " + packet.QueryReplies[j].Dwell);
-                    Assert.IsTrue(packet.QueryReplies[j].ParcelID == testID);
+                    Assert.True(packet.QueryReplies[j].ParcelID == testID);
                 }
 
                 queryDataCount += packet.QueryData.Length;
@@ -148,9 +148,9 @@ namespace OpenMetaverse.Tests
                 statusDataCount += packet.StatusData.Length;
             }
 
-            Assert.IsTrue(queryDataCount == bigPacket.QueryData.Length);
-            Assert.IsTrue(queryRepliesCount == bigPacket.QueryData.Length);
-            Assert.IsTrue(statusDataCount == bigPacket.StatusData.Length);
+            Assert.True(queryDataCount == bigPacket.QueryData.Length);
+            Assert.True(queryRepliesCount == bigPacket.QueryData.Length);
+            Assert.True(statusDataCount == bigPacket.StatusData.Length);
 
             ScriptDialogPacket scriptDialogPacket = new ScriptDialogPacket();
             scriptDialogPacket.Data.ChatChannel = 0;
@@ -167,8 +167,8 @@ namespace OpenMetaverse.Tests
 
             byte[][] splitPacket = scriptDialogPacket.ToBytesMultiple();
 
-            Assert.IsNotNull(splitPacket);
-            Assert.IsTrue(splitPacket.Length == 1, "Expected ScriptDialog packet to split into 1 packet but got " + splitPacket.Length);
+            Assert.NotNull(splitPacket);
+            Assert.True(splitPacket.Length == 1, "Expected ScriptDialog packet to split into 1 packet but got " + splitPacket.Length);
 
             ParcelReturnObjectsPacket proPacket = new ParcelReturnObjectsPacket();
             proPacket.AgentData.AgentID = UUID.Zero;
@@ -182,8 +182,8 @@ namespace OpenMetaverse.Tests
 
             splitPacket = proPacket.ToBytesMultiple();
 
-            Assert.IsNotNull(splitPacket);
-            Assert.IsTrue(splitPacket.Length == 1, "Expected ParcelReturnObjectsPacket packet to split into 1 packet but got " + splitPacket.Length);
+            Assert.NotNull(splitPacket);
+            Assert.True(splitPacket.Length == 1, "Expected ParcelReturnObjectsPacket packet to split into 1 packet but got " + splitPacket.Length);
 
             InventoryDescendentsPacket invPacket = new InventoryDescendentsPacket();
             invPacket.FolderData = new InventoryDescendentsPacket.FolderDataBlock[1];
@@ -199,15 +199,15 @@ namespace OpenMetaverse.Tests
 
             splitPacket = invPacket.ToBytesMultiple();
 
-            Assert.IsNotNull(splitPacket);
-            Assert.IsTrue(splitPacket.Length == 1, "Split InventoryDescendents packet into " + splitPacket.Length + " instead of 1 packet");
+            Assert.NotNull(splitPacket);
+            Assert.True(splitPacket.Length == 1, "Split InventoryDescendents packet into " + splitPacket.Length + " instead of 1 packet");
 
             int x = 0;
             int y = splitPacket[0].Length - 1;
             invPacket.FromBytes(splitPacket[0], ref x, ref y, null);
 
-            Assert.IsTrue(invPacket.FolderData.Length == 1, "InventoryDescendents packet came back with " + invPacket.FolderData.Length + " FolderData blocks");
-            Assert.IsTrue(invPacket.ItemData.Length == 5, "InventoryDescendents packet came back with " + invPacket.ItemData.Length + " ItemData blocks");
+            Assert.True(invPacket.FolderData.Length == 1, "InventoryDescendents packet came back with " + invPacket.FolderData.Length + " FolderData blocks");
+            Assert.True(invPacket.ItemData.Length == 5, "InventoryDescendents packet came back with " + invPacket.ItemData.Length + " ItemData blocks");
         }
     }
 }

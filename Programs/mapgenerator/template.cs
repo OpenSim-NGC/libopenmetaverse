@@ -151,7 +151,7 @@ namespace OpenMetaverse.Packets
         /// <param name="pos"></param>
         /// <param name="packetEnd"></param>
         /// <returns></returns>
-        public static Header BuildHeader(byte[] bytes, ref int pos, ref int packetEnd)
+        public static Header BuildHeader(byte[] bytes, ref int pos, ref int packetLength)
         {
             Header header;
             byte flags = bytes[pos];
@@ -160,8 +160,9 @@ namespace OpenMetaverse.Packets
             header.Reliable = (flags & Helpers.MSG_RELIABLE) != 0;
             header.Resent = (flags & Helpers.MSG_RESENT) != 0;
             header.Zerocoded = (flags & Helpers.MSG_ZEROCODED) != 0;
-            header.Sequence = (uint)((bytes[pos + 1] << 24) + (bytes[pos + 2] << 16) + (bytes[pos + 3] << 8) + bytes[pos + 4]);
+            header.Sequence = (uint)Utils.BytesToIntBig(bytes, 1);
 
+            pos += bytes[pos + 5];
             // Set the frequency and packet ID number
             if (bytes[pos + 6] == 0xFF)
             {
@@ -191,36 +192,78 @@ namespace OpenMetaverse.Packets
                 pos += 7;
             }
 
-            header.AckList = null;
-            CreateAckList(ref header, bytes, ref packetEnd);
+            if (header.AppendedAcks)
+            {
+                --packetLength;
+                int count = bytes[packetLength];
+                header.AckList = new uint[count];
+                for (int i = 0; i < count; i++)
+                {
+                    packetLength -= 4;
+                    header.AckList[i] = (uint)Utils.BytesToIntBig(bytes, packetLength);
+                }
+            }
+            else
+                header.AckList = null;
 
             return header;
         }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="header"></param>
-        /// <param name="bytes"></param>
-        /// <param name="packetEnd"></param>
-        static void CreateAckList(ref Header header, byte[] bytes, ref int packetEnd)
-        {
-            if (header.AppendedAcks)
-            {
-                int count = bytes[packetEnd--];
-                header.AckList = new uint[count];
-                
-                for (int i = 0; i < count; i++)
-                {
-                    header.AckList[i] = (uint)(
-                        (bytes[(packetEnd - i * 4) - 3] << 24) |
-                        (bytes[(packetEnd - i * 4) - 2] << 16) |
-                        (bytes[(packetEnd - i * 4) - 1] <<  8) |
-                        (bytes[(packetEnd - i * 4)    ]));
-                }
 
-                packetEnd -= (count * 4);
+        public static bool TryParseHeader(byte[] bytes, int packetLen, out Header header, out int messageBody, out int messageEnd)
+        {
+            messageBody = 0;
+            messageEnd = packetLen;
+            header = new Header();
+
+            try
+            {
+                byte flags = bytes[0];
+
+                header.AppendedAcks = (flags & Helpers.MSG_APPENDED_ACKS) != 0;
+                header.Reliable = (flags & Helpers.MSG_RELIABLE) != 0;
+                header.Resent = (flags & Helpers.MSG_RESENT) != 0;
+                header.Zerocoded = (flags & Helpers.MSG_ZEROCODED) != 0;
+
+                header.Sequence = (uint)Utils.BytesToIntBig(bytes, 1);
+
+                messageBody += bytes[5];
+
+                header.ID = bytes[messageBody + 6];
+                // Set the frequency and packet ID number
+                if (header.ID == 0xFF)
+                {
+                    header.ID = bytes[messageBody + 7];
+                    if (header.ID == 0xFF)
+                    {
+                        header.Frequency = PacketFrequency.Low;
+                        if (header.Zerocoded && bytes[messageBody + 8] == 0)
+                            header.ID = bytes[messageBody + 10];
+                        else
+                            header.ID = (ushort)((bytes[messageBody + 8] << 8) + bytes[messageBody + 9]);
+
+                        messageBody += 10;
+                    }
+                    else
+                    {
+                        header.Frequency = PacketFrequency.Medium;
+                        messageBody += 8;
+                    }
+                }
+                else
+                {
+                    header.Frequency = PacketFrequency.High;
+                    messageBody += 7;
+                }
+                if (header.AppendedAcks)
+                {
+                    --messageEnd;
+                    int count = bytes[messageEnd];
+                    messageEnd -= 4 * count;
+                }
+                return messageEnd >= messageBody;
             }
+            catch { }
+            return false;
         }
     }
 

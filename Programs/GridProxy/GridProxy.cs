@@ -30,23 +30,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Xml;
-
-using Nwc.XmlRpc;
 
 using OpenMetaverse;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace GridProxy
 {
@@ -199,6 +195,23 @@ namespace GridProxy
         /*
          * Proxy Management
          */
+        public static bool ValidateServerCertificate(
+            object sender,
+            X509Certificate certificate,
+            X509Chain chain,
+            SslPolicyErrors sslPolicyErrors)
+        {
+            //if (m_NoVerifyCertChain)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+
+            //if (m_NoVerifyCertHostname)
+            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
+
+            return false;
+        }
 
         // Proxy: construct a proxy server with the given configuration
         public Proxy(ProxyConfig proxyConfig)
@@ -207,7 +220,7 @@ namespace GridProxy
 
             ServicePointManager.Expect100Continue = false;
             ServicePointManager.DefaultConnectionLimit = 128;
-            ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+            ServicePointManager.ServerCertificateValidationCallback = ValidateServerCertificate;
 
             InitializeLoginProxy();
             InitializeSimProxy();
@@ -583,9 +596,9 @@ namespace GridProxy
             if (uri == "/")
             {
                 headers["method"] = meth;
-                if (contentType == "application/xml+llsd" || contentType == "application/xml")
+                if (contentType == "application/llsd+xml" || contentType == "application/xml+llsd" || contentType == "application/xml")
                 {
-                    ProxyLoginSD(netStream, content);
+                    ProxyLoginSD(netStream, content, headers);
                 }
                 else
                 {
@@ -620,9 +633,11 @@ namespace GridProxy
         public ObservableDictionary<string, CapInfo> KnownCaps = new ObservableDictionary<string, CapInfo>();
         //private Dictionary<string, bool> SubHack = new Dictionary<string, bool>();
 
+        private static Regex CapMainRegex = new Regex(@"^(https?)://([^:/]+)(:\d+)?(/.*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static Regex CapUriRegex = new Regex(@"/?\?.*$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private void ProxyCaps(NetworkStream netStream, string meth, string uri, Dictionary<string, string> headers, byte[] content, int reqNo)
         {
-            Match match = new Regex(@"^(https?)://([^:/]+)(:\d+)?(/.*)$").Match(uri);
+            Match match = CapMainRegex.Match(uri);
             if (!match.Success)
             {
                 OpenMetaverse.Logger.Log("[" + reqNo + "] Malformed proxy URI: " + uri, Helpers.LogLevel.Error);
@@ -638,8 +653,7 @@ namespace GridProxy
             CapInfo cap = null;
             lock (this)
             {
-                string capuri = Regex.Replace(uri, @"/?\?.*$", string.Empty);
-                
+                string capuri = CapUriRegex.Replace(uri, string.Empty);
                 // detect AIS url
                 int indx = capuri.IndexOf("/item/");
                 if (indx < 0)
@@ -647,9 +661,14 @@ namespace GridProxy
                 if(indx > 0)
                     capuri = capuri.Substring(0,indx);
 
-                if (KnownCaps.ContainsKey(capuri))
+                if (!KnownCaps.TryGetValue(capuri, out cap))
                 {
-                    cap = KnownCaps[capuri];
+                    indx = capuri.IndexOf("cap/");
+                    if(indx > 0)
+                    {
+                        capuri = capuri.Substring(0,indx + 36 + 4);
+                        _ = KnownCaps.TryGetValue(capuri, out cap);
+                    }
                 }
             }
 
@@ -1028,10 +1047,8 @@ namespace GridProxy
 
                 if (stage == CapsStage.Response)
                 {
-                    if (capReq.Response != null && capReq.Response is OSDMap)
+                    if (capReq.Response is OSDMap map)
                     {
-                        OSDMap map = (OSDMap)capReq.Response;
-
                         if (map.ContainsKey("uploader"))
                         {
                             string val = map["uploader"].AsString();
@@ -1063,15 +1080,10 @@ namespace GridProxy
         {
             if (stage != CapsStage.Response) return false;
 
-            OSDMap map = null;
-            if (capReq.Response is OSDMap)
-                map = (OSDMap)capReq.Response;
-            else return false;
+            if (capReq.Response is not OSDMap map)
+                return false;
 
-            OSDArray array = null;
-            if (map.ContainsKey("events") && map["events"] is OSDArray)
-                array = (OSDArray)map["events"];
-            else
+            if(!map.TryGetValue("events", out OSD oarray) || oarray is not OSDArray array)
                 return false;
 
             for (int i = 0; i < array.Count; i++)
@@ -1237,12 +1249,13 @@ namespace GridProxy
             }
         }
 
-        private void ProxyLoginSD(NetworkStream netStream, byte[] content)
+        private void ProxyLoginSD(NetworkStream netStream, byte[] content, Dictionary<string, string> headers)
         {
             lock (this)
             {
                 AutoResetEvent remoteComplete = new AutoResetEvent(false);
                 CapsClient loginRequest = new CapsClient(proxyConfig.remoteLoginUri);
+
                 OSD response = null;
                 loginRequest.OnComplete += new CapsClient.CompleteCallback(
                     delegate (CapsClient client, OSD result, Exception error)
@@ -1257,6 +1270,7 @@ namespace GridProxy
                         remoteComplete.Set();
                     }
                     );
+
                 loginRequest.BeginGetResponse(content, "application/llsd+xml", 1000 * 100);
                 remoteComplete.WaitOne(1000 * 100, false);
 
@@ -1383,7 +1397,7 @@ namespace GridProxy
 
                         // interpret the packet according to the SL protocol
                         Packet packet;
-                        int end = length - 1;
+                        int end = length;
 
                         packet = Packet.BuildPacket(receiveBuffer, ref end, zeroBuffer);
 
@@ -1721,7 +1735,7 @@ namespace GridProxy
                         if (length != 0)
                         {
                             // interpret the packet according to the SL protocol
-                            int end = length - 1;
+                            int end = length;
                             Packet packet = OpenMetaverse.Packets.Packet.BuildPacket(receiveBuffer, ref end, zeroBuffer);
 
                             //OpenMetaverse.Logger.Log("-> " + packet.Type + " #" + packet.Header.Sequence, Helpers.LogLevel.Debug);
@@ -2168,9 +2182,7 @@ namespace GridProxy
 
 
         public CapInfo(string URI, IPEndPoint Sim, string CapType)
-            :
-            this(URI, Sim, CapType, CapsDataFormat.OSD, CapsDataFormat.OSD)
-        { }
+            : this(URI, Sim, CapType, CapsDataFormat.OSD, CapsDataFormat.OSD) { }
         public CapInfo(string URI, IPEndPoint Sim, string CapType, CapsDataFormat ReqFmt, CapsDataFormat RespFmt)
         {
             uri = URI; sim = Sim; type = CapType; reqFmt = ReqFmt; respFmt = RespFmt;
@@ -2252,6 +2264,7 @@ namespace GridProxy
 
         public string FullUri = string.Empty;
         public string Method = string.Empty;
+        public string ExtraInfo = string.Empty;
     }
 
     // XmlRpcRequestDelegate: specifies a delegate to be called for XML-RPC requests

@@ -242,7 +242,7 @@ namespace OpenMetaverse.Packets
                     }
                     else if (fieldType == typeof(byte[]) && blockData[field.Name].Type == OSDType.String)
                     {
-                        field.SetValue(block, Utils.StringToBytes(blockData[field.Name]));
+                        field.SetValue(block, Utils.StringToBytes(blockData[field.Name].AsString()));
                     }
                 }
             }

@@ -142,12 +142,12 @@ namespace importprimscript
                 sculpties[i].TextureID = UploadImage(sculpties[i].TextureFile, false);
 
                 // Check for failed uploads
-                if (sculpties[i].SculptID == UUID.Zero)
+                if (sculpties[i].SculptID.IsZero())
                 {
                     Console.WriteLine("Sculpt map " + sculpties[i].SculptFile + " failed to upload, skipping " + sculpties[i].Name);
                     continue;
                 }
-                else if (sculpties[i].TextureID == UUID.Zero)
+                else if (sculpties[i].TextureID.IsZero())
                 {
                     Console.WriteLine("Texture " + sculpties[i].TextureFile + " failed to upload, skipping " + sculpties[i].Name);
                     continue;

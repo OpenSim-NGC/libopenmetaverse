@@ -28,9 +28,9 @@
 using OpenMetaverse.Imaging;
 using OpenMetaverse.ImportExport.Collada14;
 using OpenMetaverse.Rendering;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -114,7 +114,7 @@ namespace OpenMetaverse.ImportExport
             {
                 string ext = System.IO.Path.GetExtension(material.Texture).ToLower();
 
-                Bitmap bitmap = null;
+                SKBitmap bitmap = null;
 
                 if (ext == ".jp2" || ext == ".j2c")
                 {
@@ -128,8 +128,14 @@ namespace OpenMetaverse.ImportExport
                 }
                 else
                 {
-                    bitmap = (Bitmap)Image.FromFile(fname);
+                    using (var stream = File.OpenRead(fname))
+                    {
+                        bitmap = SKBitmap.Decode(stream);
+                    }
                 }
+
+                if (bitmap == null)
+                    throw new Exception("Failed to decode texture image");
 
                 int width = bitmap.Width;
                 int height = bitmap.Height;
@@ -148,19 +154,15 @@ namespace OpenMetaverse.ImportExport
 
                     Logger.Log("Image has irregular dimensions " + origWidth + "x" + origHieght + ". Resizing to " + width + "x" + height, Helpers.LogLevel.Info);
 
-                    Bitmap resized = new Bitmap(width, height, bitmap.PixelFormat);
-                    Graphics graphics = Graphics.FromImage(resized);
-
-                    graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                    graphics.InterpolationMode =
-                       System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                    graphics.DrawImage(bitmap, 0, 0, width, height);
+                    SKBitmap resized = bitmap.Resize(new SKImageInfo(width, height), SKFilterQuality.High)
+                        ?? throw new Exception("Failed to resize texture image");
 
                     bitmap.Dispose();
                     bitmap = resized;
                 }
 
                 material.TextureData = OpenJPEG.EncodeFromImage(bitmap, false);
+                bitmap.Dispose();
 
                 Logger.Log("Successfully encoded " + fname, Helpers.LogLevel.Info);
             }

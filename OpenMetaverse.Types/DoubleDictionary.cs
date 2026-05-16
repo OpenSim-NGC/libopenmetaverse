@@ -73,24 +73,18 @@ namespace OpenMetaverse
 
         public bool Remove(TKey1 key1, TKey2 key2)
         {
-            bool success;
             rwLock.EnterWriteLock();
-
             try
             {
                 Dictionary1.Remove(key1);
-                success = Dictionary2.Remove(key2);
+                return Dictionary2.Remove(key2);
             }
             finally { rwLock.ExitWriteLock(); }
-
-            return success;
         }
 
         public bool Remove(TKey1 key1)
         {
-            bool found = false;
             rwLock.EnterWriteLock();
-
             try
             {
                 // This is an O(n) operation!
@@ -103,27 +97,22 @@ namespace OpenMetaverse
                         {
                             Dictionary1.Remove(key1);
                             Dictionary2.Remove(kvp.Key);
-                            found = true;
-                            break;
+                            return true;
                         }
                     }
                 }
+                return false;
             }
             finally { rwLock.ExitWriteLock(); }
-
-            return found;
         }
 
         public bool Remove(TKey2 key2)
         {
-            bool found = false;
             rwLock.EnterWriteLock();
-
             try
             {
                 // This is an O(n) operation!
-                TValue value;
-                if (Dictionary2.TryGetValue(key2, out value))
+                if (Dictionary2.TryGetValue(key2, out TValue value))
                 {
                     foreach (KeyValuePair<TKey1, TValue> kvp in Dictionary1)
                     {
@@ -131,15 +120,13 @@ namespace OpenMetaverse
                         {
                             Dictionary2.Remove(key2);
                             Dictionary1.Remove(kvp.Key);
-                            found = true;
-                            break;
+                            return true;
                         }
                     }
                 }
+                return false;
             }
             finally { rwLock.ExitWriteLock(); }
-
-            return found;
         }
 
         public void Clear()
@@ -171,30 +158,21 @@ namespace OpenMetaverse
 
         public bool TryGetValue(TKey1 key, out TValue value)
         {
-            bool success;
             rwLock.EnterReadLock();
-
-            try { success = Dictionary1.TryGetValue(key, out value); }
+            try { return Dictionary1.TryGetValue(key, out value); }
             finally { rwLock.ExitReadLock(); }
-
-            return success;
         }
 
         public bool TryGetValue(TKey2 key, out TValue value)
         {
-            bool success;
             rwLock.EnterReadLock();
-
-            try { success = Dictionary2.TryGetValue(key, out value); }
+            try { return Dictionary2.TryGetValue(key, out value); }
             finally { rwLock.ExitReadLock(); }
-
-            return success;
         }
 
         public void ForEach(Action<TValue> action)
         {
             rwLock.EnterReadLock();
-
             try
             {
                 foreach (TValue value in Dictionary1.Values)
@@ -206,7 +184,6 @@ namespace OpenMetaverse
         public void ForEach(Action<KeyValuePair<TKey1, TValue>> action)
         {
             rwLock.EnterReadLock();
-
             try
             {
                 foreach (KeyValuePair<TKey1, TValue> entry in Dictionary1)
@@ -218,7 +195,6 @@ namespace OpenMetaverse
         public void ForEach(Action<KeyValuePair<TKey2, TValue>> action)
         {
             rwLock.EnterReadLock();
-
             try
             {
                 foreach (KeyValuePair<TKey2, TValue> entry in Dictionary2)
@@ -247,7 +223,6 @@ namespace OpenMetaverse
         {
             IList<TValue> list = new List<TValue>();
             rwLock.EnterReadLock();
-
             try
             {
                 foreach (TValue value in Dictionary1.Values)

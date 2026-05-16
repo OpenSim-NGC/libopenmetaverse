@@ -24,12 +24,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using ComponentAce.Compression.Libs.zlib;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 
 namespace OpenMetaverse.Messages.Linden
@@ -1811,6 +1811,76 @@ namespace OpenMetaverse.Messages.Linden
             return RawData;
         }
 
+    }
+
+    public class LargeGenericMessage : IMessage
+    {
+        private OSDMap RawData;
+        public UUID AgentID;
+        public UUID SessionID;
+        public UUID TransactionID;
+
+        public string Method;
+        public UUID Invoice;
+
+        public class Parameter
+        {
+            public string value;
+        }
+
+        public Parameter[] Parameters;
+
+        public void Deserialize(OSDMap map)
+        {
+            RawData = map;
+            OSD osdtmp, osdtmp2;
+            if (map.TryGetValue("AgentData", out osdtmp))
+            {
+                if (osdtmp is OSDArray agdArray && agdArray.Count > 0)
+                {
+                    if (agdArray[0] is OSDMap agdMap)
+                    {
+                        if (agdMap.TryGetValue("AgentID", out osdtmp2))
+                            AgentID = osdtmp2.AsUUID();
+                        if (agdMap.TryGetValue("SessionID", out osdtmp2))
+                            SessionID = osdtmp2.AsUUID();
+                        if (agdMap.TryGetValue("TransactionID", out osdtmp2))
+                            TransactionID = osdtmp2.AsUUID();
+                    }
+                }
+            }
+            if (map.TryGetValue("MethodData", out osdtmp))
+            {
+                if (osdtmp is OSDArray mdArray && mdArray.Count > 0)
+                {
+                    if (mdArray[0] is OSDMap mdMap)
+                    {
+                        if (mdMap.TryGetValue("Method", out osdtmp2))
+                            Method = osdtmp2.AsString();
+                        if (mdMap.TryGetValue("Invoice", out osdtmp2))
+                            Invoice = osdtmp2.AsUUID();
+                    }
+                }
+            }
+            if (map.TryGetValue("ParamList", out osdtmp))
+            {
+                if (osdtmp is OSDArray pArray && pArray.Count > 0)
+                {
+                    Parameters = new Parameter[pArray.Count];
+                    for(int i = 0; i < Parameters.Length; i++)
+                    {
+                        Parameters[i] = new Parameter(){value = pArray[i].ToString() };
+                    }
+                }
+            }
+
+            Method ??="MissingMethod";
+        }
+
+        public OSDMap Serialize()
+        {
+            return RawData;
+        }
     }
 
     /// <summary>Base class for Asset uploads/results via Capabilities</summary>
@@ -4434,15 +4504,9 @@ namespace OpenMetaverse.Messages.Linden
                 {
                     using (MemoryStream output = new MemoryStream())
                     {
-                        using (ZOutputStream zout = new ZOutputStream(output))
+                        using (ZLibStream zStream = new ZLibStream(input, CompressionMode.Decompress))
                         {
-                            byte[] buffer = new byte[2048];
-                            int len;
-                            while ((len = input.Read(buffer, 0, buffer.Length)) > 0)
-                            {
-                                zout.Write(buffer, 0, len);
-                            }
-                            zout.Flush();
+                            Helpers.CopyStream(zStream, output);
                             output.Seek(0, SeekOrigin.Begin);
                             MaterialData = OSDParser.DeserializeLLSDBinary(output);
                         }
@@ -4469,6 +4533,7 @@ namespace OpenMetaverse.Messages.Linden
     public class GetObjectCostRequest : IMessage
     {
         /// <summary> Object IDs for which to request cost information
+        /// </summary>
         public UUID[] ObjectIDs;
 
         /// <summary>

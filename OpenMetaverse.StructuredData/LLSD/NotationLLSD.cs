@@ -232,7 +232,7 @@ namespace OpenMetaverse.StructuredData
                     if (reader.Read(uuidBuf, 0, 36) < 36)
                         throw new OSDException("Notation LLSD parsing: Unexpected end of stream in UUID.");
                     UUID lluuid;
-                    if (!UUID.TryParse(new String(uuidBuf), out lluuid))
+                    if (!UUID.TryParse(new String(uuidBuf).AsSpan(), out lluuid))
                         throw new OSDException("Notation LLSD parsing: Invalid UUID discovered.");
                     osd = OSD.FromUUID(lluuid);
                     break;
@@ -470,6 +470,10 @@ namespace OpenMetaverse.StructuredData
                     EscapeCharacter(osd.AsString(), singleQuotesNotationMarker, writer);
                     writer.Write(singleQuotesNotationMarker);
                     break;
+                case OSDType.LLSDxml:
+                    writer.Write(osd.AsString());
+                    break;
+                case OSDType.Long:
                 case OSDType.Binary:
                     writer.Write(binaryNotationMarker);
                     writer.Write("64");
@@ -547,8 +551,7 @@ namespace OpenMetaverse.StructuredData
         {
             writer.Write(arrayBeginNotationMarker);
             int lastIndex = osdArray.Count - 1;
-
-            for (int idx = 0; idx <= lastIndex; idx++)
+            for (int idx = 0; idx < osdArray.Count; idx++)
             {
                 SerializeLLSDNotationElement(writer, osdArray[idx]);
                 if (idx < lastIndex)
@@ -608,6 +611,10 @@ namespace OpenMetaverse.StructuredData
                     EscapeCharacter(osd.AsString(), singleQuotesNotationMarker, writer);
                     writer.Write(singleQuotesNotationMarker);
                     break;
+                case OSDType.LLSDxml:
+                    writer.Write(osd.AsString());
+                    break;
+                case OSDType.Long:
                 case OSDType.Binary:
                     writer.Write(binaryNotationMarker);
                     writer.Write("64");
@@ -880,7 +887,7 @@ namespace OpenMetaverse.StructuredData
         /// 
         /// </summary>
         /// <param name="s"></param>
-        /// <param name="c"></param>
+        /// <param name="d"></param>
         /// <returns></returns>
         public static string UnescapeCharacter(String s, char d)
         {
@@ -959,7 +966,7 @@ namespace OpenMetaverse.StructuredData
         /// 
         /// </summary>
         /// <param name="s"></param>
-        /// <param name="c"></param>
+        /// <param name="d"></param>
         /// <returns></returns>
         public static string EscapeCharacter(String s, char d)
         {

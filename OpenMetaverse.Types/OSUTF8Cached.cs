@@ -39,9 +39,9 @@ namespace OpenMetaverse
 {
     public static class OSUTF8Cached
     {
-        const int MAXSIZE = 128; // 8MB
+        const int MAXSIZE = 128; // 16MB
         const int PREALLOC = 128;
-        const int MAXDATASIZE = 64 * 1024;
+        public const int MAXDATASIZE = 128 * 1024;
 
         private static readonly osUTF8[] m_pool = new osUTF8[MAXSIZE];
         private static readonly object m_poollock = new object();
@@ -122,6 +122,24 @@ namespace OpenMetaverse
                 }
             }
             return result;
+        }
+
+        public static string GetStringAndRelease(osUTF8 os)
+        {
+            string ret = os.ToString();
+            if (os.m_data.Length == MAXDATASIZE)
+            {
+                lock (m_poollock)
+                {
+                    if (m_poolPtr < MAXSIZE - 1)
+                    {
+                        os.Clear();
+                        m_poolPtr++;
+                        m_pool[m_poolPtr] = os;
+                    }
+                }
+            }
+            return ret;
         }
     }
 }

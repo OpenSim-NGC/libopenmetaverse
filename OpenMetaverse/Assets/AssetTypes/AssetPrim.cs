@@ -123,13 +123,14 @@ namespace OpenMetaverse.Assets
         {
             using (XmlTextReader reader = new XmlTextReader(new StringReader(xmlData)))
             {
+                reader.DtdProcessing = DtdProcessing.Ignore;
                 reader.Read();
                 reader.ReadStartElement("SceneObjectGroup");
                 Parent = LoadPrim(reader);
 
                 if (Parent != null)
                 {
-                    if (this.AssetID == UUID.Zero)
+                    if (this.AssetID.IsZero())
                         this.AssetID = Parent.ID;
 
                     List<PrimObject> children = new List<PrimObject>();
@@ -415,15 +416,13 @@ namespace OpenMetaverse.Assets
 
         static Vector3 ReadVector(XmlTextReader reader, string name)
         {
-            Vector3 vec;
-
             reader.ReadStartElement(name);
-            vec.X = reader.ReadElementContentAsFloat("X", String.Empty);
-            vec.Y = reader.ReadElementContentAsFloat("Y", String.Empty);
-            vec.Z = reader.ReadElementContentAsFloat("Z", String.Empty);
+            float x = reader.ReadElementContentAsFloat("X", String.Empty);
+            float y = reader.ReadElementContentAsFloat("Y", String.Empty);
+            float z = reader.ReadElementContentAsFloat("Z", String.Empty);
             reader.ReadEndElement();
 
-            return vec;
+            return new Vector3(x,y,z);
         }
 
         static Quaternion ReadQuaternion(XmlTextReader reader, string name)

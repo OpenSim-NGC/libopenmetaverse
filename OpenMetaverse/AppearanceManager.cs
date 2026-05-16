@@ -162,7 +162,13 @@ namespace OpenMetaverse
             new WearableType[] { WearableType.Shape, WearableType.Skin,    WearableType.Tattoo,  WearableType.Pants,   WearableType.Shoes,   WearableType.Socks,   WearableType.Jacket,     WearableType.Underpants,   WearableType.Alpha   },
             new WearableType[] { WearableType.Eyes,  WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid },
             new WearableType[] { WearableType.Skirt, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid },
-            new WearableType[] { WearableType.Hair,  WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid }
+            new WearableType[] { WearableType.Hair,  WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid },
+
+            new WearableType[] { WearableType.Invalid,  WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid },
+            new WearableType[] { WearableType.Invalid,  WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid },
+            new WearableType[] { WearableType.Invalid,  WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid },
+            new WearableType[] { WearableType.Invalid,  WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid },
+            new WearableType[] { WearableType.Invalid,  WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid }
         };
         /// <summary>Magic values to finalize the cache check hashes for each
         /// bake</summary>
@@ -173,7 +179,14 @@ namespace OpenMetaverse
             new UUID("91b4a2c7-1b1a-ba16-9a16-1f8f8dcc1c3f"),
             new UUID("b2cf28af-b840-1071-3c6a-78085d8128b5"),
             new UUID("ea800387-ea1a-14e0-56cb-24f2022f969a"),
-            new UUID("0af1ef7c-ad24-11dd-8790-001f5bf833e8")
+            new UUID("0af1ef7c-ad24-11dd-8790-001f5bf833e8"),
+
+            new UUID("e2658fa6-a47b-11ec-b909-0242ac120002"),
+            new UUID("ea8620e2-a47b-11ec-b909-0242ac120002"),
+            new UUID("f175510c-a47b-11ec-b909-0242ac120002"),
+            new UUID("f8011ec0-a47b-11ec-b909-0242ac120002"),
+            new UUID("ff7b4dce-a47b-11ec-b909-0242ac120002")
+
         };
         /// <summary>Default avatar texture, used to detect when a custom
         /// texture is not set for a face</summary>
@@ -403,6 +416,10 @@ namespace OpenMetaverse
         /// </summary>
         private Thread AppearanceThread;
         /// <summary>
+        /// Main appearance cancellation token source
+        /// </summary>
+        private CancellationTokenSource CancellationTokenSource; //Added from LibreOpenMetaverse
+        /// <summary>
         /// Is server baking complete. It needs doing only once
         /// </summary>
         private bool ServerBakingDone = false;
@@ -471,11 +488,14 @@ namespace OpenMetaverse
                 RebakeScheduleTimer.Dispose();
                 RebakeScheduleTimer = null;
             }
+            
+            CancellationTokenSource = new CancellationTokenSource(); //added from LibreOpenMetaverse
 
             // This is the first time setting appearance, run through the entire sequence
             AppearanceThread = new Thread(
                 delegate ()
                 {
+                    var cancellationToken = CancellationTokenSource.Token; //added from LibreOpenMetaverse
                     bool success = true;
                     try
                     {
@@ -630,7 +650,7 @@ namespace OpenMetaverse
                             hash ^= wearable.AssetID;
                     }
 
-                    if (hash != UUID.Zero)
+                    if (hash.IsNotZero())
                     {
                         // Hash with our secret value for this baked layer
                         hash ^= BAKED_TEXTURE_HASH[bakedIndex];
@@ -1352,7 +1372,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Populates textures and visual params from a decoded asset
         /// </summary>
-        /// <param name="wearable">Wearable to decode</param>
+        /// <param name="textures">textures to decode</param>
         public static void DecodeWearableParams(WearableData wearable, ref TextureData[] textures)
         {
             Dictionary<VisualAlphaParam, float> alphaMasks = new Dictionary<VisualAlphaParam, float>();
@@ -1692,7 +1712,7 @@ namespace OpenMetaverse
             {
                 AvatarTextureIndex textureIndex = BakeTypeToAgentTextureIndex((BakeType)bakedIndex);
 
-                if (Textures[(int)textureIndex].TextureID == UUID.Zero)
+                if (Textures[(int)textureIndex].TextureID.IsZero())
                 {
                     // If this is the skirt layer and we're not wearing a skirt then skip it
                     if (bakedIndex == (int)BakeType.Skirt && !Wearables.ContainsKey(WearableType.Skirt))
@@ -1755,7 +1775,7 @@ namespace OpenMetaverse
             UUID newAssetID = UUID.Zero;
             int retries = UPLOAD_RETRIES;
 
-            while (newAssetID == UUID.Zero && retries > 0)
+            while (newAssetID.IsZero() && retries > 0)
             {
                 newAssetID = UploadBake(oven.BakedTexture.AssetData);
                 --retries;
@@ -1763,7 +1783,7 @@ namespace OpenMetaverse
 
             Textures[(int)BakeTypeToAgentTextureIndex(bakeType)].TextureID = newAssetID;
 
-            if (newAssetID == UUID.Zero)
+            if (newAssetID.IsZero())
             {
                 Logger.Log("Failed uploading bake " + bakeType, Helpers.LogLevel.Warning);
                 return false;
@@ -2104,7 +2124,7 @@ namespace OpenMetaverse
                             hash ^= wearable.AssetID;
                     }
 
-                    if (hash != UUID.Zero)
+                    if (hash.IsNotZero())
                     {
                         // Hash with our magic value for this baked layer
                         hash ^= BAKED_TEXTURE_HASH[bakedIndex];
@@ -2367,13 +2387,23 @@ namespace OpenMetaverse
                 RebakeScheduleTimer.Dispose();
                 RebakeScheduleTimer = null;
             }
+            
+            // Added from LibreOpenMetaverse
+            if (CancellationTokenSource != null)
+            {
+                CancellationTokenSource.Cancel();
+                CancellationTokenSource.Dispose();
+                CancellationTokenSource = null;
+            }
 
             if (AppearanceThread != null)
             {
-                if (AppearanceThread.IsAlive)
+                /* removed as thread.abort is obsolte
+                 if (AppearanceThread.IsAlive)
                 {
                     AppearanceThread.Abort();
                 }
+                */
                 AppearanceThread = null;
                 AppearanceThreadRunning = 0;
             }

@@ -36,7 +36,6 @@ namespace LitJson
         private IList<KeyValuePair<string, JsonData>> object_list;
         #endregion
 
-
         #region Properties
         public int Count
         {
@@ -136,8 +135,7 @@ namespace LitJson
                 EnsureDictionary();
                 IList<string> keys = new List<string>();
 
-                foreach (KeyValuePair<string, JsonData> entry in
-                         object_list)
+                foreach (KeyValuePair<string, JsonData> entry in object_list)
                 {
                     keys.Add(entry.Key);
                 }
@@ -153,8 +151,7 @@ namespace LitJson
                 EnsureDictionary();
                 IList<JsonData> values = new List<JsonData>();
 
-                foreach (KeyValuePair<string, JsonData> entry in
-                         object_list)
+                foreach (KeyValuePair<string, JsonData> entry in object_list)
                 {
                     values.Add(entry.Value);
                 }
@@ -263,8 +260,7 @@ namespace LitJson
 
                 inst_object[old_entry.Key] = data;
 
-                KeyValuePair<string, JsonData> entry =
-                    new KeyValuePair<string, JsonData>(old_entry.Key, data);
+                KeyValuePair<string, JsonData> entry = new KeyValuePair<string, JsonData>(old_entry.Key, data);
 
                 object_list[idx] = entry;
             }
@@ -304,8 +300,7 @@ namespace LitJson
             {
                 EnsureDictionary();
 
-                KeyValuePair<string, JsonData> entry =
-                    new KeyValuePair<string, JsonData>(prop_name, value);
+                KeyValuePair<string, JsonData> entry = new KeyValuePair<string, JsonData>(prop_name, value);
 
                 if (inst_object.ContainsKey(prop_name))
                 {
@@ -348,8 +343,7 @@ namespace LitJson
                 else
                 {
                     KeyValuePair<string, JsonData> entry = object_list[index];
-                    KeyValuePair<string, JsonData> new_entry =
-                        new KeyValuePair<string, JsonData>(entry.Key, value);
+                    KeyValuePair<string, JsonData> new_entry = new KeyValuePair<string, JsonData>(entry.Key, value);
 
                     object_list[index] = new_entry;
                     inst_object[entry.Key] = value;
@@ -497,11 +491,11 @@ namespace LitJson
 
         public static explicit operator Int64(JsonData data)
         {
-            if (data.type != JsonType.Long)
+            if (data.type != JsonType.Long && data.type != JsonType.Int)
                 throw new InvalidCastException(
                     "Instance of JsonData doesn't hold an int");
 
-            return data.inst_long;
+            return (data.type == JsonType.Long) ? data.inst_long : data.inst_int;
         }
 
         public static explicit operator String(JsonData data)
@@ -530,8 +524,7 @@ namespace LitJson
 
             EnsureDictionary().Add(key, data);
 
-            KeyValuePair<string, JsonData> entry =
-                new KeyValuePair<string, JsonData>((string)key, data);
+            KeyValuePair<string, JsonData> entry = new KeyValuePair<string, JsonData>((string)key, data);
             object_list.Add(entry);
 
             json = null;

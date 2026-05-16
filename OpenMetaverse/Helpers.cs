@@ -24,13 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using ComponentAce.Compression.Libs.zlib;
 using OpenMetaverse.StructuredData;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Reflection;
 using System.Text;
+using System.IO.Compression;
 
 namespace OpenMetaverse
 {
@@ -317,17 +314,13 @@ namespace OpenMetaverse
             if (srclen > src.Length)
                 throw new ArgumentException("srclen cannot be greater than src.Length");
 
-            uint zerolen = 0;
-            int bodylen = 0;
+            uint zerolen = 6;
             uint i = 0;
 
             try
             {
                 Buffer.BlockCopy(src, 0, dest, 0, 6);
-                zerolen = 6;
-                bodylen = srclen;
-
-                for (i = zerolen; i < bodylen; i++)
+                for (i = zerolen; i < srclen; i++)
                 {
                     if (src[i] == 0x00)
                     {
@@ -342,23 +335,16 @@ namespace OpenMetaverse
                     {
                         dest[zerolen++] = src[i];
                     }
-                }
-
-                // Copy appended ACKs
-                for (; i < srclen; i++)
-                {
-                    dest[zerolen++] = src[i];
-                }
-
+                }               
                 return (int)zerolen;
             }
             catch (Exception ex)
             {
-                Logger.Log(String.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
-                    i, srclen, bodylen, zerolen, Utils.BytesToHexString(src, srclen, null), ex), LogLevel.Error);
+                Logger.Log(String.Format("Zerodecoding error: i={0}, srclen={1}, zerolen={2}\n{3}\n{4}",
+                    i, srclen, zerolen, Utils.BytesToHexString(src, srclen, null), ex), LogLevel.Error);
 
-                throw new IndexOutOfRangeException(String.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
-                    i, srclen, bodylen, zerolen, Utils.BytesToHexString(src, srclen, null), ex.InnerException));
+                throw new IndexOutOfRangeException(String.Format("Zerodecoding error: i={0}, srclen={1}, zerolen={2}\n{3}\n{4}",
+                    i, srclen, zerolen, Utils.BytesToHexString(src, srclen, null), ex.InnerException));
             }
         }
 
@@ -632,35 +618,29 @@ namespace OpenMetaverse
 
         public static byte[] ZCompressOSD(OSD data)
         {
-            byte[] ret = null;
+            byte[] serialized = OSDParser.SerializeLLSDBinary(data, false);
 
             using (MemoryStream outMemoryStream = new MemoryStream())
-            using (ZOutputStream outZStream = new ZOutputStream(outMemoryStream, zlibConst.Z_BEST_COMPRESSION))
-            using (Stream inMemoryStream = new MemoryStream(OSDParser.SerializeLLSDBinary(data, false)))
             {
-                CopyStream(inMemoryStream, outZStream);
-                outZStream.finish();
-                ret = outMemoryStream.ToArray();
-            }
+                using (ZLibStream outZStream = new ZLibStream(outMemoryStream, CompressionLevel.SmallestSize, true))
+                {
+                    outZStream.Write(serialized, 0, serialized.Length);
+                }
 
-            return ret;
+                return outMemoryStream.ToArray();
+            }
         }
 
         public static OSD ZDecompressOSD(byte[] data)
         {
-            OSD ret;
-
             using (MemoryStream input = new MemoryStream(data))
+            using (ZLibStream zStream = new ZLibStream(input, CompressionMode.Decompress))
             using (MemoryStream output = new MemoryStream())
-            using (ZOutputStream zout = new ZOutputStream(output))
             {
-                CopyStream(input, zout);
-                zout.finish();
+                CopyStream(zStream, output);
                 output.Seek(0, SeekOrigin.Begin);
-                ret = OSDParser.DeserializeLLSDBinary(output);
+                return OSDParser.DeserializeLLSDBinary(output);
             }
-
-            return ret;
         }
     }
 }

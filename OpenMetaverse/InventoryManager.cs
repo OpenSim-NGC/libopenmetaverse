@@ -139,7 +139,7 @@ namespace OpenMetaverse
         /// <param name="itemID">The <seealso cref="OpenMetaverse.UUID"/> of the item</param>
         public InventoryBase(UUID itemID)
         {
-            if (itemID == UUID.Zero)
+            if (itemID.IsZero())
                 Logger.Log("Initializing an InventoryBase with UUID.Zero", Helpers.LogLevel.Warning);
             UUID = itemID;
         }
@@ -4595,7 +4595,7 @@ namespace OpenMetaverse
                  * to the client to make sure that the item gets a good folder, otherwise
                  * it will end up inaccesible in inventory.
                  */
-                if (item.ParentUUID == UUID.Zero)
+                if (item.ParentUUID.IsZero())
                 {
                     // assign default folder for type
                     item.ParentUUID = FindFolderForType(item.AssetType);
@@ -4667,7 +4667,7 @@ namespace OpenMetaverse
 
             foreach (BulkUpdateInventoryMessage.FolderDataInfo newFolder in msg.FolderData)
             {
-                if (newFolder.FolderID == UUID.Zero) continue;
+                if (newFolder.FolderID.IsZero()) continue;
 
                 InventoryFolder folder;
                 if (!_Store.Contains(newFolder.FolderID))
@@ -4687,7 +4687,7 @@ namespace OpenMetaverse
 
             foreach (BulkUpdateInventoryMessage.ItemDataInfo newItem in msg.ItemData)
             {
-                if (newItem.ItemID == UUID.Zero) continue;
+                if (newItem.ItemID.IsZero()) continue;
                 InventoryType invType = newItem.InvType;
 
                 lock (_ItemInventoryTypeRequest)

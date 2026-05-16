@@ -31,81 +31,107 @@ namespace OpenMetaverse
     public static class osUTF8Const
     {
         // direct utf8 string byte arrays to use with osUTF8 and osUTF8Slice
-        // waste time calling osUTF8.GetASCIIBytes just because it is more readable then {(byte)char,... } form
-        public static readonly byte[] XMLundef = osUTF8.GetASCIIBytes("<undef/>");
-        public static readonly byte[] XMLfullbooleanOne = osUTF8.GetASCIIBytes("<boolean>1</boolean>");
-        public static readonly byte[] XMLfullbooleanZero = osUTF8.GetASCIIBytes("<boolean>0</boolean>");
-        public static readonly byte[] XMLintegerStart = osUTF8.GetASCIIBytes("<integer>");
-        public static readonly byte[] XMLintegerEmpty = osUTF8.GetASCIIBytes("<integer />");
-        public static readonly byte[] XMLintegerEnd = osUTF8.GetASCIIBytes("</integer>");
-        public static readonly byte[] XMLrealStart = osUTF8.GetASCIIBytes("<real>");
-        public static readonly byte[] XMLrealZero = osUTF8.GetASCIIBytes("<real>0</real>");
-        public static readonly byte[] XMLrealZeroarrayEnd = osUTF8.GetASCIIBytes("<real>0</real></array>");
-        public static readonly byte[] XMLrealEnd = osUTF8.GetASCIIBytes("</real>");
-        public static readonly byte[] XMLrealEndarrayEnd = osUTF8.GetASCIIBytes("</real></array>");
-        public static readonly byte[] XMLstringStart = osUTF8.GetASCIIBytes("<string>");
-        public static readonly byte[] XMLstringEmpty = osUTF8.GetASCIIBytes("<string />");
-        public static readonly byte[] XMLstringEnd = osUTF8.GetASCIIBytes("</string>");
-        public static readonly byte[] XMLuuidStart = osUTF8.GetASCIIBytes("<uuid>");
-        public static readonly byte[] XMLuuidEmpty = osUTF8.GetASCIIBytes("<uuid />");
-        public static readonly byte[] XMLuuidEnd = osUTF8.GetASCIIBytes("</uuid>");
-        public static readonly byte[] XMLdateStart = osUTF8.GetASCIIBytes("<date>");
-        public static readonly byte[] XMLdateEmpty = osUTF8.GetASCIIBytes("<date />");
-        public static readonly byte[] XMLdateEnd = osUTF8.GetASCIIBytes("</date>");
-        public static readonly byte[] XMLuriStart = osUTF8.GetASCIIBytes("<uri>");
-        public static readonly byte[] XMLuriEmpty = osUTF8.GetASCIIBytes("<uri />");
-        public static readonly byte[] XMLuriEnd = osUTF8.GetASCIIBytes("</uri>");
-        public static readonly byte[] XMLformalBinaryStart = osUTF8.GetASCIIBytes("<binary encoding=\"base64\">");
-        public static readonly byte[] XMLbinaryStart = osUTF8.GetASCIIBytes("<binary>");
-        public static readonly byte[] XMLbinaryEmpty = osUTF8.GetASCIIBytes("<binary />");
-        public static readonly byte[] XMLbinaryEnd = osUTF8.GetASCIIBytes("</binary>");
-        public static readonly byte[] XMLmapStart = osUTF8.GetASCIIBytes("<map>");
-        public static readonly byte[] XMLmapEmpty = osUTF8.GetASCIIBytes("<map />");
-        public static readonly byte[] XMLmapEnd = osUTF8.GetASCIIBytes("</map>");
-        public static readonly byte[] XMLkeyStart = osUTF8.GetASCIIBytes("<key>");
-        public static readonly byte[] XMLkeyEmpty = osUTF8.GetASCIIBytes("<key />");
-        public static readonly byte[] XMLkeyEnd = osUTF8.GetASCIIBytes("</key>");
-        public static readonly byte[] XMLkeyEndundef = osUTF8.GetASCIIBytes("</key><undef />");
-        public static readonly byte[] XMLkeyEndmapStart = osUTF8.GetASCIIBytes("</key><map>");
-        public static readonly byte[] XMLkeyEndmapEmpty = osUTF8.GetASCIIBytes("</key><map />");
-        public static readonly byte[] XMLkeyEndarrayStart = osUTF8.GetASCIIBytes("</key><array>");
-        public static readonly byte[] XMLkeyEndarrayEmpty = osUTF8.GetASCIIBytes("</key><array />");
-        public static readonly byte[] XMLkeyEndarrayStartmapStart = osUTF8.GetASCIIBytes("</key><array><map>");
-        public static readonly byte[] XMLarrayStart = osUTF8.GetASCIIBytes("<array>");
-        public static readonly byte[] XMLarrayStartrealZero = osUTF8.GetASCIIBytes("<array><real>0</real>");
-        public static readonly byte[] XMLarrayStartrealStart = osUTF8.GetASCIIBytes("<array><real>");
-        public static readonly byte[] XMLkeyEndarrayStartrealZero = osUTF8.GetASCIIBytes("</key><array><real>0</real>");
-        public static readonly byte[] XMLkeyEndarrayStartrealStart = osUTF8.GetASCIIBytes("</key><array><real>");
-        public static readonly byte[] XMLarrayEmpty = osUTF8.GetASCIIBytes("<array />");
-        public static readonly byte[] XMLarrayEnd = osUTF8.GetASCIIBytes("</array>");
-        public static readonly byte[] XMLamp_lt = osUTF8.GetASCIIBytes("&lt;");
-        public static readonly byte[] XMLamp_gt = osUTF8.GetASCIIBytes("&gt;");
-        public static readonly byte[] XMLamp = osUTF8.GetASCIIBytes("&amp;");
-        public static readonly byte[] XMLamp_quot = osUTF8.GetASCIIBytes("&quot;");
-        public static readonly byte[] XMLamp_apos = osUTF8.GetASCIIBytes("&apos;");
-        public static readonly byte[] XMLformalHeader = osUTF8.GetASCIIBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-        public static readonly byte[] XMLformalHeaderllsdstart = osUTF8.GetASCIIBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?><llsd>");
-        public static readonly byte[] XMLllsdStart = osUTF8.GetASCIIBytes("<llsd>");
-        public static readonly byte[] XMLllsdEnd = osUTF8.GetASCIIBytes("</llsd>");
-        public static readonly byte[] XMLllsdEmpty = osUTF8.GetASCIIBytes("<llsd><map /></llsd>");
-        public static readonly byte[] XMLmapEndarrayEnd = osUTF8.GetASCIIBytes("</map></array>");
+        public static readonly byte[] XMLundef = "<undef/>"u8.ToArray();
+        public static readonly byte[] XMLfullbooleanOne = "<boolean>1</boolean>"u8.ToArray();
+        public static readonly byte[] XMLfullbooleanZero = "<boolean>0</boolean>"u8.ToArray();
+        public static readonly byte[] XMLintegerStart = "<integer>"u8.ToArray();
+        public static readonly byte[] XMLintegerEmpty = "<integer />"u8.ToArray();
+        public static readonly byte[] XMLintegerEnd = "</integer>"u8.ToArray();
+        public static readonly byte[] XMLrealStart = "<real>"u8.ToArray();
+        public static readonly byte[] XMLrealZero = "<real>0</real>"u8.ToArray();
+        public static readonly byte[] XMLrealZeroarrayEnd = "<real>0</real></array>"u8.ToArray();
+        public static readonly byte[] XMLrealEnd = "</real>"u8.ToArray();
+        public static readonly byte[] XMLrealEndarrayEnd = "</real></array>"u8.ToArray();
+        public static readonly byte[] XMLstringStart = "<string>"u8.ToArray();
+        public static readonly byte[] XMLstringEmpty = "<string />"u8.ToArray();
+        public static readonly byte[] XMLstringEnd = "</string>"u8.ToArray();
+        public static readonly byte[] XMLuuidStart = "<uuid>"u8.ToArray();
+        public static readonly byte[] XMLuuidEmpty = "<uuid />"u8.ToArray();
+        public static readonly byte[] XMLuuidEnd = "</uuid>"u8.ToArray();
+        public static readonly byte[] XMLdateStart = "<date>"u8.ToArray();
+        public static readonly byte[] XMLdateEmpty = "<date />"u8.ToArray();
+        public static readonly byte[] XMLdateEnd = "</date>"u8.ToArray();
+        public static readonly byte[] XMLuriStart = "<uri>"u8.ToArray();
+        public static readonly byte[] XMLuriEmpty = "<uri />"u8.ToArray();
+        public static readonly byte[] XMLuriEnd = "</uri>"u8.ToArray();
+        public static readonly byte[] XMLformalBinaryStart = "<binary encoding=\"base64\">"u8.ToArray();
+        public static readonly byte[] XMLbinaryStart = "<binary>"u8.ToArray();
+        public static readonly byte[] XMLbinaryEmpty = "<binary />"u8.ToArray();
+        public static readonly byte[] XMLbinaryEnd = "</binary>"u8.ToArray();
+        public static readonly byte[] XMLmapStart = "<map>"u8.ToArray();
+        public static readonly byte[] XMLmapEmpty = "<map />"u8.ToArray();
+        public static readonly byte[] XMLmapEnd = "</map>"u8.ToArray();
+        public static readonly byte[] XMLkeyStart = "<key>"u8.ToArray();
+        public static readonly byte[] XMLkeyEmpty = "<key />"u8.ToArray();
+        public static readonly byte[] XMLkeyEnd = "</key>"u8.ToArray();
+        public static readonly byte[] XMLkeyEndundef = "</key><undef />"u8.ToArray();
+        public static readonly byte[] XMLkeyEndmapStart = "</key><map>"u8.ToArray();
+        public static readonly byte[] XMLkeyEndmapEmpty = "</key><map />"u8.ToArray();
+        public static readonly byte[] XMLkeyEndarrayStart = "</key><array>"u8.ToArray();
+        public static readonly byte[] XMLkeyEndarrayEmpty = "</key><array />"u8.ToArray();
+        public static readonly byte[] XMLkeyEndarrayStartmapStart = "</key><array><map>"u8.ToArray();
+        public static readonly byte[] XMLarrayStart = "<array>"u8.ToArray();
+        public static readonly byte[] XMLarrayStartrealZero = "<array><real>0</real>"u8.ToArray();
+        public static readonly byte[] XMLarrayStartrealStart = "<array><real>"u8.ToArray();
+        public static readonly byte[] XMLkeyEndarrayStartrealZero = "</key><array><real>0</real>"u8.ToArray();
+        public static readonly byte[] XMLkeyEndarrayStartrealStart = "</key><array><real>"u8.ToArray();
+        public static readonly byte[] XMLarrayEmpty = "<array />"u8.ToArray();
+        public static readonly byte[] XMLarrayEnd = "</array>"u8.ToArray();
+        public static readonly byte[] XMLamp_lt = "&lt;"u8.ToArray();
+        public static readonly byte[] XMLamp_gt = "&gt;"u8.ToArray();
+        public static readonly byte[] XMLamp = "&amp;"u8.ToArray();
+        public static readonly byte[] XMLamp_quot = "&quot;"u8.ToArray();
+        public static readonly byte[] XMLamp_apos = "&apos;"u8.ToArray();
+        public static readonly byte[] XMLformalHeader = "<?xml version=\"1.0\" encoding=\"utf-8\"?>"u8.ToArray();
+        public static readonly byte[] XMLformalHeaderllsdstart = "<?xml version=\"1.0\" encoding=\"utf-8\"?><llsd>"u8.ToArray();
+        public static readonly byte[] XMLllsdStart = "<llsd>"u8.ToArray();
+        public static readonly byte[] XMLllsdEnd = "</llsd>"u8.ToArray();
+        public static readonly byte[] XMLllsdEmpty = "<llsd><map /></llsd>"u8.ToArray();
+        public static readonly byte[] XMLmapEndarrayEnd = "</map></array>"u8.ToArray();
 
-        public static readonly byte[] XMLarrayEndmapEnd = osUTF8.GetASCIIBytes("</array></map>");
+        public static readonly byte[] XMLarrayEndmapEnd = "</array></map>"u8.ToArray();
 
-        public static readonly byte[] XMLelement_name_Empty = osUTF8.GetASCIIBytes("<key>name</key><string />");
-        public static readonly byte[] XMLelement_name_Start = osUTF8.GetASCIIBytes("<key>name</key><string>");
+        public static readonly byte[] XMLelement_name_Empty = "<key>name</key><string />"u8.ToArray();
+        public static readonly byte[] XMLelement_name_Start = "<key>name</key><string>"u8.ToArray();
 
-        public static readonly byte[] XMLelement_agent_id_Empty = osUTF8.GetASCIIBytes("<key>agent_id</key><uuid />");
-        public static readonly byte[] XMLelement_agent_id_Start = osUTF8.GetASCIIBytes("<key>agent_id</key><uuid>");
+        public static readonly byte[] XMLelement_agent_id_Empty = "<key>agent_id</key><uuid />"u8.ToArray();
+        public static readonly byte[] XMLelement_agent_id_Start = "<key>agent_id</key><uuid>"u8.ToArray();
 
-        public static readonly byte[] XMLelement_owner_id_Empty = osUTF8.GetASCIIBytes("<key>owner_id</key><uuid />");
-        public static readonly byte[] XMLelement_owner_id_Start = osUTF8.GetASCIIBytes("<key>owner_id</key><uuid>");
+        public static readonly byte[] XMLelement_owner_id_Empty = "<key>owner_id</key><uuid />"u8.ToArray();
+        public static readonly byte[] XMLelement_owner_id_Start = "<key>owner_id</key><uuid>"u8.ToArray();
 
-        public static readonly byte[] XMLelement_parent_id_Empty = osUTF8.GetASCIIBytes("<key>parent_id</key><uuid />");
-        public static readonly byte[] XMLelement_parent_id_Start = osUTF8.GetASCIIBytes("<key>parent_id</key><uuid>");
+        public static readonly byte[] XMLelement_creator_id_Empty = "<key>creator_id</key><uuid />"u8.ToArray();
+        public static readonly byte[] XMLelement_creator_id_Start = "<key>creator_id</key><uuid>"u8.ToArray();
 
-        public static readonly byte[] XMLelement_folder_id_Empty = osUTF8.GetASCIIBytes("<key>folder_id</key><uuid />");
-        public static readonly byte[] XMLelement_folder_id_Start = osUTF8.GetASCIIBytes("<key>folder_id</key><uuid>");
+        public static readonly byte[] XMLelement_group_id_Empty = "<key>group_id</key><uuid />"u8.ToArray();
+        public static readonly byte[] XMLelement_group_id_Start = "<key>cgroup_id</key><uuid>"u8.ToArray();
+
+        public static readonly byte[] XMLelement_parent_id_Empty = "<key>parent_id</key><uuid />"u8.ToArray();
+        public static readonly byte[] XMLelement_parent_id_Start = "<key>parent_id</key><uuid>"u8.ToArray();
+
+        public static readonly byte[] XMLelement_folder_id_Empty = "<key>folder_id</key><uuid />"u8.ToArray();
+        public static readonly byte[] XMLelement_folder_id_Start = "<key>folder_id</key><uuid>"u8.ToArray();
+
+        public static readonly byte[] XMLelement_asset_id_Empty = "<key>asset_id</key><uuid />"u8.ToArray();
+        public static readonly byte[] XMLelement_asset_id_Start = "<key>asset_id</key><uuid>"u8.ToArray();
+
+        public static readonly byte[] XMLelement_item_id_Empty = "<key>item_id</key><uuid />"u8.ToArray();
+        public static readonly byte[] XMLelement_item_id_Start = "<key>item_id</key><uuid>"u8.ToArray();
+
+        public static readonly byte[] XMLelement_category_id_Empty = "<key>category_id</key><uuid />"u8.ToArray();
+        public static readonly byte[] XMLelement_category_id_Start = "<key>category_id</key><uuid>"u8.ToArray();
+
+        public static readonly byte[] XMLelement_version_Empty = "<key>version</key><integer />"u8.ToArray();
+        public static readonly byte[] XMLelement_version_Start = "<key>version</key><integer>"u8.ToArray();
+
+        public static readonly byte[] XMLelement_sale_info_Empty = "<key>sale_info</key><map><key>sale_price</key><integer /><key>sale_type</key><integer /></map>"u8.ToArray();
+        public static readonly byte[] XMLelement_sale_info_Start = "<key>sale_info</key><map><key>sale_price</key><integer>"u8.ToArray();
+        public static readonly byte[] XMLelement_sale_info_Mid = "</integer><key>sale_type</key><integer>"u8.ToArray();
+        public static readonly byte[] XMLelement_sale_info_End = "</integer></map>"u8.ToArray();
+
+        public static readonly byte[] OSUTF8null = "null"u8.ToArray();
+        public static readonly byte[] OSUTF8true = "true"u8.ToArray();
+        public static readonly byte[] OSUTF8false = "false"u8.ToArray();
 
         public static readonly byte[] base64Bytes = {(byte)'A',(byte)'B',(byte)'C',(byte)'D',(byte)'E',(byte)'F',(byte)'G',(byte)'H',(byte)'I',(byte)'J',(byte)'K',(byte)'L',(byte)'M',(byte)'N',(byte)'O',
                                               (byte)'P',(byte)'Q',(byte)'R',(byte)'S',(byte)'T',(byte)'U',(byte)'V',(byte)'W',(byte)'X',(byte)'Y',(byte)'Z',(byte)'a',(byte)'b',(byte)'c',(byte)'d',

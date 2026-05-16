@@ -864,6 +864,8 @@ namespace OpenMetaverse.Packets
             Primitive.LightData Light = null;
             Primitive.SculptData Sculpt = null;
             Primitive.SculptData Mesh = null;
+            Primitive.ReflectionProbe rprobe = null;
+            Primitive.RenderMaterials RenderMaterials = null;
             uint meshFlags = 0;
             bool hasmeshFlags = false;
 
@@ -874,7 +876,7 @@ namespace OpenMetaverse.Packets
                 ExtraParamType type = (ExtraParamType)Utils.BytesToUInt16(data, i);
                 i += 2;
 
-                uint paramLength = Utils.BytesToUInt(data, i);
+                int paramLength = (int)Utils.BytesToUInt(data, i);
                 i += 4;
 
                 if (type == ExtraParamType.Flexible)
@@ -885,12 +887,21 @@ namespace OpenMetaverse.Packets
                     Sculpt = new Primitive.SculptData(data, i);
                 else if (type == ExtraParamType.Mesh)
                     Mesh = new Primitive.SculptData(data, i);
-                else if ((byte)type == 0x70)
+                else if (type == ExtraParamType.MeshFlag)
                 {
                     hasmeshFlags = true;
                     meshFlags = Utils.BytesToUInt(data, i);
                 }
-                i += (int)paramLength;
+                else if (type == ExtraParamType.RenderMaterial)
+                {
+                    RenderMaterials = new Primitive.RenderMaterials(data, i, paramLength);
+                }
+                else if (type == ExtraParamType.ReflectionProbe)
+                {
+                    rprobe = new Primitive.ReflectionProbe(data, i);
+                }
+
+                i += paramLength;
                 //totalLength += (int)paramLength + 6;
             }
 
@@ -929,6 +940,18 @@ namespace OpenMetaverse.Packets
                 result.AppendFormat("{0,30}", "<MeshFlags>" + Environment.NewLine);
                 result.AppendFormat("{0,30}", meshFlags.ToString() + Environment.NewLine);
                 result.AppendFormat("{0,30}", "</MeshFlags>" + Environment.NewLine);
+            }
+            if (rprobe != null)
+            {
+                result.AppendFormat("{0,30}", "<ReflectionProbe>" + Environment.NewLine);
+                GenericTypeDecoder(rprobe, ref result);
+                result.AppendFormat("{0,30}", "</ReflectionProbe>" + Environment.NewLine);
+            }
+            if (RenderMaterials != null)
+            {
+                result.AppendFormat("{0,30}", "<RenderMaterials>" + Environment.NewLine);
+                GenericTypeDecoder(RenderMaterials, ref result);
+                result.AppendFormat("{0,30}", "</RenderMaterials>" + Environment.NewLine);
             }
 
             result.AppendFormat("{0,30}", "</ExtraParams>");
@@ -1634,7 +1657,9 @@ namespace OpenMetaverse.Packets
             for (int i = 0; i < fields.Length; i++)
             {
                 // we're not interested in any of these here
-                if (fields[i].Name == "Type" || fields[i].Name == "Header" || fields[i].Name == "HasVariableBlocks")
+                if (fields[i].Name == "Type" || fields[i].Name == "Header" ||
+                    fields[i].Name == "HasVariableBlocks" ||
+                    fields[i].Name == "NeedValidateIDs")
                     continue;
 
                 if (fields[i].FieldType.IsArray)
@@ -1915,7 +1940,7 @@ namespace OpenMetaverse.Packets
                     else
                     {
                         result.AppendFormat("{0, 30}: {1,-40} [{2}]" + Environment.NewLine,
-                        messageField.Name, messageField.GetValue(message), messageField.FieldType.Name);
+                            messageField.Name, messageField.GetValue(message), messageField.FieldType.Name);
                     }
                 }
             }

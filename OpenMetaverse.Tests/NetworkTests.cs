@@ -24,15 +24,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using NUnit.Framework;
+using Xunit;
 using OpenMetaverse.Packets;
 using System;
 
 namespace OpenMetaverse.Tests
 {
-    [TestFixture]
-    [Category("Network")]
-    public class NetworkTests : Assert
+    
+    [Trait("Category", "Network")]
+    public class NetworkTests : IDisposable
     {
         GridClient Client;
 
@@ -50,27 +50,23 @@ namespace OpenMetaverse.Tests
             // Register callbacks
             Client.Network.RegisterCallback(PacketType.ObjectUpdate, ObjectUpdateHandler);
             //Client.Self.OnTeleport += new MainAvatar.TeleportCallback(OnTeleportHandler)
-        }
 
-        [SetUp]
-        public void Init()
-        {
             Console.Write("Logging in Testing Anvil...");
             // Connect to the grid
             string startLoc = NetworkManager.StartLocation("Hooper", 179, 18, 32);
-            Assert.IsTrue(Client.Network.Login("Testing", "Anvil", "testinganvil", "Unit Test Framework", startLoc,
+            Assert.True(Client.Network.Login("Testing", "Anvil", "testinganvil", "Unit Test Framework", startLoc,
                 "contact@openmetaverse.co"), "Client failed to login, reason: " + Client.Network.LoginMessage);
             Console.WriteLine("Done");
 
-            Assert.IsTrue(Client.Network.Connected, "Client is not connected to the grid");
+            Assert.True(Client.Network.Connected, "Client is not connected to the grid");
 
             //int start = Environment.TickCount;
 
-            Assert.AreEqual("hooper", Client.Network.CurrentSim.Name.ToLower(), "Logged in to sim " +
-                Client.Network.CurrentSim.Name + " instead of hooper");
+            Assert.True(Client.Network.CurrentSim.Name.Equals("hooper", StringComparison.OrdinalIgnoreCase),
+                "Logged in to sim " + Client.Network.CurrentSim.Name + " instead of hooper");
         }
 
-        [Test]
+        [Fact]
         public void DetectObjects()
         {
             int start = Environment.TickCount;
@@ -78,13 +74,13 @@ namespace OpenMetaverse.Tests
             {
                 if (Environment.TickCount - start > 20000)
                 {
-                    Assert.Fail("Timeout waiting for an ObjectUpdate packet");
+                    throw new Xunit.Sdk.XunitException("Timeout waiting for an ObjectUpdate packet");
                 }
             }
         }
 
         /*
-        [Test]
+        [Fact]
         public void U64Receive()
         {
             int start = Environment.TickCount;
@@ -92,51 +88,51 @@ namespace OpenMetaverse.Tests
             {
                 if (Environment.TickCount - start > 10000)
                 {
-                    Assert.Fail("Timeout waiting for an ObjectUpdate packet");
+                    throw new Xunit.Sdk.XunitException("Timeout waiting for an ObjectUpdate packet");
                 }
             }
 
-            Assert.IsTrue(CurrentRegionHandle == HooperRegionHandle, "Current region is " +
+            Assert.True(CurrentRegionHandle == HooperRegionHandle, "Current region is " +
                 CurrentRegionHandle + " (" + Client.Network.CurrentSim.Name + ")" + " when we were expecting " + HooperRegionHandle + " (Dore), possible endian issue");
         }
         */
-        /*[Test]
+        /*[Fact]
         public void Teleport()
         {
             // test in-sim teleports
-            Assert.IsTrue(CapsQueueRunning(), "CAPS Event queue is not running in " + Client.Network.CurrentSim.Name);
+            Assert.True(CapsQueueRunning(), "CAPS Event queue is not running in " + Client.Network.CurrentSim.Name);
             string localSimName = Client.Network.CurrentSim.Name;
-            Assert.IsTrue(Client.Self.Teleport(Client.Network.CurrentSim.Handle, new Vector3(121, 13, 41)),
+            Assert.True(Client.Self.Teleport(Client.Network.CurrentSim.Handle, new Vector3(121, 13, 41)),
                 "Teleport In-Sim Failed " + Client.Network.CurrentSim.Name);
 
             // Assert that we really did make it to our scheduled destination
-            Assert.AreEqual(localSimName, Client.Network.CurrentSim.Name,
+            Assert.Equal(localSimName, Client.Network.CurrentSim.Name,
                 "Expected to teleport to " + localSimName + ", ended up in " + Client.Network.CurrentSim.Name +
                 ". Possibly region full or offline?");
 
-            Assert.IsTrue(CapsQueueRunning(), "CAPS Event queue is not running in " + Client.Network.CurrentSim.Name);
-            Assert.IsTrue(Client.Self.Teleport(DoreRegionHandle, new Vector3(128, 128, 32)),
+            Assert.True(CapsQueueRunning(), "CAPS Event queue is not running in " + Client.Network.CurrentSim.Name);
+            Assert.True(Client.Self.Teleport(DoreRegionHandle, new Vector3(128, 128, 32)),
                 "Teleport to Dore failed");
 
             // Assert that we really did make it to our scheduled destination
-            Assert.AreEqual("dore", Client.Network.CurrentSim.Name.ToLower(),
+            Assert.Equal("dore", Client.Network.CurrentSim.Name.ToLower(),
                 "Expected to teleport to Dore, ended up in " + Client.Network.CurrentSim.Name +
                 ". Possibly region full or offline?");
 
-            Assert.IsTrue(CapsQueueRunning(), "CAPS Event queue is not running in " + Client.Network.CurrentSim.Name);
-            Assert.IsTrue(Client.Self.Teleport(HooperRegionHandle, new Vector3(179, 18, 32)),
+            Assert.True(CapsQueueRunning(), "CAPS Event queue is not running in " + Client.Network.CurrentSim.Name);
+            Assert.True(Client.Self.Teleport(HooperRegionHandle, new Vector3(179, 18, 32)),
                 "Teleport to Hooper failed");
 
             // Assert that we really did make it to our scheduled destination
-            Assert.AreEqual("hooper", Client.Network.CurrentSim.Name.ToLower(),
+            Assert.Equal("hooper", Client.Network.CurrentSim.Name.ToLower(),
                 "Expected to teleport to Hooper, ended up in " + Client.Network.CurrentSim.Name +
                 ". Possibly region full or offline?");
         }*/
 
-        [Test]
+        [Fact]
         public void CapsQueue()
         {
-            Assert.IsTrue(CapsQueueRunning(), "CAPS Event Queue is not running and failed to start");
+            Assert.True(CapsQueueRunning(), "CAPS Event Queue is not running and failed to start");
         }
 
         public bool CapsQueueRunning()
@@ -160,7 +156,7 @@ namespace OpenMetaverse.Tests
             else
             {
                 Success = false;
-                Assert.Fail("Timeout waiting for event Queue to startup");
+                throw new Xunit.Sdk.XunitException("Timeout waiting for event Queue to startup");
             }
             Client.Network.EventQueueRunning -= capsRunning;
             return Success;
@@ -174,8 +170,7 @@ namespace OpenMetaverse.Tests
             //CurrentRegionHandle = update.RegionData.RegionHandle;
         }
 
-        [TearDown]
-        public void Shutdown()
+        public void Dispose()
         {
             Console.Write("Logging out...");
             Client.Network.Logout();

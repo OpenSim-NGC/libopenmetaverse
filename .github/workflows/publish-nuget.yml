@@ -1,0 +1,63 @@
+name: Publish NuGet Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - name: Checkout (full history for Nerdbank.GitVersioning)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Add GitHub Packages source
+        run: |
+          dotnet nuget add source \
+            "https://nuget.pkg.github.com/OpenSim-NGC/index.json" \
+            --name "github" \
+            --username "${{ github.actor }}" \
+            --password "${{ secrets.GITHUB_TOKEN }}" \
+            --store-password-in-clear-text
+
+      - name: Restore dependencies
+        run: dotnet restore OpenMetaverse.sln
+
+      - name: Build (Release)
+        run: dotnet build OpenMetaverse.sln -c Release --no-restore
+
+      - name: Pack library projects
+        run: |
+          mkdir -p ./nupkgs
+          for proj in \
+            OpenMetaverse.Types/OpenMetaverse.Types.csproj \
+            OpenMetaverse.StructuredData/OpenMetaverse.StructuredData.csproj \
+            OpenMetaverse/OpenMetaverse.csproj \
+            OpenMetaverse.Rendering.Simple/OpenMetaverse.Rendering.Simple.csproj \
+            OpenMetaverse.Rendering.Meshmerizer/OpenMetaverse.Rendering.Meshmerizer.csproj; do
+            dotnet pack "$proj" \
+              -c Release \
+              --no-build \
+              --include-symbols \
+              -o ./nupkgs
+          done
+
+      - name: Publish packages to GitHub Packages
+        run: |
+          dotnet nuget push "./nupkgs/*.nupkg" \
+            --api-key "${{ secrets.GITHUB_TOKEN }}" \
+            --source "github" \
+            --skip-duplicate

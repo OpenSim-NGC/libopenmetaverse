@@ -38,6 +38,9 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
+using System.Runtime.Intrinsics;
 
 namespace OpenMetaverse
 {
@@ -51,7 +54,7 @@ namespace OpenMetaverse
 
         public osUTF8Slice()
         {
-            m_data = new byte[0];
+            m_data = Array.Empty<byte>();
             m_offset = 0;
             m_len = 0;
         }
@@ -128,11 +131,11 @@ namespace OpenMetaverse
                 if (i >= m_len)
                     i = m_len - 1;
                 i += m_offset;
-                if (i < 0)
-                    i = 0;
-                else if (i >= m_data.Length)
+                if (i >= m_data.Length)
                     i = m_data.Length - 1;
-                return m_data[i];
+                if (i <= 0)
+                    return Unsafe.As<byte, byte>(ref MemoryMarshal.GetArrayDataReference(m_data));
+                return Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i));
             }
             set
             {
@@ -140,7 +143,7 @@ namespace OpenMetaverse
                 {
                     i += m_offset;
                     if(i < m_len)
-                        m_data[i] = value;
+                        Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i)) = value;
                 }
             }
         }
@@ -179,24 +182,45 @@ namespace OpenMetaverse
                 m_len = m_data.Length - m_offset;
         }
 
+        public void FromBytesSafe(byte[] source, int offset, int len)
+        {
+            m_data = source;
+            m_offset = offset;
+            m_len = len;
+        }
+
+        public void FromBytes(byte[] source, int offset, int len)
+        {
+            if (source == null || offset >= source.Length || offset + len >= source.Length)
+            {
+                m_offset = 0;
+                m_len = 0;
+            }
+            if (len < 0)
+                len = 0;
+            m_data = source;
+            m_offset = offset;
+            m_len = len;
+        }
+
         public static bool IsNullOrEmpty(osUTF8Slice u)
         {
-            return (u == null || u.m_len == 0);
+            return (u is null || u.m_len == 0);
         }
 
         public static bool IsEmpty(osUTF8Slice u)
         {
-            return (u == null || u.m_len == 0);
+            return (u is null || u.m_len == 0);
         }
 
         public static unsafe bool IsNullOrWhitespace(osUTF8Slice u)
         {
-            if (u == null || u.m_len == 0)
+            if (u is null || u.m_len == 0)
                 return true;
             byte[] data = u.m_data;
             for (int i = u.m_offset; i < u.m_offset + u.m_len; ++i)
             {
-                if (data[i] != 0x20)
+                if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(data), i)) != 0x20)
                     return false;
             }
             return true;
@@ -205,26 +229,11 @@ namespace OpenMetaverse
         public unsafe override int GetHashCode()
         {
             int hash = m_len;
-            if (m_len < 8)
+            for (int i = m_offset; i < m_offset + m_len; ++i)
             {
-                for (int i = m_offset; i < m_offset + m_len; ++i)
-                {
-                    hash += m_data[i];
-                    hash <<= 3;
-                    hash += hash >> 26;
-                }
-            }
-            else
-            {
-                fixed (byte* a = &m_data[m_offset])
-                {
-                    for (int i = 0; i < m_len; ++i)
-                    {
-                        hash += a[i];
-                        hash <<= 5;
-                        hash += hash >> 26;
-                    }
-                }
+                hash += Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i));
+                hash <<= 3;
+                hash += hash >> 26;
             }
             return hash & 0x7fffffff;
         }
@@ -239,103 +248,64 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            if (obj == null)
+            if (obj is null)
                 return false;
 
-            if (obj is osUTF8)
-                return Equals((osUTF8)obj);
+            if (obj is osUTF8 o8)
+                return Equals(o8);
 
-            if (obj is osUTF8Slice)
-                return Equals((osUTF8Slice)obj);
+            if (obj is osUTF8Slice o8s)
+                return Equals(o8s);
 
-            if (obj is string)
-                return Equals((string)obj);
+            if (obj is string os)
+                return Equals(os);
 
-            if (obj is byte[])
-                return Equals((byte[])obj);
+            if (obj is byte[] oba)
+                return Equals(oba);
 
             return false;
         }
 
-        public unsafe bool Equals(osUTF8Slice o)
+        public bool Equals(osUTF8Slice o)
         {
-            if (o == null || m_len != o.m_len)
+            if (o is null || m_len != o.m_len)
                 return false;
 
             byte[] otherdata = o.m_data;
-
-            if (m_len < 8)
+            for (int i = m_offset, j = o.m_offset; i < m_offset + m_len; ++i, ++j)
             {
-                for (int i = m_offset, j = o.m_offset; i < m_offset + m_len; ++i, ++j)
-                {
-                    if (m_data[i] != otherdata[j])
-                        return false;
-                }
-                return true;
-            }
-
-            fixed (byte* a = &m_data[m_offset], b = &otherdata[o.m_offset])
-            {
-                for (int i = 0; i < m_len; ++i)
-                {
-                    if (a[i] != b[i])
-                        return false;
-                }
-            }
-
-            return true;
-        }
-
-        public unsafe bool Equals(osUTF8 o)
-        {
-            if (o == null || m_len != o.m_len)
-                return false;
-
-            byte[] otherdata = o.m_data;
-
-            if (m_len < 8)
-            {
-                for (int i = m_offset, j = 0; i < m_offset + m_len; ++i, ++j)
-                {
-                    if (m_data[i] != otherdata[j])
-                        return false;
-                }
-                return true;
-            }
-
-            fixed (byte* a = &m_data[m_offset], b = otherdata)
-            {
-                for (int i = 0; i < m_len; ++i)
-                {
-                    if (a[i] != b[i])
-                        return false;
-                }
+                if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i)) !=
+                        Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(otherdata), j)))
+                    return false;
             }
             return true;
         }
 
-        public unsafe bool Equals(byte[] o)
+        public bool Equals(osUTF8 o)
+        {
+            if (o is null || m_len != o.m_len)
+                return false;
+
+            byte[] otherdata = o.m_data;
+            for (int i = m_offset, j = 0; i < m_offset + m_len; ++i, ++j)
+            {
+                if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i)) !=
+                        Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(otherdata), j)))
+                    return false;
+            }
+            return true;
+        }
+
+        public bool Equals(byte[] o)
         {
             if (o == null || m_len != o.Length)
                 return false;
 
-            if (m_len < 8)
+            for (int i = m_offset, j = 0; i < m_offset + m_len; ++i, ++j)
             {
-                for (int i = m_offset, j = 0; i < m_offset + m_len; ++i, ++j)
-                {
-                    if (m_data[i] != o[j])
-                        return false;
-                }
-                return true;
-            }
-
-            fixed (byte* a = &m_data[m_offset], b = o)
-            {
-                for (int i = 0; i < m_len; ++i)
-                {
-                    if (a[i] != b[i])
-                        return false;
-                }
+                if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i)) !=
+                        Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(o), j)))
+                    return false;
             }
             return true;
         }
@@ -344,19 +314,36 @@ namespace OpenMetaverse
         {
             if(string.IsNullOrEmpty(s))
                 return m_len == 0;
-            osUTF8 o = new osUTF8(s);
+            osUTF8 o = new(s);
             return Equals(o);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator ==(osUTF8Slice value1, osUTF8Slice value2)
+        {
+            if (value1 is null)
+                return value2 is null;
+            return value1.Equals(value2);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool operator !=(osUTF8Slice value1, osUTF8Slice value2)
+        {
+            if (value1 is null)
+                return value2 is not null;
+            return !value1.Equals(value2);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(char c)
         {
-            return m_len == 1 && m_data[m_offset] == (byte)c;
+            return m_len == 1 &&
+                Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_offset)) == (byte)c;
         }
 
         public unsafe bool ACSIILowerEquals(osUTF8 o)
         {
-            if (o == null || m_len != o.m_len)
+            if (o is null || m_len != o.m_len)
                 return false;
 
             fixed (byte* a = &m_data[m_offset], b = o.m_data)
@@ -501,7 +488,7 @@ namespace OpenMetaverse
         {
             int indx = m_offset + m_len;
             CheckCapacity(ref indx, 1);
-            m_data[indx] = (byte)c;
+            Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), indx)) = (byte)c;
             ++m_len;
         }
 
@@ -626,22 +613,22 @@ namespace OpenMetaverse
             int last = start + len - 1;
 
             // cut at code points;
-            if (start > 0 && (m_data[start] & 0x80) != 0)
+            if (start > 0 && (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), start)) & 0x80) != 0)
             {
                 do
                 {
                     --last;
                 }
-                while (start > 0 && (m_data[start] & 0xc0) != 0xc0);
+                while (start > 0 && (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), start)) & 0xc0) != 0xc0);
             }
 
-            if (last > start && (m_data[last] & 0x80) != 0)
+            if (last > start && (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), last)) & 0x80) != 0)
             {
                 do
                 {
                     --last;
                 }
-                while (last > start && (m_data[last] & 0xc0) != 0xc0);
+                while (last > start && (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), last)) & 0xc0) != 0xc0);
             }
 
             return new osUTF8Slice(m_data, start, last - start + 1);
@@ -688,22 +675,22 @@ namespace OpenMetaverse
 
             int last = start + len - 1;
             // cut at code points;
-            if (start > 0 && (m_data[start] & 0x80) != 0)
+            if (start > 0 && (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), start)) & 0x80) != 0)
             {
                 do
                 {
                     --last;
                 }
-                while (start > 0 && (m_data[start] & 0xc0) != 0xc0);
+                while (start > 0 && (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), start)) & 0xc0) != 0xc0);
             }
 
-            if (last > start && (m_data[last] & 0x80) != 0)
+            if (last > start && (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), last)) & 0x80) != 0)
             {
                 do
                 {
                     --last;
                 }
-                while (last > start && (m_data[last] & 0xc0) != 0xc0);
+                while (last > start && (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), last)) & 0xc0) != 0xc0);
             }
 
             m_offset = start;
@@ -725,7 +712,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool checkAny(byte b, byte[] bytes)
+        private static bool checkAny(byte b, byte[] bytes)
         {
             for (int i = 0; i < bytes.Length; ++i)
             {
@@ -736,7 +723,7 @@ namespace OpenMetaverse
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool checkAny(byte b, char[] chars)
+        private static bool checkAny(byte b, char[] chars)
         {
             for (int i = 0; i < chars.Length; ++i)
             {
@@ -749,7 +736,7 @@ namespace OpenMetaverse
         // inplace remove white spaces at start
         public void SelfTrimStart()
         {
-            while (m_len > 0 && m_data[m_offset] == 0x20)
+            while (m_len > 0 && Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_offset)) == 0x20)
             {
                 ++m_offset;
                 --m_len;
@@ -758,7 +745,7 @@ namespace OpenMetaverse
 
         public void SelfTrimStart(byte b)
         {
-            while (m_len > 0 && m_data[m_offset] == b)
+            while (m_len > 0 && Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_offset)) == b)
             {
                 ++m_offset;
                 --m_len;
@@ -767,7 +754,7 @@ namespace OpenMetaverse
 
         public void SelfTrimStart(byte[] b)
         {
-            while (m_len > 0 && checkAny(m_data[m_offset], b))
+            while (m_len > 0 && checkAny(Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_offset)), b))
             {
                 ++m_offset;
                 --m_len;
@@ -776,7 +763,7 @@ namespace OpenMetaverse
 
         public void SelfTrimStart(char[] b)
         {
-            while (m_len > 0 && checkAny(m_data[m_offset], b))
+            while (m_len > 0 && checkAny(Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_offset)), b))
             {
                 ++m_offset;
                 --m_len;
@@ -788,7 +775,7 @@ namespace OpenMetaverse
             if (m_len == 0)
                 return;
             int last = m_offset + m_len - 1;
-            while (m_len > 0 && m_data[last] == 0x20)
+            while (m_len > 0 && Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), last)) == 0x20)
             {
                 --last;
                 --m_len;
@@ -800,7 +787,7 @@ namespace OpenMetaverse
             if (m_len == 0)
                 return;
             int last = m_offset + m_len - 1;
-            while (m_len > 0 && m_data[last] == b)
+            while (m_len > 0 && Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), last)) == b)
             {
                 --last;
                 --m_len;
@@ -812,7 +799,7 @@ namespace OpenMetaverse
             if (m_len == 0)
                 return;
             int last = m_offset + m_len - 1;
-            while (m_len > 0 && checkAny(m_data[last], b))
+            while (m_len > 0 && checkAny(Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), last)), b))
             {
                 --last;
                 --m_len;
@@ -824,7 +811,7 @@ namespace OpenMetaverse
             if (m_len == 0)
                 return;
             int last = m_offset + m_len - 1;
-            while (m_len > 0 && checkAny(m_data[last], b))
+            while (m_len > 0 && checkAny(Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), last)), b))
             {
                 --last;
                 --m_len;
@@ -1002,22 +989,22 @@ namespace OpenMetaverse
 
         public bool StartsWith(byte b)
         {
-            return m_data[m_offset] == b;
+            return Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_offset)) == b;
         }
 
         public bool StartsWith(char b)
         {
-            return m_data[m_offset] == (byte)b;
+            return Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_offset)) == (byte)b;
         }
 
         public bool EndsWith(byte b)
         {
-            return m_data[m_offset + m_len - 1] == b;
+            return Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_offset + m_len - 1)) == b;
         }
 
         public bool EndsWith(char b)
         {
-            return m_data[m_offset + m_len - 1] == (byte)b;
+            return Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_offset + m_len - 1)) == (byte)b;
         }
 
         public unsafe bool EndsWith(osUTF8Slice other)
@@ -1079,22 +1066,9 @@ namespace OpenMetaverse
 
         public unsafe int IndexOf(byte b)
         {
-            if (m_len > 8)
-            {
-                fixed (byte* a = &m_data[m_offset])
-                {
-                    for (int i = 0; i < m_len; ++i)
-                    {
-                        if (a[i] == b)
-                            return i;
-                    }
-                    return -1;
-                }
-            }
-
             for (int i = m_offset; i < m_offset + m_len; ++i)
             {
-                if (m_data[i] == b)
+                if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i)) == b)
                     return i - m_offset;
             }
             return -1;
@@ -1104,7 +1078,7 @@ namespace OpenMetaverse
         {
             if (b < 0x80)
                 return IndexOf((byte)b);
-            string s = new string(new char[] { b });
+            string s = new(new char[] { b });
             return IndexOf(s);
         }
 
@@ -1185,52 +1159,28 @@ namespace OpenMetaverse
         {
             if (string.IsNullOrEmpty(s))
                 return -1;
-            osUTF8 o = new osUTF8(s);
+            osUTF8 o = new(s);
             return IndexOf(o);
         }
 
-        public unsafe int IndexOfAny(byte[] b)
+        public int IndexOfAny(byte[] b)
         {
-            if (m_len < 8)
+            for (int i = m_offset; i < m_offset + m_len; ++i)
             {
-                for (int i = m_offset; i < m_offset + m_len; ++i)
-                {
-                    if (checkAny(m_data[i], b))
-                        return i - m_offset;
-                }
-                return -1;
+                if (checkAny(Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i)), b))
+                    return i - m_offset;
             }
-            fixed (byte* a = &m_data[m_offset])
-            {
-                for (int i = 0; i < m_len; ++i)
-                {
-                    if (checkAny(a[i], b))
-                        return i;
-                }
-                return -1;
-            }
+            return -1;
         }
 
-        public unsafe int IndexOfAny(char[] b)
+        public int IndexOfAny(char[] b)
         {
-            if (m_len < 8)
+            for (int i = m_offset; i < m_offset + m_len; ++i)
             {
-                for (int i = m_offset; i < m_offset + m_len; ++i)
-                {
-                    if (checkAny(m_data[i], b))
-                        return i - m_offset;
-                }
-                return -1;
+                if (checkAny(Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i)), b))
+                    return i - m_offset;
             }
-            fixed (byte* a = &m_data[m_offset])
-            {
-                for (int i = 0; i < m_len; ++i)
-                {
-                    if (checkAny(a[i], b))
-                        return i;
-                }
-                return -1;
-            }
+            return -1;
         }
 
         public bool Contains(osUTF8Slice other)
@@ -1329,48 +1279,28 @@ namespace OpenMetaverse
             if (b < 0x80)
                 return Split((byte)b, ignoreEmpty);
 
-            return new osUTF8Slice[0];
+            return Array.Empty<osUTF8Slice>();
         }
 
         public unsafe bool ReadLine(out osUTF8Slice line)
         {
             if (m_len == 0)
             {
-                line = new osUTF8Slice(new byte[0], 0, 0);
+                line = new osUTF8Slice();
                 return false;
             }
 
             int lineend = -1;
             byte b = 0;
-            if (m_len < 8)
+            for (int i = m_offset; i < m_offset + m_len; ++i)
             {
-                for (int i = m_offset; i < m_offset + m_len; ++i)
+                b = Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i));
+                if (b == (byte)'\r' || b == (byte)'\n')
                 {
-                    b = m_data[i];
-                    if (b == (byte)'\r' || b == (byte)'\n')
-                    {
-                        if (i > 0 && m_data[i - 1] == (byte)'\\')
-                            continue;
-                        lineend = i;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                fixed (byte* a = &m_data[m_offset])
-                {
-                    for (int i = 0; i < m_len; ++i)
-                    {
-                        b = a[i];
-                        if (b == (byte)'\r' || b == (byte)'\n')
-                        {
-                            if (i > 0 && a[i - 1] == (byte)'\\')
-                                continue;
-                            lineend = i + m_offset;
-                            break;
-                        }
-                    }
+                    if (i > 0 && Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i - 1)) == (byte)'\\')
+                        continue;
+                    lineend = i;
+                    break;
                 }
             }
 
@@ -1404,7 +1334,7 @@ namespace OpenMetaverse
 
             if (b == (byte)'\r')
             {
-                if (m_data[m_offset] == (byte)'\n')
+                if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_offset)) == (byte)'\n')
                 {
                     ++m_offset;
                     --m_len;
@@ -1424,35 +1354,15 @@ namespace OpenMetaverse
 
             int lineend = -1;
             byte b = 0;
-            if (m_len < 8)
+            for (int i = m_offset; i < m_offset + m_len; ++i)
             {
-                for (int i = m_offset; i < m_offset + m_len; ++i)
+                b = Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i));
+                if (b == (byte)'\r' || b == (byte)'\n')
                 {
-                    b = m_data[i];
-                    if (b == (byte)'\r' || b == (byte)'\n')
-                    {
-                        if (i > 0 && m_data[i - 1] == (byte)'\\')
-                            continue;
-                        lineend = i;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                fixed (byte* a = &m_data[m_offset])
-                {
-                    for (int i = 0; i < m_len; ++i)
-                    {
-                        b = a[i];
-                        if (b == (byte)'\r' || b == (byte)'\n')
-                        {
-                            if (i > 0 && a[i - 1] == (byte)'\\')
-                                continue;
-                            lineend = i + m_offset;
-                            break;
-                        }
-                    }
+                    if (i > 0 && Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), i - 1)) == (byte)'\\')
+                        continue;
+                    lineend = i;
+                    break;
                 }
             }
 
@@ -1483,7 +1393,7 @@ namespace OpenMetaverse
 
             if (b == (byte)'\r')
             {
-                if (m_data[m_offset] == (byte)'\n')
+                if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), m_offset)) == (byte)'\n')
                 {
                     ++m_offset;
                     --m_len;
@@ -1547,6 +1457,48 @@ namespace OpenMetaverse
             return o;
         }
 
+        public bool TryParseInt(out int res)
+        {
+            res = 0;
+
+            SelfTrim();
+            if (m_len == 0)
+                return false;
+
+            int len = m_len;
+            int start = m_offset;
+            len += start;
+
+            bool neg = false;
+            if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), start)) == (byte)'-')
+            {
+                neg = true;
+                ++start;
+            }
+            else if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), start))   == (byte)'+')
+                ++start;
+
+            int b;
+            try
+            {
+                while (start < len)
+                {
+                    b = Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(m_data), start));
+                    b -= (byte)'0';
+                    if (b < 0 || b > 9)
+                        break;
+
+                    res *= 10;
+                    res += b;
+                    ++start;
+                }
+                if (neg)
+                    res = -res;
+                return true;
+            }
+            catch { }
+            return false;
+        }
         public static bool TryParseInt(osUTF8Slice t, out int res)
         {
             res = 0;
@@ -1562,12 +1514,12 @@ namespace OpenMetaverse
             len += start;
 
             bool neg = false;
-            if (data[start] == (byte)'-')
+            if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(data), start)) == (byte)'-')
             {
                 neg = true;
                 ++start;
             }
-            else if (data[start] == (byte)'+')
+            else if (Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(data), start)) == (byte)'+')
                 ++start;
 
             int b;
@@ -1575,7 +1527,7 @@ namespace OpenMetaverse
             {
                 while (start < len)
                 {
-                    b = data[start];
+                    b = Unsafe.As<byte, byte>(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(data), start));
                     b -= (byte)'0';
                     if (b < 0 || b > 9)
                         break;
@@ -1592,97 +1544,189 @@ namespace OpenMetaverse
             return false;
         }
 
-        public static bool TryParseUUID(osUTF8Slice inp, out UUID res, bool dashs = true)
+        public unsafe static bool TryParseUUID(osUTF8Slice inp, out UUID result)
         {
-            res = UUID.Zero;
-            osUTF8Slice t = new osUTF8Slice(inp);
-
-            t.SelfTrim();
-            int len = t.m_len;
-            if (len == 0)
+            result = new UUID();
+            int len = inp.m_len;
+            if (len < 32)
                 return false;
 
-            if (dashs)
+            try
             {
-                if (len < 36)
-                    return false;
+                fixed (byte* bval = &inp.m_data[inp.m_offset])
+                {
+                    byte* val = bval;
+
+                    while (*val == ' ')
+                    {
+                        ++val;
+                        --len;
+                        if (len < 32)
+                            return false;
+                    }
+
+                    if (val[8] == '-')
+                    {
+                        if (len < 36)
+                            return false;
+
+                        if (val[13] != '-' || val[18] != '-' || val[23] != '-')
+                            return false;
+
+                        if (Sse42.IsSupported)
+                        {
+                            Vector128<byte> input = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.AsRef<byte>(val));
+                            Vector128<byte> upper = Ssse3.Shuffle(input, Vector128.Create(0, 2, 4, 6, 9, 11, 14, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            Vector128<byte> lower = Ssse3.Shuffle(input, Vector128.Create(1, 3, 5, 7, 10, 12, 15, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff));
+                            input = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 16 + 3));
+                            Vector128<byte> upperhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 2, 5, 7, 9, 11, 13, 15));
+                            Vector128<byte> lowerhalf = Ssse3.Shuffle(input, Vector128.Create(0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 1, 3, 6, 8, 10, 12, 14, 0xff));
+                            upper = Sse2.Or(upper, upperhalf);
+                            lower = Sse2.Or(lower, lowerhalf);
+
+                            upper = Sse41.Insert(upper, Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 16)), 7);
+                            lower = Sse41.Insert(lower, Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 17)), 7);
+                            lower = Sse41.Insert(lower, Unsafe.As<byte, byte>(ref Unsafe.AddByteOffset(ref Unsafe.AsRef<byte>(val), 35)), 15);
+
+                            Vector128<byte> charf = Vector128.Create((byte)'f');
+                            Vector128<byte> tmpcmp = Sse2.Subtract(charf, lower);
+                            int cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+
+                            tmpcmp = Sse2.Subtract(charf, upper);
+                            cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+
+                            Vector128<byte> charTolower = Vector128.Create((byte)0x20);
+                            Vector128<byte> lowerLetters = Sse2.Or(lower, charTolower);
+                            Vector128<byte> upperLetters = Sse2.Or(upper, charTolower);
+
+                            Vector128<byte> letterTohex = Vector128.Create((byte)('a' - '0' - 10));
+                            lowerLetters = Sse2.Subtract(lowerLetters, letterTohex);
+                            upperLetters = Sse2.Subtract(upperLetters, letterTohex);
+
+                            Vector128<byte> char9 = Vector128.Create((byte)'9');
+                            Vector128<byte> above9lower = (Sse2.CompareGreaterThan(lower.AsSByte(), char9.AsSByte())).AsByte();
+
+                            Vector128<byte> ten = Vector128.Create((byte)('0' + 10));
+                            tmpcmp = Sse2.Subtract(lowerLetters, ten);
+                            tmpcmp = Sse2.And(tmpcmp, above9lower);
+                            cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+                            Vector128<byte> above9upper = (Sse2.CompareGreaterThan(upper.AsSByte(), char9.AsSByte())).AsByte();
+
+                            tmpcmp = Sse2.Subtract(upperLetters, ten);
+                            tmpcmp = Sse2.And(tmpcmp, above9upper);
+                            cmp = Sse2.MoveMask(tmpcmp);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+
+                            lower = Sse41.BlendVariable(lower, lowerLetters, above9lower);
+                            upper = Sse41.BlendVariable(upper, upperLetters, above9upper);
+                            Vector128<byte> charzero = Vector128.Create((byte)'0');
+                            lower = Sse2.Subtract(lower, charzero);
+                            cmp = Sse2.MoveMask(lower);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+                            upper = Sse2.Subtract(upper, charzero);
+                            cmp = Sse2.MoveMask(upper);
+                            if (cmp != 0)
+                                throw new Exception("bad");
+                            upper = Sse2.ShiftLeftLogical(upper.AsUInt16(), 4).AsByte();
+                            lower = Sse2.Or(lower, upper);
+                            if (BitConverter.IsLittleEndian)
+                                lower = Ssse3.Shuffle(lower, Vector128.Create((byte)0x03, 0x02, 0x01, 0x00, 0x05, 0x04, 0x07, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F));
+                            Unsafe.As<UUID, Vector128<byte>>(ref Unsafe.AsRef(in result)) = lower;
+                            return true;
+                        }
+
+                        if (BitConverter.IsLittleEndian)
+                        {
+                            result.bytea3 = Utils.HexToByte(val, 0);
+                            result.bytea2 = Utils.HexToByte(val, 2);
+                            result.bytea1 = Utils.HexToByte(val, 4);
+                            result.bytea0 = Utils.HexToByte(val, 6);
+
+                            result.byteb1 = Utils.HexToByte(val, 9);
+                            result.byteb0 = Utils.HexToByte(val, 11);
+
+                            result.bytec1 = Utils.HexToByte(val, 14);
+                            result.bytec0 = Utils.HexToByte(val, 16);
+                        }
+                        else
+                        {
+                            result.bytea0 = Utils.HexToByte(val, 0);
+                            result.bytea1 = Utils.HexToByte(val, 2);
+                            result.bytea2 = Utils.HexToByte(val, 4);
+                            result.bytea3 = Utils.HexToByte(val, 6);
+
+                            result.byteb0 = Utils.HexToByte(val, 9);
+                            result.byteb1 = Utils.HexToByte(val, 11);
+
+                            result.bytec0 = Utils.HexToByte(val, 14);
+                            result.bytec1 = Utils.HexToByte(val, 16);
+                        }
+
+                        result.d = Utils.HexToByte(val, 19);
+                        result.e = Utils.HexToByte(val, 21);
+
+
+                        result.f = Utils.HexToByte(val, 24);
+                        result.g = Utils.HexToByte(val, 26);
+                        result.h = Utils.HexToByte(val, 28);
+                        result.i = Utils.HexToByte(val, 30);
+                        result.j = Utils.HexToByte(val, 32);
+                        result.k = Utils.HexToByte(val, 34);
+                        return true;
+                    }
+                    else
+                    {
+                        if (BitConverter.IsLittleEndian)
+                        {
+                            result.bytea3 = Utils.HexToByte(val, 0);
+                            result.bytea2 = Utils.HexToByte(val, 2);
+                            result.bytea1 = Utils.HexToByte(val, 4);
+                            result.bytea0 = Utils.HexToByte(val, 6);
+
+                            result.byteb1 = Utils.HexToByte(val, 8);
+                            result.byteb0 = Utils.HexToByte(val, 10);
+
+                            result.bytec1 = Utils.HexToByte(val, 12);
+                            result.bytec0 = Utils.HexToByte(val, 14);
+                        }
+                        else
+                        {
+                            result.bytea0 = Utils.HexToByte(val, 0);
+                            result.bytea1 = Utils.HexToByte(val, 2);
+                            result.bytea2 = Utils.HexToByte(val, 4);
+                            result.bytea3 = Utils.HexToByte(val, 6);
+
+                            result.byteb0 = Utils.HexToByte(val, 8);
+                            result.byteb1 = Utils.HexToByte(val, 10);
+
+                            result.bytec0 = Utils.HexToByte(val, 12);
+                            result.bytec1 = Utils.HexToByte(val, 14);
+                        }
+
+                        result.d = Utils.HexToByte(val, 16);
+                        result.e = Utils.HexToByte(val, 18);
+
+                        result.f = Utils.HexToByte(val, 20);
+                        result.g = Utils.HexToByte(val, 22);
+                        result.h = Utils.HexToByte(val, 24);
+                        result.i = Utils.HexToByte(val, 26);
+                        result.j = Utils.HexToByte(val, 28);
+                        result.k = Utils.HexToByte(val, 30);
+                        return true;
+                    }
+                }
             }
-            else
-            {
-                if (len < 32)
-                    return false;
-            }
-
-            byte[] data = t.m_data;
-            int dataoffset = t.m_offset;
-
-            int _a = 0;
-            if (!Utils.TryHexToInt(data, dataoffset, 8, out _a))
-                return false;
-            dataoffset += 8;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            int n;
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-            short _b = (short)n;
-            dataoffset += 4;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-            short _c = (short)n;
-            dataoffset += 4;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-
-            byte _d = (byte)(n >> 8);
-            byte _e = (byte)n;
-            dataoffset += 4;
-
-            if (dashs)
-            {
-                if (data[dataoffset] != (byte)'-')
-                    return false;
-                ++dataoffset;
-            }
-
-            if (!Utils.TryHexToInt(data, dataoffset, 8, out n))
-                return false;
-            byte _f = (byte)(n >> 24);
-            byte _g = (byte)(n >> 16);
-            byte _h = (byte)(n >> 8);
-            byte _i = (byte)n;
-            dataoffset += 8;
-
-            if (!Utils.TryHexToInt(data, dataoffset, 4, out n))
-                return false;
-            byte _j = (byte)(n >> 8);
-            byte _k = (byte)n;
-
-            Guid g = new Guid(_a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k);
-            res = new UUID(g);
-            return true;
+            catch { }
+            result = new UUID();
+            return false;
         }
     }
 }

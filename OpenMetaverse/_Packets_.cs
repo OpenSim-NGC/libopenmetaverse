@@ -150,7 +150,7 @@ namespace OpenMetaverse.Packets
         /// <param name="pos"></param>
         /// <param name="packetEnd"></param>
         /// <returns></returns>
-        public static Header BuildHeader(byte[] bytes, ref int pos, ref int packetEnd)
+        public static Header BuildHeader(byte[] bytes, ref int pos, ref int packetLength)
         {
             Header header;
             byte flags = bytes[pos];
@@ -159,8 +159,9 @@ namespace OpenMetaverse.Packets
             header.Reliable = (flags & Helpers.MSG_RELIABLE) != 0;
             header.Resent = (flags & Helpers.MSG_RESENT) != 0;
             header.Zerocoded = (flags & Helpers.MSG_ZEROCODED) != 0;
-            header.Sequence = (uint)((bytes[pos + 1] << 24) + (bytes[pos + 2] << 16) + (bytes[pos + 3] << 8) + bytes[pos + 4]);
+            header.Sequence = (uint)Utils.BytesToIntBig(bytes, 1);
 
+            pos += bytes[pos + 5];
             // Set the frequency and packet ID number
             if (bytes[pos + 6] == 0xFF)
             {
@@ -190,36 +191,79 @@ namespace OpenMetaverse.Packets
                 pos += 7;
             }
 
-            header.AckList = null;
-            CreateAckList(ref header, bytes, ref packetEnd);
-
-            return header;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="header"></param>
-        /// <param name="bytes"></param>
-        /// <param name="packetEnd"></param>
-        static void CreateAckList(ref Header header, byte[] bytes, ref int packetEnd)
-        {
             if (header.AppendedAcks)
             {
-                int count = bytes[packetEnd--];
+                --packetLength;
+                int count = bytes[packetLength];
                 header.AckList = new uint[count];
 
                 for (int i = 0; i < count; i++)
                 {
-                    header.AckList[i] = (uint)(
-                        (bytes[(packetEnd - i * 4) - 3] << 24) |
-                        (bytes[(packetEnd - i * 4) - 2] << 16) |
-                        (bytes[(packetEnd - i * 4) - 1] << 8) |
-                        (bytes[(packetEnd - i * 4)]));
+                    packetLength -= 4;
+                    header.AckList[i] = (uint)Utils.BytesToIntBig(bytes, packetLength);
                 }
-
-                packetEnd -= (count * 4);
             }
+            else
+                header.AckList = null;
+
+            return header;
+        }
+
+        public static bool TryParseHeader(byte[] bytes, int packetLen, out Header header, out int messageBody, out int messageEnd)
+        {
+            messageBody = 0;
+            messageEnd = packetLen;
+            header = new Header();
+
+            try
+            {
+                byte flags = bytes[0];
+
+                header.AppendedAcks = (flags & Helpers.MSG_APPENDED_ACKS) != 0;
+                header.Reliable = (flags & Helpers.MSG_RELIABLE) != 0;
+                header.Resent = (flags & Helpers.MSG_RESENT) != 0;
+                header.Zerocoded = (flags & Helpers.MSG_ZEROCODED) != 0;
+
+                header.Sequence = (uint)Utils.BytesToIntBig(bytes, 1);
+
+                messageBody += bytes[5];
+
+                header.ID = bytes[messageBody + 6];
+                // Set the frequency and packet ID number
+                if (header.ID == 0xFF)
+                {
+                    header.ID = bytes[messageBody + 7];
+                    if (header.ID == 0xFF)
+                    {
+                        header.Frequency = PacketFrequency.Low;
+                        if (header.Zerocoded && bytes[messageBody + 8] == 0)
+                            header.ID = bytes[messageBody + 10];
+                        else
+                            header.ID = (ushort)((bytes[messageBody + 8] << 8) + bytes[messageBody + 9]);
+
+                        messageBody += 10;
+                    }
+                    else
+                    {
+                        header.Frequency = PacketFrequency.Medium;
+                        messageBody += 8;
+                    }
+                }
+                else
+                {
+                    header.Frequency = PacketFrequency.High;
+                    messageBody += 7;
+                }
+                if (header.AppendedAcks)
+                {
+                    --messageEnd;
+                    int count = bytes[messageEnd];
+                    messageEnd -= 4 * count;
+                }
+                return messageEnd >= messageBody;
+            }
+            catch { }
+            return false;
         }
     }
 
@@ -641,6 +685,7 @@ namespace OpenMetaverse.Packets
         ChildAgentPositionUpdate = 196635,
         SoundTrigger = 196637,
         ObjectAnimation = 196638,
+        GenericStreamingMessage = 196639,
     }
 
     public abstract partial class Packet
@@ -652,9 +697,11 @@ namespace OpenMetaverse.Packets
         public PacketType Type;
         public abstract int Length { get; }
         public abstract void FromBytes(byte[] bytes, ref int i, ref int packetEnd, byte[] zeroBuffer);
-        public abstract void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd);
+        public abstract void FromBytes(Header header, byte[] bytes, ref int i);
         public abstract byte[] ToBytes();
         public abstract byte[][] ToBytesMultiple();
+        public bool NeedValidateIDs;
+        public virtual bool ValidIDs(UUID session, UUID agent) { return true; }
 
         public virtual byte[] ToBytes(Interfaces.IByteBufferPool pool, ref int size)
         {
@@ -1077,6 +1124,7 @@ namespace OpenMetaverse.Packets
                         case 27: return PacketType.ChildAgentPositionUpdate;
                         case 29: return PacketType.SoundTrigger;
                         case 30: return PacketType.ObjectAnimation;
+                        case 31: return PacketType.GenericStreamingMessage;
                     }
                     break;
             }
@@ -1084,413 +1132,416 @@ namespace OpenMetaverse.Packets
             return PacketType.Default;
         }
 
-        public static Packet BuildPacket(PacketType type)
-        {
-            if (type == PacketType.StartPingCheck) return new StartPingCheckPacket();
-            if (type == PacketType.CompletePingCheck) return new CompletePingCheckPacket();
-            if (type == PacketType.AgentUpdate) return new AgentUpdatePacket();
-            if (type == PacketType.AgentAnimation) return new AgentAnimationPacket();
-            if (type == PacketType.AgentRequestSit) return new AgentRequestSitPacket();
-            if (type == PacketType.AgentSit) return new AgentSitPacket();
-            if (type == PacketType.RequestImage) return new RequestImagePacket();
-            if (type == PacketType.ImageData) return new ImageDataPacket();
-            if (type == PacketType.ImagePacket) return new ImagePacketPacket();
-            if (type == PacketType.LayerData) return new LayerDataPacket();
-            if (type == PacketType.ObjectUpdate) return new ObjectUpdatePacket();
-            if (type == PacketType.ObjectUpdateCompressed) return new ObjectUpdateCompressedPacket();
-            if (type == PacketType.ObjectUpdateCached) return new ObjectUpdateCachedPacket();
-            if (type == PacketType.ImprovedTerseObjectUpdate) return new ImprovedTerseObjectUpdatePacket();
-            if (type == PacketType.KillObject) return new KillObjectPacket();
-            if (type == PacketType.TransferPacket) return new TransferPacketPacket();
-            if (type == PacketType.SendXferPacket) return new SendXferPacketPacket();
-            if (type == PacketType.ConfirmXferPacket) return new ConfirmXferPacketPacket();
-            if (type == PacketType.AvatarAnimation) return new AvatarAnimationPacket();
-            if (type == PacketType.AvatarSitResponse) return new AvatarSitResponsePacket();
-            if (type == PacketType.CameraConstraint) return new CameraConstraintPacket();
-            if (type == PacketType.ParcelProperties) return new ParcelPropertiesPacket();
-            if (type == PacketType.ChildAgentUpdate) return new ChildAgentUpdatePacket();
-            if (type == PacketType.ChildAgentAlive) return new ChildAgentAlivePacket();
-            if (type == PacketType.ChildAgentPositionUpdate) return new ChildAgentPositionUpdatePacket();
-            if (type == PacketType.SoundTrigger) return new SoundTriggerPacket();
-            if (type == PacketType.ObjectAnimation) return new ObjectAnimationPacket();
-            if (type == PacketType.ObjectAdd) return new ObjectAddPacket();
-            if (type == PacketType.MultipleObjectUpdate) return new MultipleObjectUpdatePacket();
-            if (type == PacketType.RequestMultipleObjects) return new RequestMultipleObjectsPacket();
-            if (type == PacketType.ObjectPosition) return new ObjectPositionPacket();
-            if (type == PacketType.RequestObjectPropertiesFamily) return new RequestObjectPropertiesFamilyPacket();
-            if (type == PacketType.CoarseLocationUpdate) return new CoarseLocationUpdatePacket();
-            if (type == PacketType.CrossedRegion) return new CrossedRegionPacket();
-            if (type == PacketType.ConfirmEnableSimulator) return new ConfirmEnableSimulatorPacket();
-            if (type == PacketType.ObjectProperties) return new ObjectPropertiesPacket();
-            if (type == PacketType.ObjectPropertiesFamily) return new ObjectPropertiesFamilyPacket();
-            if (type == PacketType.ParcelPropertiesRequest) return new ParcelPropertiesRequestPacket();
-            if (type == PacketType.AttachedSound) return new AttachedSoundPacket();
-            if (type == PacketType.AttachedSoundGainChange) return new AttachedSoundGainChangePacket();
-            if (type == PacketType.PreloadSound) return new PreloadSoundPacket();
-            if (type == PacketType.ViewerEffect) return new ViewerEffectPacket();
-            if (type == PacketType.TestMessage) return new TestMessagePacket();
-            if (type == PacketType.UseCircuitCode) return new UseCircuitCodePacket();
-            if (type == PacketType.TelehubInfo) return new TelehubInfoPacket();
-            if (type == PacketType.EconomyDataRequest) return new EconomyDataRequestPacket();
-            if (type == PacketType.EconomyData) return new EconomyDataPacket();
-            if (type == PacketType.AvatarPickerRequest) return new AvatarPickerRequestPacket();
-            if (type == PacketType.AvatarPickerReply) return new AvatarPickerReplyPacket();
-            if (type == PacketType.PlacesQuery) return new PlacesQueryPacket();
-            if (type == PacketType.PlacesReply) return new PlacesReplyPacket();
-            if (type == PacketType.DirFindQuery) return new DirFindQueryPacket();
-            if (type == PacketType.DirPlacesQuery) return new DirPlacesQueryPacket();
-            if (type == PacketType.DirPlacesReply) return new DirPlacesReplyPacket();
-            if (type == PacketType.DirPeopleReply) return new DirPeopleReplyPacket();
-            if (type == PacketType.DirEventsReply) return new DirEventsReplyPacket();
-            if (type == PacketType.DirGroupsReply) return new DirGroupsReplyPacket();
-            if (type == PacketType.DirClassifiedQuery) return new DirClassifiedQueryPacket();
-            if (type == PacketType.DirClassifiedReply) return new DirClassifiedReplyPacket();
-            if (type == PacketType.AvatarClassifiedReply) return new AvatarClassifiedReplyPacket();
-            if (type == PacketType.ClassifiedInfoRequest) return new ClassifiedInfoRequestPacket();
-            if (type == PacketType.ClassifiedInfoReply) return new ClassifiedInfoReplyPacket();
-            if (type == PacketType.ClassifiedInfoUpdate) return new ClassifiedInfoUpdatePacket();
-            if (type == PacketType.ClassifiedDelete) return new ClassifiedDeletePacket();
-            if (type == PacketType.ClassifiedGodDelete) return new ClassifiedGodDeletePacket();
-            if (type == PacketType.DirLandQuery) return new DirLandQueryPacket();
-            if (type == PacketType.DirLandReply) return new DirLandReplyPacket();
-            if (type == PacketType.DirPopularQuery) return new DirPopularQueryPacket();
-            if (type == PacketType.DirPopularReply) return new DirPopularReplyPacket();
-            if (type == PacketType.ParcelInfoRequest) return new ParcelInfoRequestPacket();
-            if (type == PacketType.ParcelInfoReply) return new ParcelInfoReplyPacket();
-            if (type == PacketType.ParcelObjectOwnersRequest) return new ParcelObjectOwnersRequestPacket();
-            if (type == PacketType.ParcelObjectOwnersReply) return new ParcelObjectOwnersReplyPacket();
-            if (type == PacketType.GroupNoticesListRequest) return new GroupNoticesListRequestPacket();
-            if (type == PacketType.GroupNoticesListReply) return new GroupNoticesListReplyPacket();
-            if (type == PacketType.GroupNoticeRequest) return new GroupNoticeRequestPacket();
-            if (type == PacketType.TeleportRequest) return new TeleportRequestPacket();
-            if (type == PacketType.TeleportLocationRequest) return new TeleportLocationRequestPacket();
-            if (type == PacketType.TeleportLocal) return new TeleportLocalPacket();
-            if (type == PacketType.TeleportLandmarkRequest) return new TeleportLandmarkRequestPacket();
-            if (type == PacketType.TeleportProgress) return new TeleportProgressPacket();
-            if (type == PacketType.TeleportFinish) return new TeleportFinishPacket();
-            if (type == PacketType.StartLure) return new StartLurePacket();
-            if (type == PacketType.TeleportLureRequest) return new TeleportLureRequestPacket();
-            if (type == PacketType.TeleportCancel) return new TeleportCancelPacket();
-            if (type == PacketType.TeleportStart) return new TeleportStartPacket();
-            if (type == PacketType.TeleportFailed) return new TeleportFailedPacket();
-            if (type == PacketType.Undo) return new UndoPacket();
-            if (type == PacketType.Redo) return new RedoPacket();
-            if (type == PacketType.UndoLand) return new UndoLandPacket();
-            if (type == PacketType.AgentPause) return new AgentPausePacket();
-            if (type == PacketType.AgentResume) return new AgentResumePacket();
-            if (type == PacketType.ChatFromViewer) return new ChatFromViewerPacket();
-            if (type == PacketType.AgentThrottle) return new AgentThrottlePacket();
-            if (type == PacketType.AgentFOV) return new AgentFOVPacket();
-            if (type == PacketType.AgentHeightWidth) return new AgentHeightWidthPacket();
-            if (type == PacketType.AgentSetAppearance) return new AgentSetAppearancePacket();
-            if (type == PacketType.AgentQuitCopy) return new AgentQuitCopyPacket();
-            if (type == PacketType.ImageNotInDatabase) return new ImageNotInDatabasePacket();
-            if (type == PacketType.RebakeAvatarTextures) return new RebakeAvatarTexturesPacket();
-            if (type == PacketType.SetAlwaysRun) return new SetAlwaysRunPacket();
-            if (type == PacketType.ObjectDelete) return new ObjectDeletePacket();
-            if (type == PacketType.ObjectDuplicate) return new ObjectDuplicatePacket();
-            if (type == PacketType.ObjectDuplicateOnRay) return new ObjectDuplicateOnRayPacket();
-            if (type == PacketType.ObjectScale) return new ObjectScalePacket();
-            if (type == PacketType.ObjectRotation) return new ObjectRotationPacket();
-            if (type == PacketType.ObjectFlagUpdate) return new ObjectFlagUpdatePacket();
-            if (type == PacketType.ObjectClickAction) return new ObjectClickActionPacket();
-            if (type == PacketType.ObjectImage) return new ObjectImagePacket();
-            if (type == PacketType.ObjectMaterial) return new ObjectMaterialPacket();
-            if (type == PacketType.ObjectShape) return new ObjectShapePacket();
-            if (type == PacketType.ObjectExtraParams) return new ObjectExtraParamsPacket();
-            if (type == PacketType.ObjectOwner) return new ObjectOwnerPacket();
-            if (type == PacketType.ObjectGroup) return new ObjectGroupPacket();
-            if (type == PacketType.ObjectBuy) return new ObjectBuyPacket();
-            if (type == PacketType.BuyObjectInventory) return new BuyObjectInventoryPacket();
-            if (type == PacketType.DerezContainer) return new DerezContainerPacket();
-            if (type == PacketType.ObjectPermissions) return new ObjectPermissionsPacket();
-            if (type == PacketType.ObjectSaleInfo) return new ObjectSaleInfoPacket();
-            if (type == PacketType.ObjectName) return new ObjectNamePacket();
-            if (type == PacketType.ObjectDescription) return new ObjectDescriptionPacket();
-            if (type == PacketType.ObjectCategory) return new ObjectCategoryPacket();
-            if (type == PacketType.ObjectSelect) return new ObjectSelectPacket();
-            if (type == PacketType.ObjectDeselect) return new ObjectDeselectPacket();
-            if (type == PacketType.ObjectAttach) return new ObjectAttachPacket();
-            if (type == PacketType.ObjectDetach) return new ObjectDetachPacket();
-            if (type == PacketType.ObjectDrop) return new ObjectDropPacket();
-            if (type == PacketType.ObjectLink) return new ObjectLinkPacket();
-            if (type == PacketType.ObjectDelink) return new ObjectDelinkPacket();
-            if (type == PacketType.ObjectGrab) return new ObjectGrabPacket();
-            if (type == PacketType.ObjectGrabUpdate) return new ObjectGrabUpdatePacket();
-            if (type == PacketType.ObjectDeGrab) return new ObjectDeGrabPacket();
-            if (type == PacketType.ObjectSpinStart) return new ObjectSpinStartPacket();
-            if (type == PacketType.ObjectSpinUpdate) return new ObjectSpinUpdatePacket();
-            if (type == PacketType.ObjectSpinStop) return new ObjectSpinStopPacket();
-            if (type == PacketType.ObjectExportSelected) return new ObjectExportSelectedPacket();
-            if (type == PacketType.ModifyLand) return new ModifyLandPacket();
-            if (type == PacketType.VelocityInterpolateOn) return new VelocityInterpolateOnPacket();
-            if (type == PacketType.VelocityInterpolateOff) return new VelocityInterpolateOffPacket();
-            if (type == PacketType.StateSave) return new StateSavePacket();
-            if (type == PacketType.ReportAutosaveCrash) return new ReportAutosaveCrashPacket();
-            if (type == PacketType.SimWideDeletes) return new SimWideDeletesPacket();
-            if (type == PacketType.TrackAgent) return new TrackAgentPacket();
-            if (type == PacketType.ViewerStats) return new ViewerStatsPacket();
-            if (type == PacketType.ScriptAnswerYes) return new ScriptAnswerYesPacket();
-            if (type == PacketType.UserReport) return new UserReportPacket();
-            if (type == PacketType.AlertMessage) return new AlertMessagePacket();
-            if (type == PacketType.AgentAlertMessage) return new AgentAlertMessagePacket();
-            if (type == PacketType.MeanCollisionAlert) return new MeanCollisionAlertPacket();
-            if (type == PacketType.ViewerFrozenMessage) return new ViewerFrozenMessagePacket();
-            if (type == PacketType.HealthMessage) return new HealthMessagePacket();
-            if (type == PacketType.ChatFromSimulator) return new ChatFromSimulatorPacket();
-            if (type == PacketType.SimStats) return new SimStatsPacket();
-            if (type == PacketType.RequestRegionInfo) return new RequestRegionInfoPacket();
-            if (type == PacketType.RegionInfo) return new RegionInfoPacket();
-            if (type == PacketType.GodUpdateRegionInfo) return new GodUpdateRegionInfoPacket();
-            if (type == PacketType.RegionHandshake) return new RegionHandshakePacket();
-            if (type == PacketType.RegionHandshakeReply) return new RegionHandshakeReplyPacket();
-            if (type == PacketType.SimulatorViewerTimeMessage) return new SimulatorViewerTimeMessagePacket();
-            if (type == PacketType.EnableSimulator) return new EnableSimulatorPacket();
-            if (type == PacketType.DisableSimulator) return new DisableSimulatorPacket();
-            if (type == PacketType.TransferRequest) return new TransferRequestPacket();
-            if (type == PacketType.TransferInfo) return new TransferInfoPacket();
-            if (type == PacketType.TransferAbort) return new TransferAbortPacket();
-            if (type == PacketType.RequestXfer) return new RequestXferPacket();
-            if (type == PacketType.AbortXfer) return new AbortXferPacket();
-            if (type == PacketType.AvatarAppearance) return new AvatarAppearancePacket();
-            if (type == PacketType.SetFollowCamProperties) return new SetFollowCamPropertiesPacket();
-            if (type == PacketType.ClearFollowCamProperties) return new ClearFollowCamPropertiesPacket();
-            if (type == PacketType.RequestPayPrice) return new RequestPayPricePacket();
-            if (type == PacketType.PayPriceReply) return new PayPriceReplyPacket();
-            if (type == PacketType.KickUser) return new KickUserPacket();
-            if (type == PacketType.GodKickUser) return new GodKickUserPacket();
-            if (type == PacketType.EjectUser) return new EjectUserPacket();
-            if (type == PacketType.FreezeUser) return new FreezeUserPacket();
-            if (type == PacketType.AvatarPropertiesRequest) return new AvatarPropertiesRequestPacket();
-            if (type == PacketType.AvatarPropertiesReply) return new AvatarPropertiesReplyPacket();
-            if (type == PacketType.AvatarInterestsReply) return new AvatarInterestsReplyPacket();
-            if (type == PacketType.AvatarGroupsReply) return new AvatarGroupsReplyPacket();
-            if (type == PacketType.AvatarPropertiesUpdate) return new AvatarPropertiesUpdatePacket();
-            if (type == PacketType.AvatarInterestsUpdate) return new AvatarInterestsUpdatePacket();
-            if (type == PacketType.AvatarNotesReply) return new AvatarNotesReplyPacket();
-            if (type == PacketType.AvatarNotesUpdate) return new AvatarNotesUpdatePacket();
-            if (type == PacketType.AvatarPicksReply) return new AvatarPicksReplyPacket();
-            if (type == PacketType.EventInfoRequest) return new EventInfoRequestPacket();
-            if (type == PacketType.EventInfoReply) return new EventInfoReplyPacket();
-            if (type == PacketType.EventNotificationAddRequest) return new EventNotificationAddRequestPacket();
-            if (type == PacketType.EventNotificationRemoveRequest) return new EventNotificationRemoveRequestPacket();
-            if (type == PacketType.EventGodDelete) return new EventGodDeletePacket();
-            if (type == PacketType.PickInfoReply) return new PickInfoReplyPacket();
-            if (type == PacketType.PickInfoUpdate) return new PickInfoUpdatePacket();
-            if (type == PacketType.PickDelete) return new PickDeletePacket();
-            if (type == PacketType.PickGodDelete) return new PickGodDeletePacket();
-            if (type == PacketType.ScriptQuestion) return new ScriptQuestionPacket();
-            if (type == PacketType.ScriptControlChange) return new ScriptControlChangePacket();
-            if (type == PacketType.ScriptDialog) return new ScriptDialogPacket();
-            if (type == PacketType.ScriptDialogReply) return new ScriptDialogReplyPacket();
-            if (type == PacketType.ForceScriptControlRelease) return new ForceScriptControlReleasePacket();
-            if (type == PacketType.RevokePermissions) return new RevokePermissionsPacket();
-            if (type == PacketType.LoadURL) return new LoadURLPacket();
-            if (type == PacketType.ScriptTeleportRequest) return new ScriptTeleportRequestPacket();
-            if (type == PacketType.ParcelOverlay) return new ParcelOverlayPacket();
-            if (type == PacketType.ParcelPropertiesRequestByID) return new ParcelPropertiesRequestByIDPacket();
-            if (type == PacketType.ParcelPropertiesUpdate) return new ParcelPropertiesUpdatePacket();
-            if (type == PacketType.ParcelReturnObjects) return new ParcelReturnObjectsPacket();
-            if (type == PacketType.ParcelSetOtherCleanTime) return new ParcelSetOtherCleanTimePacket();
-            if (type == PacketType.ParcelDisableObjects) return new ParcelDisableObjectsPacket();
-            if (type == PacketType.ParcelSelectObjects) return new ParcelSelectObjectsPacket();
-            if (type == PacketType.EstateCovenantRequest) return new EstateCovenantRequestPacket();
-            if (type == PacketType.EstateCovenantReply) return new EstateCovenantReplyPacket();
-            if (type == PacketType.ForceObjectSelect) return new ForceObjectSelectPacket();
-            if (type == PacketType.ParcelBuyPass) return new ParcelBuyPassPacket();
-            if (type == PacketType.ParcelDeedToGroup) return new ParcelDeedToGroupPacket();
-            if (type == PacketType.ParcelReclaim) return new ParcelReclaimPacket();
-            if (type == PacketType.ParcelClaim) return new ParcelClaimPacket();
-            if (type == PacketType.ParcelJoin) return new ParcelJoinPacket();
-            if (type == PacketType.ParcelDivide) return new ParcelDividePacket();
-            if (type == PacketType.ParcelRelease) return new ParcelReleasePacket();
-            if (type == PacketType.ParcelBuy) return new ParcelBuyPacket();
-            if (type == PacketType.ParcelGodForceOwner) return new ParcelGodForceOwnerPacket();
-            if (type == PacketType.ParcelAccessListRequest) return new ParcelAccessListRequestPacket();
-            if (type == PacketType.ParcelAccessListReply) return new ParcelAccessListReplyPacket();
-            if (type == PacketType.ParcelAccessListUpdate) return new ParcelAccessListUpdatePacket();
-            if (type == PacketType.ParcelDwellRequest) return new ParcelDwellRequestPacket();
-            if (type == PacketType.ParcelDwellReply) return new ParcelDwellReplyPacket();
-            if (type == PacketType.ParcelGodMarkAsContent) return new ParcelGodMarkAsContentPacket();
-            if (type == PacketType.ViewerStartAuction) return new ViewerStartAuctionPacket();
-            if (type == PacketType.UUIDNameRequest) return new UUIDNameRequestPacket();
-            if (type == PacketType.UUIDNameReply) return new UUIDNameReplyPacket();
-            if (type == PacketType.UUIDGroupNameRequest) return new UUIDGroupNameRequestPacket();
-            if (type == PacketType.UUIDGroupNameReply) return new UUIDGroupNameReplyPacket();
-            if (type == PacketType.ChildAgentDying) return new ChildAgentDyingPacket();
-            if (type == PacketType.ChildAgentUnknown) return new ChildAgentUnknownPacket();
-            if (type == PacketType.GetScriptRunning) return new GetScriptRunningPacket();
-            if (type == PacketType.ScriptRunningReply) return new ScriptRunningReplyPacket();
-            if (type == PacketType.SetScriptRunning) return new SetScriptRunningPacket();
-            if (type == PacketType.ScriptReset) return new ScriptResetPacket();
-            if (type == PacketType.ScriptSensorRequest) return new ScriptSensorRequestPacket();
-            if (type == PacketType.ScriptSensorReply) return new ScriptSensorReplyPacket();
-            if (type == PacketType.CompleteAgentMovement) return new CompleteAgentMovementPacket();
-            if (type == PacketType.AgentMovementComplete) return new AgentMovementCompletePacket();
-            if (type == PacketType.LogoutRequest) return new LogoutRequestPacket();
-            if (type == PacketType.LogoutReply) return new LogoutReplyPacket();
-            if (type == PacketType.ImprovedInstantMessage) return new ImprovedInstantMessagePacket();
-            if (type == PacketType.RetrieveInstantMessages) return new RetrieveInstantMessagesPacket();
-            if (type == PacketType.FindAgent) return new FindAgentPacket();
-            if (type == PacketType.RequestGodlikePowers) return new RequestGodlikePowersPacket();
-            if (type == PacketType.GrantGodlikePowers) return new GrantGodlikePowersPacket();
-            if (type == PacketType.GodlikeMessage) return new GodlikeMessagePacket();
-            if (type == PacketType.EstateOwnerMessage) return new EstateOwnerMessagePacket();
-            if (type == PacketType.GenericMessage) return new GenericMessagePacket();
-            if (type == PacketType.MuteListRequest) return new MuteListRequestPacket();
-            if (type == PacketType.UpdateMuteListEntry) return new UpdateMuteListEntryPacket();
-            if (type == PacketType.RemoveMuteListEntry) return new RemoveMuteListEntryPacket();
-            if (type == PacketType.CopyInventoryFromNotecard) return new CopyInventoryFromNotecardPacket();
-            if (type == PacketType.UpdateInventoryItem) return new UpdateInventoryItemPacket();
-            if (type == PacketType.UpdateCreateInventoryItem) return new UpdateCreateInventoryItemPacket();
-            if (type == PacketType.MoveInventoryItem) return new MoveInventoryItemPacket();
-            if (type == PacketType.CopyInventoryItem) return new CopyInventoryItemPacket();
-            if (type == PacketType.RemoveInventoryItem) return new RemoveInventoryItemPacket();
-            if (type == PacketType.ChangeInventoryItemFlags) return new ChangeInventoryItemFlagsPacket();
-            if (type == PacketType.SaveAssetIntoInventory) return new SaveAssetIntoInventoryPacket();
-            if (type == PacketType.CreateInventoryFolder) return new CreateInventoryFolderPacket();
-            if (type == PacketType.UpdateInventoryFolder) return new UpdateInventoryFolderPacket();
-            if (type == PacketType.MoveInventoryFolder) return new MoveInventoryFolderPacket();
-            if (type == PacketType.RemoveInventoryFolder) return new RemoveInventoryFolderPacket();
-            if (type == PacketType.FetchInventoryDescendents) return new FetchInventoryDescendentsPacket();
-            if (type == PacketType.InventoryDescendents) return new InventoryDescendentsPacket();
-            if (type == PacketType.FetchInventory) return new FetchInventoryPacket();
-            if (type == PacketType.FetchInventoryReply) return new FetchInventoryReplyPacket();
-            if (type == PacketType.BulkUpdateInventory) return new BulkUpdateInventoryPacket();
-            if (type == PacketType.RemoveInventoryObjects) return new RemoveInventoryObjectsPacket();
-            if (type == PacketType.PurgeInventoryDescendents) return new PurgeInventoryDescendentsPacket();
-            if (type == PacketType.UpdateTaskInventory) return new UpdateTaskInventoryPacket();
-            if (type == PacketType.RemoveTaskInventory) return new RemoveTaskInventoryPacket();
-            if (type == PacketType.MoveTaskInventory) return new MoveTaskInventoryPacket();
-            if (type == PacketType.RequestTaskInventory) return new RequestTaskInventoryPacket();
-            if (type == PacketType.ReplyTaskInventory) return new ReplyTaskInventoryPacket();
-            if (type == PacketType.DeRezObject) return new DeRezObjectPacket();
-            if (type == PacketType.DeRezAck) return new DeRezAckPacket();
-            if (type == PacketType.RezObject) return new RezObjectPacket();
-            if (type == PacketType.RezObjectFromNotecard) return new RezObjectFromNotecardPacket();
-            if (type == PacketType.AcceptFriendship) return new AcceptFriendshipPacket();
-            if (type == PacketType.DeclineFriendship) return new DeclineFriendshipPacket();
-            if (type == PacketType.TerminateFriendship) return new TerminateFriendshipPacket();
-            if (type == PacketType.OfferCallingCard) return new OfferCallingCardPacket();
-            if (type == PacketType.AcceptCallingCard) return new AcceptCallingCardPacket();
-            if (type == PacketType.DeclineCallingCard) return new DeclineCallingCardPacket();
-            if (type == PacketType.RezScript) return new RezScriptPacket();
-            if (type == PacketType.CreateInventoryItem) return new CreateInventoryItemPacket();
-            if (type == PacketType.CreateLandmarkForEvent) return new CreateLandmarkForEventPacket();
-            if (type == PacketType.RegionHandleRequest) return new RegionHandleRequestPacket();
-            if (type == PacketType.RegionIDAndHandleReply) return new RegionIDAndHandleReplyPacket();
-            if (type == PacketType.MoneyTransferRequest) return new MoneyTransferRequestPacket();
-            if (type == PacketType.MoneyBalanceRequest) return new MoneyBalanceRequestPacket();
-            if (type == PacketType.MoneyBalanceReply) return new MoneyBalanceReplyPacket();
-            if (type == PacketType.RoutedMoneyBalanceReply) return new RoutedMoneyBalanceReplyPacket();
-            if (type == PacketType.ActivateGestures) return new ActivateGesturesPacket();
-            if (type == PacketType.DeactivateGestures) return new DeactivateGesturesPacket();
-            if (type == PacketType.MuteListUpdate) return new MuteListUpdatePacket();
-            if (type == PacketType.UseCachedMuteList) return new UseCachedMuteListPacket();
-            if (type == PacketType.GrantUserRights) return new GrantUserRightsPacket();
-            if (type == PacketType.ChangeUserRights) return new ChangeUserRightsPacket();
-            if (type == PacketType.OnlineNotification) return new OnlineNotificationPacket();
-            if (type == PacketType.OfflineNotification) return new OfflineNotificationPacket();
-            if (type == PacketType.SetStartLocationRequest) return new SetStartLocationRequestPacket();
-            if (type == PacketType.AssetUploadRequest) return new AssetUploadRequestPacket();
-            if (type == PacketType.AssetUploadComplete) return new AssetUploadCompletePacket();
-            if (type == PacketType.CreateGroupRequest) return new CreateGroupRequestPacket();
-            if (type == PacketType.CreateGroupReply) return new CreateGroupReplyPacket();
-            if (type == PacketType.UpdateGroupInfo) return new UpdateGroupInfoPacket();
-            if (type == PacketType.GroupRoleChanges) return new GroupRoleChangesPacket();
-            if (type == PacketType.JoinGroupRequest) return new JoinGroupRequestPacket();
-            if (type == PacketType.JoinGroupReply) return new JoinGroupReplyPacket();
-            if (type == PacketType.EjectGroupMemberRequest) return new EjectGroupMemberRequestPacket();
-            if (type == PacketType.EjectGroupMemberReply) return new EjectGroupMemberReplyPacket();
-            if (type == PacketType.LeaveGroupRequest) return new LeaveGroupRequestPacket();
-            if (type == PacketType.LeaveGroupReply) return new LeaveGroupReplyPacket();
-            if (type == PacketType.InviteGroupRequest) return new InviteGroupRequestPacket();
-            if (type == PacketType.GroupProfileRequest) return new GroupProfileRequestPacket();
-            if (type == PacketType.GroupProfileReply) return new GroupProfileReplyPacket();
-            if (type == PacketType.GroupAccountSummaryRequest) return new GroupAccountSummaryRequestPacket();
-            if (type == PacketType.GroupAccountSummaryReply) return new GroupAccountSummaryReplyPacket();
-            if (type == PacketType.GroupAccountDetailsRequest) return new GroupAccountDetailsRequestPacket();
-            if (type == PacketType.GroupAccountDetailsReply) return new GroupAccountDetailsReplyPacket();
-            if (type == PacketType.GroupAccountTransactionsRequest) return new GroupAccountTransactionsRequestPacket();
-            if (type == PacketType.GroupAccountTransactionsReply) return new GroupAccountTransactionsReplyPacket();
-            if (type == PacketType.GroupActiveProposalsRequest) return new GroupActiveProposalsRequestPacket();
-            if (type == PacketType.GroupActiveProposalItemReply) return new GroupActiveProposalItemReplyPacket();
-            if (type == PacketType.GroupVoteHistoryRequest) return new GroupVoteHistoryRequestPacket();
-            if (type == PacketType.GroupVoteHistoryItemReply) return new GroupVoteHistoryItemReplyPacket();
-            if (type == PacketType.StartGroupProposal) return new StartGroupProposalPacket();
-            if (type == PacketType.GroupProposalBallot) return new GroupProposalBallotPacket();
-            if (type == PacketType.GroupMembersRequest) return new GroupMembersRequestPacket();
-            if (type == PacketType.GroupMembersReply) return new GroupMembersReplyPacket();
-            if (type == PacketType.ActivateGroup) return new ActivateGroupPacket();
-            if (type == PacketType.SetGroupContribution) return new SetGroupContributionPacket();
-            if (type == PacketType.SetGroupAcceptNotices) return new SetGroupAcceptNoticesPacket();
-            if (type == PacketType.GroupRoleDataRequest) return new GroupRoleDataRequestPacket();
-            if (type == PacketType.GroupRoleDataReply) return new GroupRoleDataReplyPacket();
-            if (type == PacketType.GroupRoleMembersRequest) return new GroupRoleMembersRequestPacket();
-            if (type == PacketType.GroupRoleMembersReply) return new GroupRoleMembersReplyPacket();
-            if (type == PacketType.GroupTitlesRequest) return new GroupTitlesRequestPacket();
-            if (type == PacketType.GroupTitlesReply) return new GroupTitlesReplyPacket();
-            if (type == PacketType.GroupTitleUpdate) return new GroupTitleUpdatePacket();
-            if (type == PacketType.GroupRoleUpdate) return new GroupRoleUpdatePacket();
-            if (type == PacketType.LiveHelpGroupRequest) return new LiveHelpGroupRequestPacket();
-            if (type == PacketType.LiveHelpGroupReply) return new LiveHelpGroupReplyPacket();
-            if (type == PacketType.AgentWearablesRequest) return new AgentWearablesRequestPacket();
-            if (type == PacketType.AgentWearablesUpdate) return new AgentWearablesUpdatePacket();
-            if (type == PacketType.AgentIsNowWearing) return new AgentIsNowWearingPacket();
-            if (type == PacketType.AgentCachedTexture) return new AgentCachedTexturePacket();
-            if (type == PacketType.AgentCachedTextureResponse) return new AgentCachedTextureResponsePacket();
-            if (type == PacketType.AgentDataUpdateRequest) return new AgentDataUpdateRequestPacket();
-            if (type == PacketType.AgentDataUpdate) return new AgentDataUpdatePacket();
-            if (type == PacketType.GroupDataUpdate) return new GroupDataUpdatePacket();
-            if (type == PacketType.AgentGroupDataUpdate) return new AgentGroupDataUpdatePacket();
-            if (type == PacketType.AgentDropGroup) return new AgentDropGroupPacket();
-            if (type == PacketType.RezSingleAttachmentFromInv) return new RezSingleAttachmentFromInvPacket();
-            if (type == PacketType.RezMultipleAttachmentsFromInv) return new RezMultipleAttachmentsFromInvPacket();
-            if (type == PacketType.DetachAttachmentIntoInv) return new DetachAttachmentIntoInvPacket();
-            if (type == PacketType.CreateNewOutfitAttachments) return new CreateNewOutfitAttachmentsPacket();
-            if (type == PacketType.UserInfoRequest) return new UserInfoRequestPacket();
-            if (type == PacketType.UserInfoReply) return new UserInfoReplyPacket();
-            if (type == PacketType.UpdateUserInfo) return new UpdateUserInfoPacket();
-            if (type == PacketType.InitiateDownload) return new InitiateDownloadPacket();
-            if (type == PacketType.MapLayerRequest) return new MapLayerRequestPacket();
-            if (type == PacketType.MapLayerReply) return new MapLayerReplyPacket();
-            if (type == PacketType.MapBlockRequest) return new MapBlockRequestPacket();
-            if (type == PacketType.MapNameRequest) return new MapNameRequestPacket();
-            if (type == PacketType.MapBlockReply) return new MapBlockReplyPacket();
-            if (type == PacketType.MapItemRequest) return new MapItemRequestPacket();
-            if (type == PacketType.MapItemReply) return new MapItemReplyPacket();
-            if (type == PacketType.SendPostcard) return new SendPostcardPacket();
-            if (type == PacketType.ParcelMediaCommandMessage) return new ParcelMediaCommandMessagePacket();
-            if (type == PacketType.ParcelMediaUpdate) return new ParcelMediaUpdatePacket();
-            if (type == PacketType.LandStatRequest) return new LandStatRequestPacket();
-            if (type == PacketType.LandStatReply) return new LandStatReplyPacket();
-            if (type == PacketType.Error) return new ErrorPacket();
-            if (type == PacketType.ObjectIncludeInSearch) return new ObjectIncludeInSearchPacket();
-            if (type == PacketType.RezRestoreToWorld) return new RezRestoreToWorldPacket();
-            if (type == PacketType.LinkInventoryItem) return new LinkInventoryItemPacket();
-            if(type == PacketType.LargeGenericMessage) return new LargeGenericMessagePacket();
-            if (type == PacketType.PacketAck) return new PacketAckPacket();
-            if (type == PacketType.OpenCircuit) return new OpenCircuitPacket();
-            if (type == PacketType.CloseCircuit) return new CloseCircuitPacket();
-            return null;
+      public static Packet BuildPacket(PacketType type)
+      {
+          switch(type)
+          {
+              case PacketType.StartPingCheck: return new StartPingCheckPacket();
+              case PacketType.CompletePingCheck: return new CompletePingCheckPacket();
+              case PacketType.AgentUpdate: return new AgentUpdatePacket();
+              case PacketType.AgentAnimation: return new AgentAnimationPacket();
+              case PacketType.AgentRequestSit: return new AgentRequestSitPacket();
+              case PacketType.AgentSit: return new AgentSitPacket();
+              case PacketType.RequestImage: return new RequestImagePacket();
+              case PacketType.ImageData: return new ImageDataPacket();
+              case PacketType.ImagePacket: return new ImagePacketPacket();
+              case PacketType.LayerData: return new LayerDataPacket();
+              case PacketType.ObjectUpdate: return new ObjectUpdatePacket();
+              case PacketType.ObjectUpdateCompressed: return new ObjectUpdateCompressedPacket();
+              case PacketType.ObjectUpdateCached: return new ObjectUpdateCachedPacket();
+              case PacketType.ImprovedTerseObjectUpdate: return new ImprovedTerseObjectUpdatePacket();
+              case PacketType.KillObject: return new KillObjectPacket();
+              case PacketType.TransferPacket: return new TransferPacketPacket();
+              case PacketType.SendXferPacket: return new SendXferPacketPacket();
+              case PacketType.ConfirmXferPacket: return new ConfirmXferPacketPacket();
+              case PacketType.AvatarAnimation: return new AvatarAnimationPacket();
+              case PacketType.AvatarSitResponse: return new AvatarSitResponsePacket();
+              case PacketType.CameraConstraint: return new CameraConstraintPacket();
+              case PacketType.ParcelProperties: return new ParcelPropertiesPacket();
+              case PacketType.ChildAgentUpdate: return new ChildAgentUpdatePacket();
+              case PacketType.ChildAgentAlive: return new ChildAgentAlivePacket();
+              case PacketType.ChildAgentPositionUpdate: return new ChildAgentPositionUpdatePacket();
+              case PacketType.SoundTrigger: return new SoundTriggerPacket();
+              case PacketType.ObjectAnimation: return new ObjectAnimationPacket();
+              case PacketType.GenericStreamingMessage: return new GenericStreamingMessagePacket();
+              case PacketType.ObjectAdd: return new ObjectAddPacket();
+              case PacketType.MultipleObjectUpdate: return new MultipleObjectUpdatePacket();
+              case PacketType.RequestMultipleObjects: return new RequestMultipleObjectsPacket();
+              case PacketType.ObjectPosition: return new ObjectPositionPacket();
+              case PacketType.RequestObjectPropertiesFamily: return new RequestObjectPropertiesFamilyPacket();
+              case PacketType.CoarseLocationUpdate: return new CoarseLocationUpdatePacket();
+              case PacketType.CrossedRegion: return new CrossedRegionPacket();
+              case PacketType.ConfirmEnableSimulator: return new ConfirmEnableSimulatorPacket();
+              case PacketType.ObjectProperties: return new ObjectPropertiesPacket();
+              case PacketType.ObjectPropertiesFamily: return new ObjectPropertiesFamilyPacket();
+              case PacketType.ParcelPropertiesRequest: return new ParcelPropertiesRequestPacket();
+              case PacketType.AttachedSound: return new AttachedSoundPacket();
+              case PacketType.AttachedSoundGainChange: return new AttachedSoundGainChangePacket();
+              case PacketType.PreloadSound: return new PreloadSoundPacket();
+              case PacketType.ViewerEffect: return new ViewerEffectPacket();
+              case PacketType.TestMessage: return new TestMessagePacket();
+              case PacketType.UseCircuitCode: return new UseCircuitCodePacket();
+              case PacketType.TelehubInfo: return new TelehubInfoPacket();
+              case PacketType.EconomyDataRequest: return new EconomyDataRequestPacket();
+              case PacketType.EconomyData: return new EconomyDataPacket();
+              case PacketType.AvatarPickerRequest: return new AvatarPickerRequestPacket();
+              case PacketType.AvatarPickerReply: return new AvatarPickerReplyPacket();
+              case PacketType.PlacesQuery: return new PlacesQueryPacket();
+              case PacketType.PlacesReply: return new PlacesReplyPacket();
+              case PacketType.DirFindQuery: return new DirFindQueryPacket();
+              case PacketType.DirPlacesQuery: return new DirPlacesQueryPacket();
+              case PacketType.DirPlacesReply: return new DirPlacesReplyPacket();
+              case PacketType.DirPeopleReply: return new DirPeopleReplyPacket();
+              case PacketType.DirEventsReply: return new DirEventsReplyPacket();
+              case PacketType.DirGroupsReply: return new DirGroupsReplyPacket();
+              case PacketType.DirClassifiedQuery: return new DirClassifiedQueryPacket();
+              case PacketType.DirClassifiedReply: return new DirClassifiedReplyPacket();
+              case PacketType.AvatarClassifiedReply: return new AvatarClassifiedReplyPacket();
+              case PacketType.ClassifiedInfoRequest: return new ClassifiedInfoRequestPacket();
+              case PacketType.ClassifiedInfoReply: return new ClassifiedInfoReplyPacket();
+              case PacketType.ClassifiedInfoUpdate: return new ClassifiedInfoUpdatePacket();
+              case PacketType.ClassifiedDelete: return new ClassifiedDeletePacket();
+              case PacketType.ClassifiedGodDelete: return new ClassifiedGodDeletePacket();
+              case PacketType.DirLandQuery: return new DirLandQueryPacket();
+              case PacketType.DirLandReply: return new DirLandReplyPacket();
+              case PacketType.DirPopularQuery: return new DirPopularQueryPacket();
+              case PacketType.DirPopularReply: return new DirPopularReplyPacket();
+              case PacketType.ParcelInfoRequest: return new ParcelInfoRequestPacket();
+              case PacketType.ParcelInfoReply: return new ParcelInfoReplyPacket();
+              case PacketType.ParcelObjectOwnersRequest: return new ParcelObjectOwnersRequestPacket();
+              case PacketType.ParcelObjectOwnersReply: return new ParcelObjectOwnersReplyPacket();
+              case PacketType.GroupNoticesListRequest: return new GroupNoticesListRequestPacket();
+              case PacketType.GroupNoticesListReply: return new GroupNoticesListReplyPacket();
+              case PacketType.GroupNoticeRequest: return new GroupNoticeRequestPacket();
+              case PacketType.TeleportRequest: return new TeleportRequestPacket();
+              case PacketType.TeleportLocationRequest: return new TeleportLocationRequestPacket();
+              case PacketType.TeleportLocal: return new TeleportLocalPacket();
+              case PacketType.TeleportLandmarkRequest: return new TeleportLandmarkRequestPacket();
+              case PacketType.TeleportProgress: return new TeleportProgressPacket();
+              case PacketType.TeleportFinish: return new TeleportFinishPacket();
+              case PacketType.StartLure: return new StartLurePacket();
+              case PacketType.TeleportLureRequest: return new TeleportLureRequestPacket();
+              case PacketType.TeleportCancel: return new TeleportCancelPacket();
+              case PacketType.TeleportStart: return new TeleportStartPacket();
+              case PacketType.TeleportFailed: return new TeleportFailedPacket();
+              case PacketType.Undo: return new UndoPacket();
+              case PacketType.Redo: return new RedoPacket();
+              case PacketType.UndoLand: return new UndoLandPacket();
+              case PacketType.AgentPause: return new AgentPausePacket();
+              case PacketType.AgentResume: return new AgentResumePacket();
+              case PacketType.ChatFromViewer: return new ChatFromViewerPacket();
+              case PacketType.AgentThrottle: return new AgentThrottlePacket();
+              case PacketType.AgentFOV: return new AgentFOVPacket();
+              case PacketType.AgentHeightWidth: return new AgentHeightWidthPacket();
+              case PacketType.AgentSetAppearance: return new AgentSetAppearancePacket();
+              case PacketType.AgentQuitCopy: return new AgentQuitCopyPacket();
+              case PacketType.ImageNotInDatabase: return new ImageNotInDatabasePacket();
+              case PacketType.RebakeAvatarTextures: return new RebakeAvatarTexturesPacket();
+              case PacketType.SetAlwaysRun: return new SetAlwaysRunPacket();
+              case PacketType.ObjectDelete: return new ObjectDeletePacket();
+              case PacketType.ObjectDuplicate: return new ObjectDuplicatePacket();
+              case PacketType.ObjectDuplicateOnRay: return new ObjectDuplicateOnRayPacket();
+              case PacketType.ObjectScale: return new ObjectScalePacket();
+              case PacketType.ObjectRotation: return new ObjectRotationPacket();
+              case PacketType.ObjectFlagUpdate: return new ObjectFlagUpdatePacket();
+              case PacketType.ObjectClickAction: return new ObjectClickActionPacket();
+              case PacketType.ObjectImage: return new ObjectImagePacket();
+              case PacketType.ObjectMaterial: return new ObjectMaterialPacket();
+              case PacketType.ObjectShape: return new ObjectShapePacket();
+              case PacketType.ObjectExtraParams: return new ObjectExtraParamsPacket();
+              case PacketType.ObjectOwner: return new ObjectOwnerPacket();
+              case PacketType.ObjectGroup: return new ObjectGroupPacket();
+              case PacketType.ObjectBuy: return new ObjectBuyPacket();
+              case PacketType.BuyObjectInventory: return new BuyObjectInventoryPacket();
+              case PacketType.DerezContainer: return new DerezContainerPacket();
+              case PacketType.ObjectPermissions: return new ObjectPermissionsPacket();
+              case PacketType.ObjectSaleInfo: return new ObjectSaleInfoPacket();
+              case PacketType.ObjectName: return new ObjectNamePacket();
+              case PacketType.ObjectDescription: return new ObjectDescriptionPacket();
+              case PacketType.ObjectCategory: return new ObjectCategoryPacket();
+              case PacketType.ObjectSelect: return new ObjectSelectPacket();
+              case PacketType.ObjectDeselect: return new ObjectDeselectPacket();
+              case PacketType.ObjectAttach: return new ObjectAttachPacket();
+              case PacketType.ObjectDetach: return new ObjectDetachPacket();
+              case PacketType.ObjectDrop: return new ObjectDropPacket();
+              case PacketType.ObjectLink: return new ObjectLinkPacket();
+              case PacketType.ObjectDelink: return new ObjectDelinkPacket();
+              case PacketType.ObjectGrab: return new ObjectGrabPacket();
+              case PacketType.ObjectGrabUpdate: return new ObjectGrabUpdatePacket();
+              case PacketType.ObjectDeGrab: return new ObjectDeGrabPacket();
+              case PacketType.ObjectSpinStart: return new ObjectSpinStartPacket();
+              case PacketType.ObjectSpinUpdate: return new ObjectSpinUpdatePacket();
+              case PacketType.ObjectSpinStop: return new ObjectSpinStopPacket();
+              case PacketType.ObjectExportSelected: return new ObjectExportSelectedPacket();
+              case PacketType.ModifyLand: return new ModifyLandPacket();
+              case PacketType.VelocityInterpolateOn: return new VelocityInterpolateOnPacket();
+              case PacketType.VelocityInterpolateOff: return new VelocityInterpolateOffPacket();
+              case PacketType.StateSave: return new StateSavePacket();
+              case PacketType.ReportAutosaveCrash: return new ReportAutosaveCrashPacket();
+              case PacketType.SimWideDeletes: return new SimWideDeletesPacket();
+              case PacketType.TrackAgent: return new TrackAgentPacket();
+              case PacketType.ViewerStats: return new ViewerStatsPacket();
+              case PacketType.ScriptAnswerYes: return new ScriptAnswerYesPacket();
+              case PacketType.UserReport: return new UserReportPacket();
+              case PacketType.AlertMessage: return new AlertMessagePacket();
+              case PacketType.AgentAlertMessage: return new AgentAlertMessagePacket();
+              case PacketType.MeanCollisionAlert: return new MeanCollisionAlertPacket();
+              case PacketType.ViewerFrozenMessage: return new ViewerFrozenMessagePacket();
+              case PacketType.HealthMessage: return new HealthMessagePacket();
+              case PacketType.ChatFromSimulator: return new ChatFromSimulatorPacket();
+              case PacketType.SimStats: return new SimStatsPacket();
+              case PacketType.RequestRegionInfo: return new RequestRegionInfoPacket();
+              case PacketType.RegionInfo: return new RegionInfoPacket();
+              case PacketType.GodUpdateRegionInfo: return new GodUpdateRegionInfoPacket();
+              case PacketType.RegionHandshake: return new RegionHandshakePacket();
+              case PacketType.RegionHandshakeReply: return new RegionHandshakeReplyPacket();
+              case PacketType.SimulatorViewerTimeMessage: return new SimulatorViewerTimeMessagePacket();
+              case PacketType.EnableSimulator: return new EnableSimulatorPacket();
+              case PacketType.DisableSimulator: return new DisableSimulatorPacket();
+              case PacketType.TransferRequest: return new TransferRequestPacket();
+              case PacketType.TransferInfo: return new TransferInfoPacket();
+              case PacketType.TransferAbort: return new TransferAbortPacket();
+              case PacketType.RequestXfer: return new RequestXferPacket();
+              case PacketType.AbortXfer: return new AbortXferPacket();
+              case PacketType.AvatarAppearance: return new AvatarAppearancePacket();
+              case PacketType.SetFollowCamProperties: return new SetFollowCamPropertiesPacket();
+              case PacketType.ClearFollowCamProperties: return new ClearFollowCamPropertiesPacket();
+              case PacketType.RequestPayPrice: return new RequestPayPricePacket();
+              case PacketType.PayPriceReply: return new PayPriceReplyPacket();
+              case PacketType.KickUser: return new KickUserPacket();
+              case PacketType.GodKickUser: return new GodKickUserPacket();
+              case PacketType.EjectUser: return new EjectUserPacket();
+              case PacketType.FreezeUser: return new FreezeUserPacket();
+              case PacketType.AvatarPropertiesRequest: return new AvatarPropertiesRequestPacket();
+              case PacketType.AvatarPropertiesReply: return new AvatarPropertiesReplyPacket();
+              case PacketType.AvatarInterestsReply: return new AvatarInterestsReplyPacket();
+              case PacketType.AvatarGroupsReply: return new AvatarGroupsReplyPacket();
+              case PacketType.AvatarPropertiesUpdate: return new AvatarPropertiesUpdatePacket();
+              case PacketType.AvatarInterestsUpdate: return new AvatarInterestsUpdatePacket();
+              case PacketType.AvatarNotesReply: return new AvatarNotesReplyPacket();
+              case PacketType.AvatarNotesUpdate: return new AvatarNotesUpdatePacket();
+              case PacketType.AvatarPicksReply: return new AvatarPicksReplyPacket();
+              case PacketType.EventInfoRequest: return new EventInfoRequestPacket();
+              case PacketType.EventInfoReply: return new EventInfoReplyPacket();
+              case PacketType.EventNotificationAddRequest: return new EventNotificationAddRequestPacket();
+              case PacketType.EventNotificationRemoveRequest: return new EventNotificationRemoveRequestPacket();
+              case PacketType.EventGodDelete: return new EventGodDeletePacket();
+              case PacketType.PickInfoReply: return new PickInfoReplyPacket();
+              case PacketType.PickInfoUpdate: return new PickInfoUpdatePacket();
+              case PacketType.PickDelete: return new PickDeletePacket();
+              case PacketType.PickGodDelete: return new PickGodDeletePacket();
+              case PacketType.ScriptQuestion: return new ScriptQuestionPacket();
+              case PacketType.ScriptControlChange: return new ScriptControlChangePacket();
+              case PacketType.ScriptDialog: return new ScriptDialogPacket();
+              case PacketType.ScriptDialogReply: return new ScriptDialogReplyPacket();
+              case PacketType.ForceScriptControlRelease: return new ForceScriptControlReleasePacket();
+              case PacketType.RevokePermissions: return new RevokePermissionsPacket();
+              case PacketType.LoadURL: return new LoadURLPacket();
+              case PacketType.ScriptTeleportRequest: return new ScriptTeleportRequestPacket();
+              case PacketType.ParcelOverlay: return new ParcelOverlayPacket();
+              case PacketType.ParcelPropertiesRequestByID: return new ParcelPropertiesRequestByIDPacket();
+              case PacketType.ParcelPropertiesUpdate: return new ParcelPropertiesUpdatePacket();
+              case PacketType.ParcelReturnObjects: return new ParcelReturnObjectsPacket();
+              case PacketType.ParcelSetOtherCleanTime: return new ParcelSetOtherCleanTimePacket();
+              case PacketType.ParcelDisableObjects: return new ParcelDisableObjectsPacket();
+              case PacketType.ParcelSelectObjects: return new ParcelSelectObjectsPacket();
+              case PacketType.EstateCovenantRequest: return new EstateCovenantRequestPacket();
+              case PacketType.EstateCovenantReply: return new EstateCovenantReplyPacket();
+              case PacketType.ForceObjectSelect: return new ForceObjectSelectPacket();
+              case PacketType.ParcelBuyPass: return new ParcelBuyPassPacket();
+              case PacketType.ParcelDeedToGroup: return new ParcelDeedToGroupPacket();
+              case PacketType.ParcelReclaim: return new ParcelReclaimPacket();
+              case PacketType.ParcelClaim: return new ParcelClaimPacket();
+              case PacketType.ParcelJoin: return new ParcelJoinPacket();
+              case PacketType.ParcelDivide: return new ParcelDividePacket();
+              case PacketType.ParcelRelease: return new ParcelReleasePacket();
+              case PacketType.ParcelBuy: return new ParcelBuyPacket();
+              case PacketType.ParcelGodForceOwner: return new ParcelGodForceOwnerPacket();
+              case PacketType.ParcelAccessListRequest: return new ParcelAccessListRequestPacket();
+              case PacketType.ParcelAccessListReply: return new ParcelAccessListReplyPacket();
+              case PacketType.ParcelAccessListUpdate: return new ParcelAccessListUpdatePacket();
+              case PacketType.ParcelDwellRequest: return new ParcelDwellRequestPacket();
+              case PacketType.ParcelDwellReply: return new ParcelDwellReplyPacket();
+              case PacketType.ParcelGodMarkAsContent: return new ParcelGodMarkAsContentPacket();
+              case PacketType.ViewerStartAuction: return new ViewerStartAuctionPacket();
+              case PacketType.UUIDNameRequest: return new UUIDNameRequestPacket();
+              case PacketType.UUIDNameReply: return new UUIDNameReplyPacket();
+              case PacketType.UUIDGroupNameRequest: return new UUIDGroupNameRequestPacket();
+              case PacketType.UUIDGroupNameReply: return new UUIDGroupNameReplyPacket();
+              case PacketType.ChildAgentDying: return new ChildAgentDyingPacket();
+              case PacketType.ChildAgentUnknown: return new ChildAgentUnknownPacket();
+              case PacketType.GetScriptRunning: return new GetScriptRunningPacket();
+              case PacketType.ScriptRunningReply: return new ScriptRunningReplyPacket();
+              case PacketType.SetScriptRunning: return new SetScriptRunningPacket();
+              case PacketType.ScriptReset: return new ScriptResetPacket();
+              case PacketType.ScriptSensorRequest: return new ScriptSensorRequestPacket();
+              case PacketType.ScriptSensorReply: return new ScriptSensorReplyPacket();
+              case PacketType.CompleteAgentMovement: return new CompleteAgentMovementPacket();
+              case PacketType.AgentMovementComplete: return new AgentMovementCompletePacket();
+              case PacketType.LogoutRequest: return new LogoutRequestPacket();
+              case PacketType.LogoutReply: return new LogoutReplyPacket();
+              case PacketType.ImprovedInstantMessage: return new ImprovedInstantMessagePacket();
+              case PacketType.RetrieveInstantMessages: return new RetrieveInstantMessagesPacket();
+              case PacketType.FindAgent: return new FindAgentPacket();
+              case PacketType.RequestGodlikePowers: return new RequestGodlikePowersPacket();
+              case PacketType.GrantGodlikePowers: return new GrantGodlikePowersPacket();
+              case PacketType.GodlikeMessage: return new GodlikeMessagePacket();
+              case PacketType.EstateOwnerMessage: return new EstateOwnerMessagePacket();
+              case PacketType.GenericMessage: return new GenericMessagePacket();
+              case PacketType.MuteListRequest: return new MuteListRequestPacket();
+              case PacketType.UpdateMuteListEntry: return new UpdateMuteListEntryPacket();
+              case PacketType.RemoveMuteListEntry: return new RemoveMuteListEntryPacket();
+              case PacketType.CopyInventoryFromNotecard: return new CopyInventoryFromNotecardPacket();
+              case PacketType.UpdateInventoryItem: return new UpdateInventoryItemPacket();
+              case PacketType.UpdateCreateInventoryItem: return new UpdateCreateInventoryItemPacket();
+              case PacketType.MoveInventoryItem: return new MoveInventoryItemPacket();
+              case PacketType.CopyInventoryItem: return new CopyInventoryItemPacket();
+              case PacketType.RemoveInventoryItem: return new RemoveInventoryItemPacket();
+              case PacketType.ChangeInventoryItemFlags: return new ChangeInventoryItemFlagsPacket();
+              case PacketType.SaveAssetIntoInventory: return new SaveAssetIntoInventoryPacket();
+              case PacketType.CreateInventoryFolder: return new CreateInventoryFolderPacket();
+              case PacketType.UpdateInventoryFolder: return new UpdateInventoryFolderPacket();
+              case PacketType.MoveInventoryFolder: return new MoveInventoryFolderPacket();
+              case PacketType.RemoveInventoryFolder: return new RemoveInventoryFolderPacket();
+              case PacketType.FetchInventoryDescendents: return new FetchInventoryDescendentsPacket();
+              case PacketType.InventoryDescendents: return new InventoryDescendentsPacket();
+              case PacketType.FetchInventory: return new FetchInventoryPacket();
+              case PacketType.FetchInventoryReply: return new FetchInventoryReplyPacket();
+              case PacketType.BulkUpdateInventory: return new BulkUpdateInventoryPacket();
+              case PacketType.RemoveInventoryObjects: return new RemoveInventoryObjectsPacket();
+              case PacketType.PurgeInventoryDescendents: return new PurgeInventoryDescendentsPacket();
+              case PacketType.UpdateTaskInventory: return new UpdateTaskInventoryPacket();
+              case PacketType.RemoveTaskInventory: return new RemoveTaskInventoryPacket();
+              case PacketType.MoveTaskInventory: return new MoveTaskInventoryPacket();
+              case PacketType.RequestTaskInventory: return new RequestTaskInventoryPacket();
+              case PacketType.ReplyTaskInventory: return new ReplyTaskInventoryPacket();
+              case PacketType.DeRezObject: return new DeRezObjectPacket();
+              case PacketType.DeRezAck: return new DeRezAckPacket();
+              case PacketType.RezObject: return new RezObjectPacket();
+              case PacketType.RezObjectFromNotecard: return new RezObjectFromNotecardPacket();
+              case PacketType.AcceptFriendship: return new AcceptFriendshipPacket();
+              case PacketType.DeclineFriendship: return new DeclineFriendshipPacket();
+              case PacketType.TerminateFriendship: return new TerminateFriendshipPacket();
+              case PacketType.OfferCallingCard: return new OfferCallingCardPacket();
+              case PacketType.AcceptCallingCard: return new AcceptCallingCardPacket();
+              case PacketType.DeclineCallingCard: return new DeclineCallingCardPacket();
+              case PacketType.RezScript: return new RezScriptPacket();
+              case PacketType.CreateInventoryItem: return new CreateInventoryItemPacket();
+              case PacketType.CreateLandmarkForEvent: return new CreateLandmarkForEventPacket();
+              case PacketType.RegionHandleRequest: return new RegionHandleRequestPacket();
+              case PacketType.RegionIDAndHandleReply: return new RegionIDAndHandleReplyPacket();
+              case PacketType.MoneyTransferRequest: return new MoneyTransferRequestPacket();
+              case PacketType.MoneyBalanceRequest: return new MoneyBalanceRequestPacket();
+              case PacketType.MoneyBalanceReply: return new MoneyBalanceReplyPacket();
+              case PacketType.RoutedMoneyBalanceReply: return new RoutedMoneyBalanceReplyPacket();
+              case PacketType.ActivateGestures: return new ActivateGesturesPacket();
+              case PacketType.DeactivateGestures: return new DeactivateGesturesPacket();
+              case PacketType.MuteListUpdate: return new MuteListUpdatePacket();
+              case PacketType.UseCachedMuteList: return new UseCachedMuteListPacket();
+              case PacketType.GrantUserRights: return new GrantUserRightsPacket();
+              case PacketType.ChangeUserRights: return new ChangeUserRightsPacket();
+              case PacketType.OnlineNotification: return new OnlineNotificationPacket();
+              case PacketType.OfflineNotification: return new OfflineNotificationPacket();
+              case PacketType.SetStartLocationRequest: return new SetStartLocationRequestPacket();
+              case PacketType.AssetUploadRequest: return new AssetUploadRequestPacket();
+              case PacketType.AssetUploadComplete: return new AssetUploadCompletePacket();
+              case PacketType.CreateGroupRequest: return new CreateGroupRequestPacket();
+              case PacketType.CreateGroupReply: return new CreateGroupReplyPacket();
+              case PacketType.UpdateGroupInfo: return new UpdateGroupInfoPacket();
+              case PacketType.GroupRoleChanges: return new GroupRoleChangesPacket();
+              case PacketType.JoinGroupRequest: return new JoinGroupRequestPacket();
+              case PacketType.JoinGroupReply: return new JoinGroupReplyPacket();
+              case PacketType.EjectGroupMemberRequest: return new EjectGroupMemberRequestPacket();
+              case PacketType.EjectGroupMemberReply: return new EjectGroupMemberReplyPacket();
+              case PacketType.LeaveGroupRequest: return new LeaveGroupRequestPacket();
+              case PacketType.LeaveGroupReply: return new LeaveGroupReplyPacket();
+              case PacketType.InviteGroupRequest: return new InviteGroupRequestPacket();
+              case PacketType.GroupProfileRequest: return new GroupProfileRequestPacket();
+              case PacketType.GroupProfileReply: return new GroupProfileReplyPacket();
+              case PacketType.GroupAccountSummaryRequest: return new GroupAccountSummaryRequestPacket();
+              case PacketType.GroupAccountSummaryReply: return new GroupAccountSummaryReplyPacket();
+              case PacketType.GroupAccountDetailsRequest: return new GroupAccountDetailsRequestPacket();
+              case PacketType.GroupAccountDetailsReply: return new GroupAccountDetailsReplyPacket();
+              case PacketType.GroupAccountTransactionsRequest: return new GroupAccountTransactionsRequestPacket();
+              case PacketType.GroupAccountTransactionsReply: return new GroupAccountTransactionsReplyPacket();
+              case PacketType.GroupActiveProposalsRequest: return new GroupActiveProposalsRequestPacket();
+              case PacketType.GroupActiveProposalItemReply: return new GroupActiveProposalItemReplyPacket();
+              case PacketType.GroupVoteHistoryRequest: return new GroupVoteHistoryRequestPacket();
+              case PacketType.GroupVoteHistoryItemReply: return new GroupVoteHistoryItemReplyPacket();
+              case PacketType.StartGroupProposal: return new StartGroupProposalPacket();
+              case PacketType.GroupProposalBallot: return new GroupProposalBallotPacket();
+              case PacketType.GroupMembersRequest: return new GroupMembersRequestPacket();
+              case PacketType.GroupMembersReply: return new GroupMembersReplyPacket();
+              case PacketType.ActivateGroup: return new ActivateGroupPacket();
+              case PacketType.SetGroupContribution: return new SetGroupContributionPacket();
+              case PacketType.SetGroupAcceptNotices: return new SetGroupAcceptNoticesPacket();
+              case PacketType.GroupRoleDataRequest: return new GroupRoleDataRequestPacket();
+              case PacketType.GroupRoleDataReply: return new GroupRoleDataReplyPacket();
+              case PacketType.GroupRoleMembersRequest: return new GroupRoleMembersRequestPacket();
+              case PacketType.GroupRoleMembersReply: return new GroupRoleMembersReplyPacket();
+              case PacketType.GroupTitlesRequest: return new GroupTitlesRequestPacket();
+              case PacketType.GroupTitlesReply: return new GroupTitlesReplyPacket();
+              case PacketType.GroupTitleUpdate: return new GroupTitleUpdatePacket();
+              case PacketType.GroupRoleUpdate: return new GroupRoleUpdatePacket();
+              case PacketType.LiveHelpGroupRequest: return new LiveHelpGroupRequestPacket();
+              case PacketType.LiveHelpGroupReply: return new LiveHelpGroupReplyPacket();
+              case PacketType.AgentWearablesRequest: return new AgentWearablesRequestPacket();
+              case PacketType.AgentWearablesUpdate: return new AgentWearablesUpdatePacket();
+              case PacketType.AgentIsNowWearing: return new AgentIsNowWearingPacket();
+              case PacketType.AgentCachedTexture: return new AgentCachedTexturePacket();
+              case PacketType.AgentCachedTextureResponse: return new AgentCachedTextureResponsePacket();
+              case PacketType.AgentDataUpdateRequest: return new AgentDataUpdateRequestPacket();
+              case PacketType.AgentDataUpdate: return new AgentDataUpdatePacket();
+              case PacketType.GroupDataUpdate: return new GroupDataUpdatePacket();
+              case PacketType.AgentGroupDataUpdate: return new AgentGroupDataUpdatePacket();
+              case PacketType.AgentDropGroup: return new AgentDropGroupPacket();
+              case PacketType.RezSingleAttachmentFromInv: return new RezSingleAttachmentFromInvPacket();
+              case PacketType.RezMultipleAttachmentsFromInv: return new RezMultipleAttachmentsFromInvPacket();
+              case PacketType.DetachAttachmentIntoInv: return new DetachAttachmentIntoInvPacket();
+              case PacketType.CreateNewOutfitAttachments: return new CreateNewOutfitAttachmentsPacket();
+              case PacketType.UserInfoRequest: return new UserInfoRequestPacket();
+              case PacketType.UserInfoReply: return new UserInfoReplyPacket();
+              case PacketType.UpdateUserInfo: return new UpdateUserInfoPacket();
+              case PacketType.InitiateDownload: return new InitiateDownloadPacket();
+              case PacketType.MapLayerRequest: return new MapLayerRequestPacket();
+              case PacketType.MapLayerReply: return new MapLayerReplyPacket();
+              case PacketType.MapBlockRequest: return new MapBlockRequestPacket();
+              case PacketType.MapNameRequest: return new MapNameRequestPacket();
+              case PacketType.MapBlockReply: return new MapBlockReplyPacket();
+              case PacketType.MapItemRequest: return new MapItemRequestPacket();
+              case PacketType.MapItemReply: return new MapItemReplyPacket();
+              case PacketType.SendPostcard: return new SendPostcardPacket();
+              case PacketType.ParcelMediaCommandMessage: return new ParcelMediaCommandMessagePacket();
+              case PacketType.ParcelMediaUpdate: return new ParcelMediaUpdatePacket();
+              case PacketType.LandStatRequest: return new LandStatRequestPacket();
+              case PacketType.LandStatReply: return new LandStatReplyPacket();
+              case PacketType.Error: return new ErrorPacket();
+              case PacketType.ObjectIncludeInSearch: return new ObjectIncludeInSearchPacket();
+              case PacketType.RezRestoreToWorld: return new RezRestoreToWorldPacket();
+              case PacketType.LinkInventoryItem: return new LinkInventoryItemPacket();
+              case PacketType.LargeGenericMessage: return new LargeGenericMessagePacket();
+              case PacketType.PacketAck: return new PacketAckPacket();
+              case PacketType.OpenCircuit: return new OpenCircuitPacket();
+              case PacketType.CloseCircuit: return new CloseCircuitPacket();
+          }
+          return null;
+      }
 
-        }
-
-        public static Packet BuildPacket(byte[] packetBuffer, ref int packetEnd, byte[] zeroBuffer)
+        public static Packet BuildPacket(byte[] packetBuffer, ref int packetLength, byte[] zeroBuffer)
         {
             byte[] bytes;
             int i = 0;
-            Header header = Header.BuildHeader(packetBuffer, ref i, ref packetEnd);
+            Header header = Header.BuildHeader(packetBuffer, ref i, ref packetLength);
             if (header.Zerocoded)
             {
-                packetEnd = Helpers.ZeroDecode(packetBuffer, packetEnd + 1, zeroBuffer) - 1;
+                packetLength = Helpers.ZeroDecode(packetBuffer, packetLength, zeroBuffer);
                 bytes = zeroBuffer;
             }
             else
             {
                 bytes = packetBuffer;
             }
-            Array.Clear(bytes, packetEnd + 1, bytes.Length - packetEnd - 1);
+            //Array.Clear(bytes, packetEnd + 1, bytes.Length - packetEnd - 1);
 
             switch (header.Frequency)
             {
@@ -1895,6 +1946,7 @@ namespace OpenMetaverse.Packets
                         case 27: return new ChildAgentPositionUpdatePacket(header, bytes, ref i);
                         case 29: return new SoundTriggerPacket(header, bytes, ref i);
                         case 30: return new ObjectAnimationPacket(header, bytes, ref i);
+                        case 31: return new GenericStreamingMessagePacket(header, bytes, ref i);
 
                     }
                     break;
@@ -2010,6 +2062,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 1;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             TestBlock1 = new TestBlock1Block();
             NeighborBlock = new NeighborBlockBlock[4];
@@ -2042,11 +2095,10 @@ namespace OpenMetaverse.Packets
 
         public TestMessagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TestBlock1.FromBytes(bytes, ref i);
@@ -2147,6 +2199,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 3;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             CircuitCode = new CircuitCodeBlock();
         }
 
@@ -2169,11 +2222,10 @@ namespace OpenMetaverse.Packets
 
         public UseCircuitCodePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             CircuitCode.FromBytes(bytes, ref i);
@@ -2231,7 +2283,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ObjectName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ObjectName, 0, length); i += length;
                     TelehubPos.FromBytes(bytes, i); i += 12;
@@ -2246,7 +2298,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ObjectID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)ObjectName.Length;
+                Utils.ByteToBytes((byte)ObjectName.Length, bytes, ref i);
                 Buffer.BlockCopy(ObjectName, 0, bytes, i, ObjectName.Length); i += ObjectName.Length;
                 TelehubPos.ToBytes(bytes, i); i += 12;
                 TelehubRot.ToBytes(bytes, i); i += 12;
@@ -2314,6 +2366,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 10;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             TelehubBlock = new TelehubBlockBlock();
             SpawnPointBlock = null;
         }
@@ -2346,11 +2399,10 @@ namespace OpenMetaverse.Packets
 
         public TelehubInfoPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TelehubBlock.FromBytes(bytes, ref i);
@@ -2376,7 +2428,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             TelehubBlock.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)SpawnPointBlock.Length;
+            Utils.ByteToBytes((byte)SpawnPointBlock.Length, bytes, ref i);
             for (int j = 0; j < SpawnPointBlock.Length; j++) { SpawnPointBlock[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -2465,6 +2517,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 24;
             Header.Reliable = true;
+            NeedValidateIDs = false;
         }
 
         public EconomyDataRequestPacket(byte[] bytes, ref int i) : this()
@@ -2485,11 +2538,10 @@ namespace OpenMetaverse.Packets
 
         public EconomyDataRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
         }
@@ -2619,6 +2671,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 25;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             Info = new InfoBlock();
         }
@@ -2642,11 +2695,10 @@ namespace OpenMetaverse.Packets
 
         public EconomyDataPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -2744,7 +2796,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                 }
@@ -2756,7 +2808,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
             }
 
@@ -2775,6 +2827,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AvatarPickerRequestPacket()
         {
             HasVariableBlocks = false;
@@ -2783,6 +2837,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 26;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -2807,11 +2862,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPickerRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -2913,10 +2967,10 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AvatarID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     FirstName = new byte[length];
                     Buffer.BlockCopy(bytes, i, FirstName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     LastName = new byte[length];
                     Buffer.BlockCopy(bytes, i, LastName, 0, length); i += length;
                 }
@@ -2929,9 +2983,9 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 AvatarID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)FirstName.Length;
+                Utils.ByteToBytes((byte)FirstName.Length, bytes, ref i);
                 Buffer.BlockCopy(FirstName, 0, bytes, i, FirstName.Length); i += FirstName.Length;
-                bytes[i++] = (byte)LastName.Length;
+                Utils.ByteToBytes((byte)LastName.Length, bytes, ref i);
                 Buffer.BlockCopy(LastName, 0, bytes, i, LastName.Length); i += LastName.Length;
             }
 
@@ -2959,6 +3013,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 28;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             Data = null;
         }
@@ -2991,11 +3046,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPickerReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -3021,7 +3075,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Data.Length;
+            Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
             for (int j = 0; j < Data.Length; j++) { Data[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -3205,12 +3259,12 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     QueryText = new byte[length];
                     Buffer.BlockCopy(bytes, i, QueryText, 0, length); i += length;
                     QueryFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Category = (sbyte)bytes[i++];
-                    length = bytes[i++];
+                    Category = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                 }
@@ -3222,11 +3276,11 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)QueryText.Length;
+                Utils.ByteToBytes((byte)QueryText.Length, bytes, ref i);
                 Buffer.BlockCopy(QueryText, 0, bytes, i, QueryText.Length); i += QueryText.Length;
                 Utils.UIntToBytesSafepos(QueryFlags, bytes, i); i += 4;
-                bytes[i++] = (byte)Category;
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes( (byte)Category, bytes, ref i);
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
             }
 
@@ -3247,6 +3301,8 @@ namespace OpenMetaverse.Packets
         public TransactionDataBlock TransactionData;
         public QueryDataBlock QueryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public PlacesQueryPacket()
         {
             HasVariableBlocks = false;
@@ -3255,6 +3311,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 29;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             TransactionData = new TransactionDataBlock();
@@ -3282,11 +3339,10 @@ namespace OpenMetaverse.Packets
 
         public PlacesQueryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -3440,19 +3496,19 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
                     ActualArea = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     BillableArea = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    Flags = (byte)bytes[i++];
+                    Flags = Utils.BytesToByte(bytes, ref i);
                     GlobalX = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     GlobalY = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     GlobalZ = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     SnapshotID.FromBytes(bytes, i); i += 16;
@@ -3468,17 +3524,17 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 OwnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Desc.Length;
+                Utils.ByteToBytes((byte)Desc.Length, bytes, ref i);
                 Buffer.BlockCopy(Desc, 0, bytes, i, Desc.Length); i += Desc.Length;
                 Utils.IntToBytesSafepos(ActualArea, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(BillableArea, bytes, i); i += 4;
-                bytes[i++] = Flags;
+                Utils.ByteToBytes( Flags, bytes, ref i);
                 Utils.FloatToBytesSafepos(GlobalX, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(GlobalY, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(GlobalZ, bytes, i); i += 4;
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
                 SnapshotID.ToBytes(bytes, i); i += 16;
                 Utils.FloatToBytesSafepos(Dwell, bytes, i); i += 4;
@@ -3511,6 +3567,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 30;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             TransactionData = new TransactionDataBlock();
@@ -3546,11 +3603,10 @@ namespace OpenMetaverse.Packets
 
         public PlacesReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -3579,7 +3635,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             TransactionData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)QueryData.Length;
+            Utils.ByteToBytes((byte)QueryData.Length, bytes, ref i);
             for (int j = 0; j < QueryData.Length; j++) { QueryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -3724,7 +3780,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     QueryID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     QueryText = new byte[length];
                     Buffer.BlockCopy(bytes, i, QueryText, 0, length); i += length;
                     QueryFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
@@ -3739,7 +3795,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 QueryID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)QueryText.Length;
+                Utils.ByteToBytes((byte)QueryText.Length, bytes, ref i);
                 Buffer.BlockCopy(QueryText, 0, bytes, i, QueryText.Length); i += QueryText.Length;
                 Utils.UIntToBytesSafepos(QueryFlags, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(QueryStart, bytes, i); i += 4;
@@ -3760,6 +3816,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public QueryDataBlock QueryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public DirFindQueryPacket()
         {
             HasVariableBlocks = false;
@@ -3768,6 +3826,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 31;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
@@ -3793,11 +3852,10 @@ namespace OpenMetaverse.Packets
 
         public DirFindQueryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -3902,12 +3960,12 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     QueryID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     QueryText = new byte[length];
                     Buffer.BlockCopy(bytes, i, QueryText, 0, length); i += length;
                     QueryFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Category = (sbyte)bytes[i++];
-                    length = bytes[i++];
+                    Category = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     QueryStart = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -3921,11 +3979,11 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 QueryID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)QueryText.Length;
+                Utils.ByteToBytes((byte)QueryText.Length, bytes, ref i);
                 Buffer.BlockCopy(QueryText, 0, bytes, i, QueryText.Length); i += QueryText.Length;
                 Utils.UIntToBytesSafepos(QueryFlags, bytes, i); i += 4;
-                bytes[i++] = (byte)Category;
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes( (byte)Category, bytes, ref i);
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
                 Utils.IntToBytesSafepos(QueryStart, bytes, i); i += 4;
             }
@@ -3945,6 +4003,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public QueryDataBlock QueryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public DirPlacesQueryPacket()
         {
             HasVariableBlocks = false;
@@ -3953,6 +4013,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 33;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
@@ -3978,11 +4039,10 @@ namespace OpenMetaverse.Packets
 
         public DirPlacesQueryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -4120,11 +4180,11 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ParcelID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    ForSale = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    Auction = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    ForSale = (Utils.BytesToByte(bytes, ref i) != 0);
+                    Auction = (Utils.BytesToByte(bytes, ref i) != 0);
                     Dwell = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -4136,10 +4196,10 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ParcelID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)((ForSale) ? 1 : 0);
-                bytes[i++] = (byte)((Auction) ? 1 : 0);
+                Utils.ByteToBytes((byte)((ForSale) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((Auction) ? 1 : 0), bytes, ref i);
                 Utils.FloatToBytesSafepos(Dwell, bytes, i); i += 4;
             }
 
@@ -4211,6 +4271,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 35;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = null;
@@ -4264,11 +4325,10 @@ namespace OpenMetaverse.Packets
 
         public DirPlacesReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -4316,11 +4376,11 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)QueryData.Length;
+            Utils.ByteToBytes((byte)QueryData.Length, bytes, ref i);
             for (int j = 0; j < QueryData.Length; j++) { QueryData[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)QueryReplies.Length;
+            Utils.ByteToBytes((byte)QueryReplies.Length, bytes, ref i);
             for (int j = 0; j < QueryReplies.Length; j++) { QueryReplies[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)StatusData.Length;
+            Utils.ByteToBytes((byte)StatusData.Length, bytes, ref i);
             for (int j = 0; j < StatusData.Length; j++) { StatusData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -4542,16 +4602,16 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     FirstName = new byte[length];
                     Buffer.BlockCopy(bytes, i, FirstName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     LastName = new byte[length];
                     Buffer.BlockCopy(bytes, i, LastName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Group = new byte[length];
                     Buffer.BlockCopy(bytes, i, Group, 0, length); i += length;
-                    Online = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Online = (Utils.BytesToByte(bytes, ref i) != 0);
                     Reputation = Utils.BytesToIntSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -4563,13 +4623,13 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 AgentID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)FirstName.Length;
+                Utils.ByteToBytes((byte)FirstName.Length, bytes, ref i);
                 Buffer.BlockCopy(FirstName, 0, bytes, i, FirstName.Length); i += FirstName.Length;
-                bytes[i++] = (byte)LastName.Length;
+                Utils.ByteToBytes((byte)LastName.Length, bytes, ref i);
                 Buffer.BlockCopy(LastName, 0, bytes, i, LastName.Length); i += LastName.Length;
-                bytes[i++] = (byte)Group.Length;
+                Utils.ByteToBytes((byte)Group.Length, bytes, ref i);
                 Buffer.BlockCopy(Group, 0, bytes, i, Group.Length); i += Group.Length;
-                bytes[i++] = (byte)((Online) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Online) ? 1 : 0), bytes, ref i);
                 Utils.IntToBytesSafepos(Reputation, bytes, i); i += 4;
             }
 
@@ -4599,6 +4659,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 36;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
@@ -4634,11 +4695,10 @@ namespace OpenMetaverse.Packets
 
         public DirPeopleReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -4667,7 +4727,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             QueryData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)QueryReplies.Length;
+            Utils.ByteToBytes((byte)QueryReplies.Length, bytes, ref i);
             for (int j = 0; j < QueryReplies.Length; j++) { QueryReplies[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -4850,11 +4910,11 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     EventID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Date = new byte[length];
                     Buffer.BlockCopy(bytes, i, Date, 0, length); i += length;
                     UnixTime = Utils.BytesToUIntSafepos(bytes, i); i += 4;
@@ -4869,10 +4929,10 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 OwnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
                 Utils.UIntToBytesSafepos(EventID, bytes, i); i += 4;
-                bytes[i++] = (byte)Date.Length;
+                Utils.ByteToBytes((byte)Date.Length, bytes, ref i);
                 Buffer.BlockCopy(Date, 0, bytes, i, Date.Length); i += Date.Length;
                 Utils.UIntToBytesSafepos(UnixTime, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EventFlags, bytes, i); i += 4;
@@ -4945,6 +5005,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 37;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
@@ -4990,11 +5051,10 @@ namespace OpenMetaverse.Packets
 
         public DirEventsReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -5034,9 +5094,9 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             QueryData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)QueryReplies.Length;
+            Utils.ByteToBytes((byte)QueryReplies.Length, bytes, ref i);
             for (int j = 0; j < QueryReplies.Length; j++) { QueryReplies[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)StatusData.Length;
+            Utils.ByteToBytes((byte)StatusData.Length, bytes, ref i);
             for (int j = 0; j < StatusData.Length; j++) { StatusData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -5236,7 +5296,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     GroupName = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupName, 0, length); i += length;
                     Members = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -5251,7 +5311,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)GroupName.Length;
+                Utils.ByteToBytes((byte)GroupName.Length, bytes, ref i);
                 Buffer.BlockCopy(GroupName, 0, bytes, i, GroupName.Length); i += GroupName.Length;
                 Utils.IntToBytesSafepos(Members, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(SearchOrder, bytes, i); i += 4;
@@ -5283,6 +5343,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 38;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
@@ -5318,11 +5379,10 @@ namespace OpenMetaverse.Packets
 
         public DirGroupsReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -5351,7 +5411,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             QueryData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)QueryReplies.Length;
+            Utils.ByteToBytes((byte)QueryReplies.Length, bytes, ref i);
             for (int j = 0; j < QueryReplies.Length; j++) { QueryReplies[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -5497,7 +5557,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     QueryID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     QueryText = new byte[length];
                     Buffer.BlockCopy(bytes, i, QueryText, 0, length); i += length;
                     QueryFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
@@ -5513,7 +5573,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 QueryID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)QueryText.Length;
+                Utils.ByteToBytes((byte)QueryText.Length, bytes, ref i);
                 Buffer.BlockCopy(QueryText, 0, bytes, i, QueryText.Length); i += QueryText.Length;
                 Utils.UIntToBytesSafepos(QueryFlags, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(Category, bytes, i); i += 4;
@@ -5535,6 +5595,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public QueryDataBlock QueryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public DirClassifiedQueryPacket()
         {
             HasVariableBlocks = false;
@@ -5543,6 +5605,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 39;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
@@ -5568,11 +5631,10 @@ namespace OpenMetaverse.Packets
 
         public DirClassifiedQueryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -5711,10 +5773,10 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ClassifiedID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    ClassifiedFlags = (byte)bytes[i++];
+                    ClassifiedFlags = Utils.BytesToByte(bytes, ref i);
                     CreationDate = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     ExpirationDate = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     PriceForListing = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -5728,9 +5790,9 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ClassifiedID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = ClassifiedFlags;
+                Utils.ByteToBytes( ClassifiedFlags, bytes, ref i);
                 Utils.UIntToBytesSafepos(CreationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(ExpirationDate, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(PriceForListing, bytes, i); i += 4;
@@ -5803,6 +5865,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 41;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
@@ -5848,11 +5911,10 @@ namespace OpenMetaverse.Packets
 
         public DirClassifiedReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -5892,9 +5954,9 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             QueryData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)QueryReplies.Length;
+            Utils.ByteToBytes((byte)QueryReplies.Length, bytes, ref i);
             for (int j = 0; j < QueryReplies.Length; j++) { QueryReplies[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)StatusData.Length;
+            Utils.ByteToBytes((byte)StatusData.Length, bytes, ref i);
             for (int j = 0; j < StatusData.Length; j++) { StatusData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -6057,7 +6119,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ClassifiedID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                 }
@@ -6070,7 +6132,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ClassifiedID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
             }
 
@@ -6098,6 +6160,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 42;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             Data = null;
         }
@@ -6130,11 +6193,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarClassifiedReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -6160,7 +6222,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Data.Length;
+            Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
             for (int j = 0; j < Data.Length; j++) { Data[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -6324,6 +6386,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ClassifiedInfoRequestPacket()
         {
             HasVariableBlocks = false;
@@ -6332,6 +6396,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 43;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
@@ -6357,11 +6422,10 @@ namespace OpenMetaverse.Packets
 
         public ClassifiedInfoRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -6478,23 +6542,23 @@ namespace OpenMetaverse.Packets
                     CreationDate = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     ExpirationDate = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     Category = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
                     ParcelID.FromBytes(bytes, i); i += 16;
                     ParentEstate = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     SnapshotID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     PosGlobal.FromBytes(bytes, i); i += 24;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ParcelName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ParcelName, 0, length); i += length;
-                    ClassifiedFlags = (byte)bytes[i++];
+                    ClassifiedFlags = Utils.BytesToByte(bytes, ref i);
                     PriceForListing = Utils.BytesToIntSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -6510,20 +6574,19 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(CreationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(ExpirationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(Category, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)(Desc.Length % 256);
-                bytes[i++] = (byte)((Desc.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Desc.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Desc, 0, bytes, i, Desc.Length); i += Desc.Length;
                 ParcelID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(ParentEstate, bytes, i); i += 4;
                 SnapshotID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
                 PosGlobal.ToBytes(bytes, i); i += 24;
-                bytes[i++] = (byte)ParcelName.Length;
+                Utils.ByteToBytes((byte)ParcelName.Length, bytes, ref i);
                 Buffer.BlockCopy(ParcelName, 0, bytes, i, ParcelName.Length); i += ParcelName.Length;
-                bytes[i++] = ClassifiedFlags;
+                Utils.ByteToBytes( ClassifiedFlags, bytes, ref i);
                 Utils.IntToBytesSafepos(PriceForListing, bytes, i); i += 4;
             }
 
@@ -6550,6 +6613,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 44;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -6574,11 +6638,10 @@ namespace OpenMetaverse.Packets
 
         public ClassifiedInfoReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -6688,17 +6751,17 @@ namespace OpenMetaverse.Packets
                 {
                     ClassifiedID.FromBytes(bytes, i); i += 16;
                     Category = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
                     ParcelID.FromBytes(bytes, i); i += 16;
                     ParentEstate = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     SnapshotID.FromBytes(bytes, i); i += 16;
                     PosGlobal.FromBytes(bytes, i); i += 24;
-                    ClassifiedFlags = (byte)bytes[i++];
+                    ClassifiedFlags = Utils.BytesToByte(bytes, ref i);
                     PriceForListing = Utils.BytesToIntSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -6711,16 +6774,15 @@ namespace OpenMetaverse.Packets
             {
                 ClassifiedID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(Category, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)(Desc.Length % 256);
-                bytes[i++] = (byte)((Desc.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Desc.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Desc, 0, bytes, i, Desc.Length); i += Desc.Length;
                 ParcelID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(ParentEstate, bytes, i); i += 4;
                 SnapshotID.ToBytes(bytes, i); i += 16;
                 PosGlobal.ToBytes(bytes, i); i += 24;
-                bytes[i++] = ClassifiedFlags;
+                Utils.ByteToBytes( ClassifiedFlags, bytes, ref i);
                 Utils.IntToBytesSafepos(PriceForListing, bytes, i); i += 4;
             }
 
@@ -6739,6 +6801,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ClassifiedInfoUpdatePacket()
         {
             HasVariableBlocks = false;
@@ -6747,6 +6811,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 45;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -6771,11 +6836,10 @@ namespace OpenMetaverse.Packets
 
         public ClassifiedInfoUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -6898,6 +6962,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ClassifiedDeletePacket()
         {
             HasVariableBlocks = false;
@@ -6906,6 +6972,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 46;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -6930,11 +6997,10 @@ namespace OpenMetaverse.Packets
 
         public ClassifiedDeletePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -7060,6 +7126,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ClassifiedGodDeletePacket()
         {
             HasVariableBlocks = false;
@@ -7068,6 +7136,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 47;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -7092,11 +7161,10 @@ namespace OpenMetaverse.Packets
 
         public ClassifiedGodDeletePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -7234,6 +7302,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public QueryDataBlock QueryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public DirLandQueryPacket()
         {
             HasVariableBlocks = false;
@@ -7242,6 +7312,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 48;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
@@ -7267,11 +7338,10 @@ namespace OpenMetaverse.Packets
 
         public DirLandQueryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -7410,11 +7480,11 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ParcelID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    Auction = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    ForSale = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Auction = (Utils.BytesToByte(bytes, ref i) != 0);
+                    ForSale = (Utils.BytesToByte(bytes, ref i) != 0);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     ActualArea = Utils.BytesToIntSafepos(bytes, i); i += 4;
                 }
@@ -7427,10 +7497,10 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ParcelID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)((Auction) ? 1 : 0);
-                bytes[i++] = (byte)((ForSale) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Auction) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((ForSale) ? 1 : 0), bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(ActualArea, bytes, i); i += 4;
             }
@@ -7461,6 +7531,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 50;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
@@ -7496,11 +7567,10 @@ namespace OpenMetaverse.Packets
 
         public DirLandReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -7529,7 +7599,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             QueryData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)QueryReplies.Length;
+            Utils.ByteToBytes((byte)QueryReplies.Length, bytes, ref i);
             for (int j = 0; j < QueryReplies.Length; j++) { QueryReplies[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -7698,6 +7768,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public QueryDataBlock QueryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public DirPopularQueryPacket()
         {
             HasVariableBlocks = false;
@@ -7706,6 +7778,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 51;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
@@ -7731,11 +7804,10 @@ namespace OpenMetaverse.Packets
 
         public DirPopularQueryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -7871,7 +7943,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ParcelID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     Dwell = Utils.BytesToFloatSafepos(bytes, i); i += 4;
@@ -7885,7 +7957,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ParcelID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
                 Utils.FloatToBytesSafepos(Dwell, bytes, i); i += 4;
             }
@@ -7916,6 +7988,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 53;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
@@ -7951,11 +8024,10 @@ namespace OpenMetaverse.Packets
 
         public DirPopularReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -7984,7 +8056,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             QueryData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)QueryReplies.Length;
+            Utils.ByteToBytes((byte)QueryReplies.Length, bytes, ref i);
             for (int j = 0; j < QueryReplies.Length; j++) { QueryReplies[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -8150,6 +8222,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelInfoRequestPacket()
         {
             HasVariableBlocks = false;
@@ -8158,6 +8232,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 54;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -8182,11 +8257,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelInfoRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -8299,19 +8373,19 @@ namespace OpenMetaverse.Packets
                 {
                     ParcelID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
                     ActualArea = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     BillableArea = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    Flags = (byte)bytes[i++];
+                    Flags = Utils.BytesToByte(bytes, ref i);
                     GlobalX = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     GlobalY = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     GlobalZ = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     SnapshotID.FromBytes(bytes, i); i += 16;
@@ -8329,17 +8403,17 @@ namespace OpenMetaverse.Packets
             {
                 ParcelID.ToBytes(bytes, i); i += 16;
                 OwnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Desc.Length;
+                Utils.ByteToBytes((byte)Desc.Length, bytes, ref i);
                 Buffer.BlockCopy(Desc, 0, bytes, i, Desc.Length); i += Desc.Length;
                 Utils.IntToBytesSafepos(ActualArea, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(BillableArea, bytes, i); i += 4;
-                bytes[i++] = Flags;
+                Utils.ByteToBytes( Flags, bytes, ref i);
                 Utils.FloatToBytesSafepos(GlobalX, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(GlobalY, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(GlobalZ, bytes, i); i += 4;
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
                 SnapshotID.ToBytes(bytes, i); i += 16;
                 Utils.FloatToBytesSafepos(Dwell, bytes, i); i += 4;
@@ -8370,6 +8444,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 55;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
@@ -8395,11 +8470,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelInfoReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -8522,6 +8596,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ParcelDataBlock ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelObjectOwnersRequestPacket()
         {
             HasVariableBlocks = false;
@@ -8530,6 +8606,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 56;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
         }
@@ -8554,11 +8631,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelObjectOwnersRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -8616,9 +8692,9 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    IsGroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IsGroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
                     Count = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    OnlineStatus = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    OnlineStatus = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -8629,9 +8705,9 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 OwnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((IsGroupOwned) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IsGroupOwned) ? 1 : 0), bytes, ref i);
                 Utils.IntToBytesSafepos(Count, bytes, i); i += 4;
-                bytes[i++] = (byte)((OnlineStatus) ? 1 : 0);
+                Utils.ByteToBytes((byte)((OnlineStatus) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -8656,6 +8732,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 57;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             Data = null;
         }
@@ -8687,11 +8764,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelObjectOwnersReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -8714,7 +8790,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Data.Length;
+            Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
             for (int j = 0; j < Data.Length; j++) { Data[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -8876,6 +8952,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupNoticesListRequestPacket()
         {
             HasVariableBlocks = false;
@@ -8884,6 +8962,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 58;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -8908,11 +8987,10 @@ namespace OpenMetaverse.Packets
 
         public GroupNoticesListRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -9018,14 +9096,14 @@ namespace OpenMetaverse.Packets
                 {
                     NoticeID.FromBytes(bytes, i); i += 16;
                     Timestamp = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     FromName = new byte[length];
                     Buffer.BlockCopy(bytes, i, FromName, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Subject = new byte[length];
                     Buffer.BlockCopy(bytes, i, Subject, 0, length); i += length;
-                    HasAttachment = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    AssetType = (byte)bytes[i++];
+                    HasAttachment = (Utils.BytesToByte(bytes, ref i) != 0);
+                    AssetType = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -9037,14 +9115,12 @@ namespace OpenMetaverse.Packets
             {
                 NoticeID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(Timestamp, bytes, i); i += 4;
-                bytes[i++] = (byte)(FromName.Length % 256);
-                bytes[i++] = (byte)((FromName.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)FromName.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(FromName, 0, bytes, i, FromName.Length); i += FromName.Length;
-                bytes[i++] = (byte)(Subject.Length % 256);
-                bytes[i++] = (byte)((Subject.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Subject.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Subject, 0, bytes, i, Subject.Length); i += Subject.Length;
-                bytes[i++] = (byte)((HasAttachment) ? 1 : 0);
-                bytes[i++] = AssetType;
+                Utils.ByteToBytes((byte)((HasAttachment) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes( AssetType, bytes, ref i);
             }
 
         }
@@ -9071,6 +9147,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 59;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             Data = null;
         }
@@ -9103,11 +9180,10 @@ namespace OpenMetaverse.Packets
 
         public GroupNoticesListReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -9133,7 +9209,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Data.Length;
+            Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
             for (int j = 0; j < Data.Length; j++) { Data[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -9297,6 +9373,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupNoticeRequestPacket()
         {
             HasVariableBlocks = false;
@@ -9305,6 +9383,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 60;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -9329,11 +9408,10 @@ namespace OpenMetaverse.Packets
 
         public GroupNoticeRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -9462,6 +9540,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InfoBlock Info;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public TeleportRequestPacket()
         {
             HasVariableBlocks = false;
@@ -9470,6 +9550,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 62;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Info = new InfoBlock();
         }
@@ -9494,11 +9575,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -9627,6 +9707,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InfoBlock Info;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public TeleportLocationRequestPacket()
         {
             HasVariableBlocks = false;
@@ -9635,6 +9717,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 63;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Info = new InfoBlock();
         }
@@ -9659,11 +9742,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportLocationRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -9763,6 +9845,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 64;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Info = new InfoBlock();
         }
 
@@ -9785,11 +9868,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportLocalPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -9880,6 +9962,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 65;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             Info = new InfoBlock();
         }
@@ -9903,11 +9986,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportLandmarkRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -10001,7 +10083,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TeleportFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
                 }
@@ -10014,7 +10096,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(TeleportFlags, bytes, i); i += 4;
-                bytes[i++] = (byte)Message.Length;
+                Utils.ByteToBytes((byte)Message.Length, bytes, ref i);
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
             }
 
@@ -10041,6 +10123,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 66;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             Info = new InfoBlock();
         }
@@ -10065,11 +10148,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportProgressPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -10138,10 +10220,10 @@ namespace OpenMetaverse.Packets
                     SimIP = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     SimPort = (ushort)((bytes[i++] << 8) + bytes[i++]);
                     RegionHandle = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     SeedCapability = new byte[length];
                     Buffer.BlockCopy(bytes, i, SeedCapability, 0, length); i += length;
-                    SimAccess = (byte)bytes[i++];
+                    SimAccess = Utils.BytesToByte(bytes, ref i);
                     TeleportFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -10155,13 +10237,11 @@ namespace OpenMetaverse.Packets
                 AgentID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(LocationID, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(SimIP, bytes, i); i += 4;
-                bytes[i++] = (byte)((SimPort >> 8) % 256);
-                bytes[i++] = (byte)(SimPort % 256);
+                Utils.UInt16ToBytesBig(SimPort, bytes, i); i += 2;
                 Utils.UInt64ToBytesSafepos(RegionHandle, bytes, i); i += 8;
-                bytes[i++] = (byte)(SeedCapability.Length % 256);
-                bytes[i++] = (byte)((SeedCapability.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)SeedCapability.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(SeedCapability, 0, bytes, i, SeedCapability.Length); i += SeedCapability.Length;
-                bytes[i++] = SimAccess;
+                Utils.ByteToBytes( SimAccess, bytes, ref i);
                 Utils.UIntToBytesSafepos(TeleportFlags, bytes, i); i += 4;
             }
 
@@ -10186,6 +10266,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 69;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Info = new InfoBlock();
         }
 
@@ -10208,11 +10289,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportFinishPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -10308,8 +10388,8 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    LureType = (byte)bytes[i++];
-                    length = bytes[i++];
+                    LureType = Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
                 }
@@ -10321,8 +10401,8 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = LureType;
-                bytes[i++] = (byte)Message.Length;
+                Utils.ByteToBytes( LureType, bytes, ref i);
+                Utils.ByteToBytes((byte)Message.Length, bytes, ref i);
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
             }
 
@@ -10382,6 +10462,8 @@ namespace OpenMetaverse.Packets
         public InfoBlock Info;
         public TargetDataBlock[] TargetData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public StartLurePacket()
         {
             HasVariableBlocks = true;
@@ -10390,6 +10472,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 70;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Info = new InfoBlock();
             TargetData = null;
@@ -10424,11 +10507,10 @@ namespace OpenMetaverse.Packets
 
         public StartLurePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -10457,7 +10539,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             Info.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)TargetData.Length;
+            Utils.ByteToBytes((byte)TargetData.Length, bytes, ref i);
             for (int j = 0; j < TargetData.Length; j++) { TargetData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -10597,6 +10679,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 71;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Info = new InfoBlock();
         }
 
@@ -10619,11 +10702,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportLureRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -10711,6 +10793,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 72;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Info = new InfoBlock();
         }
 
@@ -10733,11 +10816,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportCancelPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -10822,6 +10904,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 73;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Info = new InfoBlock();
         }
 
@@ -10844,11 +10927,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportStartPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -10904,7 +10986,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Reason = new byte[length];
                     Buffer.BlockCopy(bytes, i, Reason, 0, length); i += length;
                 }
@@ -10917,7 +10999,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 AgentID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Reason.Length;
+                Utils.ByteToBytes((byte)Reason.Length, bytes, ref i);
                 Buffer.BlockCopy(Reason, 0, bytes, i, Reason.Length); i += Reason.Length;
             }
 
@@ -10951,10 +11033,10 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ExtraParams = new byte[length];
                     Buffer.BlockCopy(bytes, i, ExtraParams, 0, length); i += length;
                 }
@@ -10966,9 +11048,9 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Message.Length;
+                Utils.ByteToBytes((byte)Message.Length, bytes, ref i);
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
-                bytes[i++] = (byte)ExtraParams.Length;
+                Utils.ByteToBytes((byte)ExtraParams.Length, bytes, ref i);
                 Buffer.BlockCopy(ExtraParams, 0, bytes, i, ExtraParams.Length); i += ExtraParams.Length;
             }
 
@@ -10996,6 +11078,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 74;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Info = new InfoBlock();
             AlertInfo = null;
         }
@@ -11028,11 +11111,10 @@ namespace OpenMetaverse.Packets
 
         public TeleportFailedPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Info.FromBytes(bytes, ref i);
@@ -11058,7 +11140,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             Info.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)AlertInfo.Length;
+            Utils.ByteToBytes((byte)AlertInfo.Length, bytes, ref i);
             for (int j = 0; j < AlertInfo.Length; j++) { AlertInfo[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -11226,6 +11308,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public UndoPacket()
         {
             HasVariableBlocks = true;
@@ -11234,6 +11318,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 75;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
         }
@@ -11266,11 +11351,10 @@ namespace OpenMetaverse.Packets
 
         public UndoPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -11296,7 +11380,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -11464,6 +11548,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RedoPacket()
         {
             HasVariableBlocks = true;
@@ -11472,6 +11558,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 76;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
         }
@@ -11504,11 +11591,10 @@ namespace OpenMetaverse.Packets
 
         public RedoPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -11534,7 +11620,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -11658,6 +11744,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public UndoLandPacket()
         {
             HasVariableBlocks = false;
@@ -11666,6 +11754,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 77;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -11688,11 +11777,10 @@ namespace OpenMetaverse.Packets
 
         public UndoLandPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -11775,6 +11863,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentPausePacket()
         {
             HasVariableBlocks = false;
@@ -11783,6 +11873,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 78;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -11805,11 +11896,10 @@ namespace OpenMetaverse.Packets
 
         public AgentPausePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -11892,6 +11982,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentResumePacket()
         {
             HasVariableBlocks = false;
@@ -11900,6 +11992,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 79;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -11922,11 +12015,10 @@ namespace OpenMetaverse.Packets
 
         public AgentResumePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -12023,10 +12115,10 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
-                    Type = (byte)bytes[i++];
+                    Type = Utils.BytesToByte(bytes, ref i);
                     Channel = Utils.BytesToIntSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -12037,10 +12129,9 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(Message.Length % 256);
-                bytes[i++] = (byte)((Message.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Message.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
-                bytes[i++] = Type;
+                Utils.ByteToBytes( Type, bytes, ref i);
                 Utils.IntToBytesSafepos(Channel, bytes, i); i += 4;
             }
 
@@ -12059,6 +12150,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ChatDataBlock ChatData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ChatFromViewerPacket()
         {
             HasVariableBlocks = false;
@@ -12067,6 +12160,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 80;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ChatData = new ChatDataBlock();
@@ -12092,11 +12186,10 @@ namespace OpenMetaverse.Packets
 
         public ChatFromViewerPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -12199,7 +12292,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GenCounter = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Throttles = new byte[length];
                     Buffer.BlockCopy(bytes, i, Throttles, 0, length); i += length;
                 }
@@ -12212,7 +12305,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(GenCounter, bytes, i); i += 4;
-                bytes[i++] = (byte)Throttles.Length;
+                Utils.ByteToBytes((byte)Throttles.Length, bytes, ref i);
                 Buffer.BlockCopy(Throttles, 0, bytes, i, Throttles.Length); i += Throttles.Length;
             }
 
@@ -12231,6 +12324,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ThrottleBlock Throttle;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentThrottlePacket()
         {
             HasVariableBlocks = false;
@@ -12239,6 +12334,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 81;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Throttle = new ThrottleBlock();
@@ -12264,11 +12360,10 @@ namespace OpenMetaverse.Packets
 
         public AgentThrottlePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -12397,6 +12492,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public FOVBlockBlock FOVBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentFOVPacket()
         {
             HasVariableBlocks = false;
@@ -12405,6 +12502,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 82;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             FOVBlock = new FOVBlockBlock();
         }
@@ -12429,11 +12527,10 @@ namespace OpenMetaverse.Packets
 
         public AgentFOVPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -12565,6 +12662,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public HeightWidthBlockBlock HeightWidthBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentHeightWidthPacket()
         {
             HasVariableBlocks = false;
@@ -12573,6 +12672,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 83;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             HeightWidthBlock = new HeightWidthBlockBlock();
         }
@@ -12597,11 +12697,10 @@ namespace OpenMetaverse.Packets
 
         public AgentHeightWidthPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -12704,7 +12803,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     CacheID.FromBytes(bytes, i); i += 16;
-                    TextureIndex = (byte)bytes[i++];
+                    TextureIndex = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -12715,7 +12814,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 CacheID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = TextureIndex;
+                Utils.ByteToBytes( TextureIndex, bytes, ref i);
             }
 
         }
@@ -12746,7 +12845,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     TextureEntry = new byte[length];
                     Buffer.BlockCopy(bytes, i, TextureEntry, 0, length); i += length;
                 }
@@ -12758,8 +12857,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(TextureEntry.Length % 256);
-                bytes[i++] = (byte)((TextureEntry.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)TextureEntry.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(TextureEntry, 0, bytes, i, TextureEntry.Length); i += TextureEntry.Length;
             }
 
@@ -12788,7 +12886,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ParamValue = (byte)bytes[i++];
+                    ParamValue = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -12798,7 +12896,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = ParamValue;
+                Utils.ByteToBytes( ParamValue, bytes, ref i);
             }
 
         }
@@ -12822,6 +12920,8 @@ namespace OpenMetaverse.Packets
         public ObjectDataBlock ObjectData;
         public VisualParamBlock[] VisualParam;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentSetAppearancePacket()
         {
             HasVariableBlocks = true;
@@ -12830,6 +12930,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 84;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             WearableData = null;
@@ -12875,11 +12976,10 @@ namespace OpenMetaverse.Packets
 
         public AgentSetAppearancePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -12918,10 +13018,10 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)WearableData.Length;
+            Utils.ByteToBytes((byte)WearableData.Length, bytes, ref i);
             for (int j = 0; j < WearableData.Length; j++) { WearableData[j].ToBytes(bytes, ref i); }
             ObjectData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)VisualParam.Length;
+            Utils.ByteToBytes((byte)VisualParam.Length, bytes, ref i);
             for (int j = 0; j < VisualParam.Length; j++) { VisualParam[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -13028,6 +13128,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public FuseBlockBlock FuseBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentQuitCopyPacket()
         {
             HasVariableBlocks = false;
@@ -13036,6 +13138,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 85;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             FuseBlock = new FuseBlockBlock();
         }
@@ -13060,11 +13163,10 @@ namespace OpenMetaverse.Packets
 
         public AgentQuitCopyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -13152,6 +13254,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 86;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ImageID = new ImageIDBlock();
         }
 
@@ -13174,11 +13277,10 @@ namespace OpenMetaverse.Packets
 
         public ImageNotInDatabasePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ImageID.FromBytes(bytes, ref i);
@@ -13263,6 +13365,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 87;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             TextureData = new TextureDataBlock();
         }
 
@@ -13285,11 +13388,10 @@ namespace OpenMetaverse.Packets
 
         public RebakeAvatarTexturesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TextureData.FromBytes(bytes, ref i);
@@ -13344,7 +13446,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    AlwaysRun = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    AlwaysRun = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -13356,7 +13458,7 @@ namespace OpenMetaverse.Packets
             {
                 AgentID.ToBytes(bytes, i); i += 16;
                 SessionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((AlwaysRun) ? 1 : 0);
+                Utils.ByteToBytes((byte)((AlwaysRun) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -13372,6 +13474,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public SetAlwaysRunPacket()
         {
             HasVariableBlocks = false;
@@ -13380,6 +13484,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 88;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -13402,11 +13507,10 @@ namespace OpenMetaverse.Packets
 
         public SetAlwaysRunPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -13461,7 +13565,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    Force = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Force = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -13473,7 +13577,7 @@ namespace OpenMetaverse.Packets
             {
                 AgentID.ToBytes(bytes, i); i += 16;
                 SessionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((Force) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Force) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -13530,6 +13634,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectDeletePacket()
         {
             HasVariableBlocks = true;
@@ -13538,6 +13644,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 89;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -13571,11 +13678,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDeletePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -13601,7 +13707,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -13812,6 +13918,8 @@ namespace OpenMetaverse.Packets
         public SharedDataBlock SharedData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectDuplicatePacket()
         {
             HasVariableBlocks = true;
@@ -13820,6 +13928,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 90;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             SharedData = new SharedDataBlock();
@@ -13855,11 +13964,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDuplicatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -13888,7 +13996,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             SharedData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -14000,10 +14108,10 @@ namespace OpenMetaverse.Packets
                     GroupID.FromBytes(bytes, i); i += 16;
                     RayStart.FromBytes(bytes, i); i += 12;
                     RayEnd.FromBytes(bytes, i); i += 12;
-                    BypassRaycast = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    RayEndIsIntersection = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    CopyCenters = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    CopyRotates = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    BypassRaycast = (Utils.BytesToByte(bytes, ref i) != 0);
+                    RayEndIsIntersection = (Utils.BytesToByte(bytes, ref i) != 0);
+                    CopyCenters = (Utils.BytesToByte(bytes, ref i) != 0);
+                    CopyRotates = (Utils.BytesToByte(bytes, ref i) != 0);
                     RayTargetID.FromBytes(bytes, i); i += 16;
                     DuplicateFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                 }
@@ -14020,10 +14128,10 @@ namespace OpenMetaverse.Packets
                 GroupID.ToBytes(bytes, i); i += 16;
                 RayStart.ToBytes(bytes, i); i += 12;
                 RayEnd.ToBytes(bytes, i); i += 12;
-                bytes[i++] = (byte)((BypassRaycast) ? 1 : 0);
-                bytes[i++] = (byte)((RayEndIsIntersection) ? 1 : 0);
-                bytes[i++] = (byte)((CopyCenters) ? 1 : 0);
-                bytes[i++] = (byte)((CopyRotates) ? 1 : 0);
+                Utils.ByteToBytes((byte)((BypassRaycast) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((RayEndIsIntersection) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((CopyCenters) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((CopyRotates) ? 1 : 0), bytes, ref i);
                 RayTargetID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(DuplicateFlags, bytes, i); i += 4;
             }
@@ -14082,6 +14190,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectDuplicateOnRayPacket()
         {
             HasVariableBlocks = true;
@@ -14090,6 +14200,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 91;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -14123,11 +14234,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDuplicateOnRayPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -14153,7 +14263,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -14321,6 +14431,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectScalePacket()
         {
             HasVariableBlocks = true;
@@ -14329,6 +14441,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 92;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -14362,11 +14475,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectScalePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -14392,7 +14504,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -14560,6 +14672,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectRotationPacket()
         {
             HasVariableBlocks = true;
@@ -14568,6 +14682,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 93;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -14601,11 +14716,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectRotationPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -14631,7 +14745,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -14735,10 +14849,10 @@ namespace OpenMetaverse.Packets
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
                     ObjectLocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    UsePhysics = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    IsTemporary = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    IsPhantom = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    CastsShadows = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    UsePhysics = (Utils.BytesToByte(bytes, ref i) != 0);
+                    IsTemporary = (Utils.BytesToByte(bytes, ref i) != 0);
+                    IsPhantom = (Utils.BytesToByte(bytes, ref i) != 0);
+                    CastsShadows = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -14751,10 +14865,10 @@ namespace OpenMetaverse.Packets
                 AgentID.ToBytes(bytes, i); i += 16;
                 SessionID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(ObjectLocalID, bytes, i); i += 4;
-                bytes[i++] = (byte)((UsePhysics) ? 1 : 0);
-                bytes[i++] = (byte)((IsTemporary) ? 1 : 0);
-                bytes[i++] = (byte)((IsPhantom) ? 1 : 0);
-                bytes[i++] = (byte)((CastsShadows) ? 1 : 0);
+                Utils.ByteToBytes((byte)((UsePhysics) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((IsTemporary) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((IsPhantom) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((CastsShadows) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -14786,7 +14900,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    PhysicsShapeType = (byte)bytes[i++];
+                    PhysicsShapeType = Utils.BytesToByte(bytes, ref i);
                     Density = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     Friction = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     Restitution = Utils.BytesToFloatSafepos(bytes, i); i += 4;
@@ -14800,7 +14914,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = PhysicsShapeType;
+                Utils.ByteToBytes( PhysicsShapeType, bytes, ref i);
                 Utils.FloatToBytesSafepos(Density, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(Friction, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(Restitution, bytes, i); i += 4;
@@ -14823,6 +14937,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ExtraPhysicsBlock[] ExtraPhysics;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectFlagUpdatePacket()
         {
             HasVariableBlocks = true;
@@ -14831,6 +14947,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 94;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ExtraPhysics = null;
@@ -14864,11 +14981,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectFlagUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -14894,7 +15010,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ExtraPhysics.Length;
+            Utils.ByteToBytes((byte)ExtraPhysics.Length, bytes, ref i);
             for (int j = 0; j < ExtraPhysics.Length; j++) { ExtraPhysics[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -15032,7 +15148,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectLocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    ClickAction = (byte)bytes[i++];
+                    ClickAction = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -15043,7 +15159,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(ObjectLocalID, bytes, i); i += 4;
-                bytes[i++] = ClickAction;
+                Utils.ByteToBytes( ClickAction, bytes, ref i);
             }
 
         }
@@ -15062,6 +15178,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectClickActionPacket()
         {
             HasVariableBlocks = true;
@@ -15070,6 +15188,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 95;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -15103,11 +15222,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectClickActionPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -15133,7 +15251,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -15276,10 +15394,10 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectLocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     MediaURL = new byte[length];
                     Buffer.BlockCopy(bytes, i, MediaURL, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     TextureEntry = new byte[length];
                     Buffer.BlockCopy(bytes, i, TextureEntry, 0, length); i += length;
                 }
@@ -15292,10 +15410,9 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(ObjectLocalID, bytes, i); i += 4;
-                bytes[i++] = (byte)MediaURL.Length;
+                Utils.ByteToBytes((byte)MediaURL.Length, bytes, ref i);
                 Buffer.BlockCopy(MediaURL, 0, bytes, i, MediaURL.Length); i += MediaURL.Length;
-                bytes[i++] = (byte)(TextureEntry.Length % 256);
-                bytes[i++] = (byte)((TextureEntry.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)TextureEntry.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(TextureEntry, 0, bytes, i, TextureEntry.Length); i += TextureEntry.Length;
             }
 
@@ -15315,6 +15432,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectImagePacket()
         {
             HasVariableBlocks = true;
@@ -15323,6 +15442,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 96;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -15356,11 +15476,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectImagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -15386,7 +15505,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -15524,7 +15643,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectLocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Material = (byte)bytes[i++];
+                    Material = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -15535,7 +15654,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(ObjectLocalID, bytes, i); i += 4;
-                bytes[i++] = Material;
+                Utils.ByteToBytes( Material, bytes, ref i);
             }
 
         }
@@ -15554,6 +15673,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectMaterialPacket()
         {
             HasVariableBlocks = true;
@@ -15562,6 +15683,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 97;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -15595,11 +15717,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectMaterialPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -15625,7 +15746,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -15780,21 +15901,21 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectLocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    PathCurve = (byte)bytes[i++];
-                    ProfileCurve = (byte)bytes[i++];
+                    PathCurve = Utils.BytesToByte(bytes, ref i);
+                    ProfileCurve = Utils.BytesToByte(bytes, ref i);
                     PathBegin = Utils.BytesToUInt16(bytes, i); i += 2;
                     PathEnd = Utils.BytesToUInt16(bytes, i); i += 2;
-                    PathScaleX = (byte)bytes[i++];
-                    PathScaleY = (byte)bytes[i++];
-                    PathShearX = (byte)bytes[i++];
-                    PathShearY = (byte)bytes[i++];
-                    PathTwist = (sbyte)bytes[i++];
-                    PathTwistBegin = (sbyte)bytes[i++];
-                    PathRadiusOffset = (sbyte)bytes[i++];
-                    PathTaperX = (sbyte)bytes[i++];
-                    PathTaperY = (sbyte)bytes[i++];
-                    PathRevolutions = (byte)bytes[i++];
-                    PathSkew = (sbyte)bytes[i++];
+                    PathScaleX = Utils.BytesToByte(bytes, ref i);
+                    PathScaleY = Utils.BytesToByte(bytes, ref i);
+                    PathShearX = Utils.BytesToByte(bytes, ref i);
+                    PathShearY = Utils.BytesToByte(bytes, ref i);
+                    PathTwist = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathTwistBegin = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathRadiusOffset = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathTaperX = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathTaperY = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathRevolutions = Utils.BytesToByte(bytes, ref i);
+                    PathSkew = (sbyte)Utils.BytesToByte(bytes, ref i);
                     ProfileBegin = Utils.BytesToUInt16(bytes, i); i += 2;
                     ProfileEnd = Utils.BytesToUInt16(bytes, i); i += 2;
                     ProfileHollow = Utils.BytesToUInt16(bytes, i); i += 2;
@@ -15808,21 +15929,21 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(ObjectLocalID, bytes, i); i += 4;
-                bytes[i++] = PathCurve;
-                bytes[i++] = ProfileCurve;
+                Utils.ByteToBytes( PathCurve, bytes, ref i);
+                Utils.ByteToBytes( ProfileCurve, bytes, ref i);
                 Utils.UInt16ToBytes(PathBegin, bytes, i); i += 2;
                 Utils.UInt16ToBytes(PathEnd, bytes, i); i += 2;
-                bytes[i++] = PathScaleX;
-                bytes[i++] = PathScaleY;
-                bytes[i++] = PathShearX;
-                bytes[i++] = PathShearY;
-                bytes[i++] = (byte)PathTwist;
-                bytes[i++] = (byte)PathTwistBegin;
-                bytes[i++] = (byte)PathRadiusOffset;
-                bytes[i++] = (byte)PathTaperX;
-                bytes[i++] = (byte)PathTaperY;
-                bytes[i++] = PathRevolutions;
-                bytes[i++] = (byte)PathSkew;
+                Utils.ByteToBytes( PathScaleX, bytes, ref i);
+                Utils.ByteToBytes( PathScaleY, bytes, ref i);
+                Utils.ByteToBytes( PathShearX, bytes, ref i);
+                Utils.ByteToBytes( PathShearY, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTwist, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTwistBegin, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathRadiusOffset, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTaperX, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTaperY, bytes, ref i);
+                Utils.ByteToBytes( PathRevolutions, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathSkew, bytes, ref i);
                 Utils.UInt16ToBytes(ProfileBegin, bytes, i); i += 2;
                 Utils.UInt16ToBytes(ProfileEnd, bytes, i); i += 2;
                 Utils.UInt16ToBytes(ProfileHollow, bytes, i); i += 2;
@@ -15844,6 +15965,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectShapePacket()
         {
             HasVariableBlocks = true;
@@ -15852,6 +15975,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 98;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -15885,11 +16009,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectShapePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -15915,7 +16038,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -16060,9 +16183,9 @@ namespace OpenMetaverse.Packets
                 {
                     ObjectLocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     ParamType = Utils.BytesToUInt16(bytes, i); i += 2;
-                    ParamInUse = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    ParamInUse = (Utils.BytesToByte(bytes, ref i) != 0);
                     ParamSize = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ParamData = new byte[length];
                     Buffer.BlockCopy(bytes, i, ParamData, 0, length); i += length;
                 }
@@ -16076,9 +16199,9 @@ namespace OpenMetaverse.Packets
             {
                 Utils.UIntToBytesSafepos(ObjectLocalID, bytes, i); i += 4;
                 Utils.UInt16ToBytes(ParamType, bytes, i); i += 2;
-                bytes[i++] = (byte)((ParamInUse) ? 1 : 0);
+                Utils.ByteToBytes((byte)((ParamInUse) ? 1 : 0), bytes, ref i);
                 Utils.UIntToBytesSafepos(ParamSize, bytes, i); i += 4;
-                bytes[i++] = (byte)ParamData.Length;
+                Utils.ByteToBytes((byte)ParamData.Length, bytes, ref i);
                 Buffer.BlockCopy(ParamData, 0, bytes, i, ParamData.Length); i += ParamData.Length;
             }
 
@@ -16098,6 +16221,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectExtraParamsPacket()
         {
             HasVariableBlocks = true;
@@ -16106,6 +16231,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 99;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -16139,11 +16265,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectExtraParamsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -16169,7 +16294,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -16307,7 +16432,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Override = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Override = (Utils.BytesToByte(bytes, ref i) != 0);
                     OwnerID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
                 }
@@ -16319,7 +16444,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((Override) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Override) ? 1 : 0), bytes, ref i);
                 OwnerID.ToBytes(bytes, i); i += 16;
                 GroupID.ToBytes(bytes, i); i += 16;
             }
@@ -16380,6 +16505,8 @@ namespace OpenMetaverse.Packets
         public HeaderDataBlock HeaderData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectOwnerPacket()
         {
             HasVariableBlocks = true;
@@ -16388,6 +16515,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 100;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             HeaderData = new HeaderDataBlock();
@@ -16423,11 +16551,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectOwnerPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -16456,7 +16583,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             HeaderData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -16626,6 +16753,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectGroupPacket()
         {
             HasVariableBlocks = true;
@@ -16634,6 +16763,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 101;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -16667,11 +16797,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectGroupPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -16697,7 +16826,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -16842,7 +16971,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectLocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -16854,7 +16983,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(ObjectLocalID, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
             }
 
@@ -16874,6 +17003,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectBuyPacket()
         {
             HasVariableBlocks = true;
@@ -16882,6 +17013,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 102;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -16915,11 +17047,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectBuyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -16945,7 +17076,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -17115,6 +17246,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public BuyObjectInventoryPacket()
         {
             HasVariableBlocks = false;
@@ -17123,6 +17256,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 103;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
@@ -17148,11 +17282,10 @@ namespace OpenMetaverse.Packets
 
         public BuyObjectInventoryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -17208,7 +17341,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectID.FromBytes(bytes, i); i += 16;
-                    Delete = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Delete = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -17219,7 +17352,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ObjectID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((Delete) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Delete) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -17243,6 +17376,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 104;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             Data = new DataBlock();
         }
@@ -17266,11 +17400,10 @@ namespace OpenMetaverse.Packets
 
         public DerezContainerPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -17362,7 +17495,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Override = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Override = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -17372,7 +17505,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((Override) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Override) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -17404,8 +17537,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectLocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Field = (byte)bytes[i++];
-                    Set = (byte)bytes[i++];
+                    Field = Utils.BytesToByte(bytes, ref i);
+                    Set = Utils.BytesToByte(bytes, ref i);
                     Mask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -17417,8 +17550,8 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(ObjectLocalID, bytes, i); i += 4;
-                bytes[i++] = Field;
-                bytes[i++] = Set;
+                Utils.ByteToBytes( Field, bytes, ref i);
+                Utils.ByteToBytes( Set, bytes, ref i);
                 Utils.UIntToBytesSafepos(Mask, bytes, i); i += 4;
             }
 
@@ -17440,6 +17573,8 @@ namespace OpenMetaverse.Packets
         public HeaderDataBlock HeaderData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectPermissionsPacket()
         {
             HasVariableBlocks = true;
@@ -17448,6 +17583,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 105;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             HeaderData = new HeaderDataBlock();
@@ -17483,11 +17619,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectPermissionsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -17516,7 +17651,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             HeaderData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -17657,7 +17792,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     LocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -17669,7 +17804,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(LocalID, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
             }
 
@@ -17689,6 +17824,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectSaleInfoPacket()
         {
             HasVariableBlocks = true;
@@ -17697,6 +17834,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 106;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -17730,11 +17868,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectSaleInfoPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -17760,7 +17897,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -17901,7 +18038,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     LocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                 }
@@ -17914,7 +18051,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(LocalID, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
             }
 
@@ -17934,6 +18071,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectNamePacket()
         {
             HasVariableBlocks = true;
@@ -17942,6 +18081,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 107;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -17975,11 +18115,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectNamePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -18005,7 +18144,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -18146,7 +18285,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     LocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                 }
@@ -18159,7 +18298,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(LocalID, bytes, i); i += 4;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
             }
 
@@ -18179,6 +18318,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectDescriptionPacket()
         {
             HasVariableBlocks = true;
@@ -18187,6 +18328,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 108;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -18220,11 +18362,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDescriptionPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -18250,7 +18391,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -18418,6 +18559,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectCategoryPacket()
         {
             HasVariableBlocks = true;
@@ -18426,6 +18569,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 109;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -18459,11 +18603,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectCategoryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -18489,7 +18632,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -18654,6 +18797,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectSelectPacket()
         {
             HasVariableBlocks = true;
@@ -18662,6 +18807,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 110;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -18695,11 +18841,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectSelectPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -18725,7 +18870,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -18890,6 +19035,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectDeselectPacket()
         {
             HasVariableBlocks = true;
@@ -18898,6 +19045,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 111;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -18931,11 +19079,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDeselectPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -18961,7 +19108,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -19060,7 +19207,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    AttachmentPoint = (byte)bytes[i++];
+                    AttachmentPoint = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -19072,7 +19219,7 @@ namespace OpenMetaverse.Packets
             {
                 AgentID.ToBytes(bytes, i); i += 16;
                 SessionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = AttachmentPoint;
+                Utils.ByteToBytes( AttachmentPoint, bytes, ref i);
             }
 
         }
@@ -19132,6 +19279,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectAttachPacket()
         {
             HasVariableBlocks = true;
@@ -19140,6 +19289,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 112;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -19173,11 +19323,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectAttachPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -19203,7 +19352,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -19368,6 +19517,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectDetachPacket()
         {
             HasVariableBlocks = true;
@@ -19376,6 +19527,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 113;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
         }
@@ -19408,11 +19560,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDetachPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -19438,7 +19589,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -19603,6 +19754,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectDropPacket()
         {
             HasVariableBlocks = true;
@@ -19611,6 +19764,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 114;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
         }
@@ -19643,11 +19797,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDropPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -19673,7 +19826,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -19838,6 +19991,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectLinkPacket()
         {
             HasVariableBlocks = true;
@@ -19846,6 +20001,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 115;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
         }
@@ -19878,11 +20034,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectLinkPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -19908,7 +20063,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -20073,6 +20228,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectDelinkPacket()
         {
             HasVariableBlocks = true;
@@ -20081,6 +20238,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 116;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
         }
@@ -20113,11 +20271,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDelinkPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -20143,7 +20300,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -20366,6 +20523,8 @@ namespace OpenMetaverse.Packets
         public ObjectDataBlock ObjectData;
         public SurfaceInfoBlock[] SurfaceInfo;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectGrabPacket()
         {
             HasVariableBlocks = true;
@@ -20374,6 +20533,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 117;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
@@ -20409,11 +20569,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectGrabPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -20442,7 +20601,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             ObjectData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)SurfaceInfo.Length;
+            Utils.ByteToBytes((byte)SurfaceInfo.Length, bytes, ref i);
             for (int j = 0; j < SurfaceInfo.Length; j++) { SurfaceInfo[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -20673,6 +20832,8 @@ namespace OpenMetaverse.Packets
         public ObjectDataBlock ObjectData;
         public SurfaceInfoBlock[] SurfaceInfo;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectGrabUpdatePacket()
         {
             HasVariableBlocks = true;
@@ -20681,6 +20842,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 118;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
@@ -20716,11 +20878,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectGrabUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -20749,7 +20910,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             ObjectData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)SurfaceInfo.Length;
+            Utils.ByteToBytes((byte)SurfaceInfo.Length, bytes, ref i);
             for (int j = 0; j < SurfaceInfo.Length; j++) { SurfaceInfo[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -20971,6 +21132,8 @@ namespace OpenMetaverse.Packets
         public ObjectDataBlock ObjectData;
         public SurfaceInfoBlock[] SurfaceInfo;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectDeGrabPacket()
         {
             HasVariableBlocks = true;
@@ -20979,6 +21142,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 119;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
             SurfaceInfo = null;
@@ -21013,11 +21177,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectDeGrabPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -21046,7 +21209,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             ObjectData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)SurfaceInfo.Length;
+            Utils.ByteToBytes((byte)SurfaceInfo.Length, bytes, ref i);
             for (int j = 0; j < SurfaceInfo.Length; j++) { SurfaceInfo[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -21212,6 +21375,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectSpinStartPacket()
         {
             HasVariableBlocks = false;
@@ -21220,6 +21385,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 120;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
@@ -21245,11 +21411,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectSpinStartPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -21375,6 +21540,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectSpinUpdatePacket()
         {
             HasVariableBlocks = false;
@@ -21383,6 +21550,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 121;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
@@ -21408,11 +21576,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectSpinUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -21535,6 +21702,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectSpinStopPacket()
         {
             HasVariableBlocks = false;
@@ -21543,6 +21712,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 122;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
@@ -21568,11 +21738,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectSpinStopPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -21707,6 +21876,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 123;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -21740,11 +21910,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectExportSelectedPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -21770,7 +21939,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -21909,8 +22078,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Action = (byte)bytes[i++];
-                    BrushSize = (byte)bytes[i++];
+                    Action = Utils.BytesToByte(bytes, ref i);
+                    BrushSize = Utils.BytesToByte(bytes, ref i);
                     Seconds = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     Height = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                 }
@@ -21922,8 +22091,8 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = Action;
-                bytes[i++] = BrushSize;
+                Utils.ByteToBytes( Action, bytes, ref i);
+                Utils.ByteToBytes( BrushSize, bytes, ref i);
                 Utils.FloatToBytesSafepos(Seconds, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(Height, bytes, i); i += 4;
             }
@@ -22037,6 +22206,8 @@ namespace OpenMetaverse.Packets
         public ParcelDataBlock[] ParcelData;
         public ModifyBlockExtendedBlock[] ModifyBlockExtended;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ModifyLandPacket()
         {
             HasVariableBlocks = true;
@@ -22045,6 +22216,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 124;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ModifyBlock = new ModifyBlockBlock();
@@ -22090,11 +22262,10 @@ namespace OpenMetaverse.Packets
 
         public ModifyLandPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -22134,9 +22305,9 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             ModifyBlock.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ParcelData.Length;
+            Utils.ByteToBytes((byte)ParcelData.Length, bytes, ref i);
             for (int j = 0; j < ParcelData.Length; j++) { ParcelData[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)ModifyBlockExtended.Length;
+            Utils.ByteToBytes((byte)ModifyBlockExtended.Length, bytes, ref i);
             for (int j = 0; j < ModifyBlockExtended.Length; j++) { ModifyBlockExtended[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -22282,6 +22453,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public VelocityInterpolateOnPacket()
         {
             HasVariableBlocks = false;
@@ -22290,6 +22463,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 125;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -22312,11 +22486,10 @@ namespace OpenMetaverse.Packets
 
         public VelocityInterpolateOnPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -22396,6 +22569,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public VelocityInterpolateOffPacket()
         {
             HasVariableBlocks = false;
@@ -22404,6 +22579,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 126;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -22426,11 +22602,10 @@ namespace OpenMetaverse.Packets
 
         public VelocityInterpolateOffPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -22525,7 +22700,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Filename = new byte[length];
                     Buffer.BlockCopy(bytes, i, Filename, 0, length); i += length;
                 }
@@ -22537,7 +22712,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Filename.Length;
+                Utils.ByteToBytes((byte)Filename.Length, bytes, ref i);
                 Buffer.BlockCopy(Filename, 0, bytes, i, Filename.Length); i += Filename.Length;
             }
 
@@ -22556,6 +22731,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlockBlock DataBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public StateSavePacket()
         {
             HasVariableBlocks = false;
@@ -22564,6 +22741,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 127;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             DataBlock = new DataBlockBlock();
         }
@@ -22588,11 +22766,10 @@ namespace OpenMetaverse.Packets
 
         public StateSavePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -22683,6 +22860,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 128;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AutosaveData = new AutosaveDataBlock();
         }
 
@@ -22705,11 +22883,10 @@ namespace OpenMetaverse.Packets
 
         public ReportAutosaveCrashPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AutosaveData.FromBytes(bytes, ref i);
@@ -22832,6 +23009,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlockBlock DataBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public SimWideDeletesPacket()
         {
             HasVariableBlocks = false;
@@ -22840,6 +23019,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 129;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             DataBlock = new DataBlockBlock();
         }
@@ -22864,11 +23044,10 @@ namespace OpenMetaverse.Packets
 
         public SimWideDeletesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -22991,6 +23170,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public TargetDataBlock TargetData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public TrackAgentPacket()
         {
             HasVariableBlocks = false;
@@ -22999,6 +23180,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 130;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             TargetData = new TargetDataBlock();
         }
@@ -23023,11 +23205,10 @@ namespace OpenMetaverse.Packets
 
         public TrackAgentPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -23107,18 +23288,18 @@ namespace OpenMetaverse.Packets
                     RunTime = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     SimFPS = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     FPS = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    AgentsInView = (byte)bytes[i++];
+                    AgentsInView = Utils.BytesToByte(bytes, ref i);
                     Ping = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     MetersTraveled = Utils.BytesToDoubleSafepos(bytes, i); i += 8;
                     RegionsVisited = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     SysRAM = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SysOS = new byte[length];
                     Buffer.BlockCopy(bytes, i, SysOS, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SysCPU = new byte[length];
                     Buffer.BlockCopy(bytes, i, SysCPU, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SysGPU = new byte[length];
                     Buffer.BlockCopy(bytes, i, SysGPU, 0, length); i += length;
                 }
@@ -23137,16 +23318,16 @@ namespace OpenMetaverse.Packets
                 Utils.FloatToBytesSafepos(RunTime, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(SimFPS, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(FPS, bytes, i); i += 4;
-                bytes[i++] = AgentsInView;
+                Utils.ByteToBytes( AgentsInView, bytes, ref i);
                 Utils.FloatToBytesSafepos(Ping, bytes, i); i += 4;
                 Utils.DoubleToBytesSafepos(MetersTraveled, bytes, i); i += 8;
                 Utils.IntToBytesSafepos(RegionsVisited, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(SysRAM, bytes, i); i += 4;
-                bytes[i++] = (byte)SysOS.Length;
+                Utils.ByteToBytes((byte)SysOS.Length, bytes, ref i);
                 Buffer.BlockCopy(SysOS, 0, bytes, i, SysOS.Length); i += SysOS.Length;
-                bytes[i++] = (byte)SysCPU.Length;
+                Utils.ByteToBytes((byte)SysCPU.Length, bytes, ref i);
                 Buffer.BlockCopy(SysCPU, 0, bytes, i, SysCPU.Length); i += SysCPU.Length;
-                bytes[i++] = (byte)SysGPU.Length;
+                Utils.ByteToBytes((byte)SysGPU.Length, bytes, ref i);
                 Buffer.BlockCopy(SysGPU, 0, bytes, i, SysGPU.Length); i += SysGPU.Length;
             }
 
@@ -23358,6 +23539,8 @@ namespace OpenMetaverse.Packets
         public FailStatsBlock FailStats;
         public MiscStatsBlock[] MiscStats;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ViewerStatsPacket()
         {
             HasVariableBlocks = true;
@@ -23366,6 +23549,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 131;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             DownloadTotals = new DownloadTotalsBlock();
@@ -23412,11 +23596,10 @@ namespace OpenMetaverse.Packets
 
         public ViewerStatsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -23458,7 +23641,7 @@ namespace OpenMetaverse.Packets
             DownloadTotals.ToBytes(bytes, ref i);
             for (int j = 0; j < 2; j++) { NetStats[j].ToBytes(bytes, ref i); }
             FailStats.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)MiscStats.Length;
+            Utils.ByteToBytes((byte)MiscStats.Length, bytes, ref i);
             for (int j = 0; j < MiscStats.Length; j++) { MiscStats[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -23634,6 +23817,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ScriptAnswerYesPacket()
         {
             HasVariableBlocks = false;
@@ -23642,6 +23827,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 132;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -23666,11 +23852,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptAnswerYesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -23782,24 +23967,24 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    ReportType = (byte)bytes[i++];
-                    Category = (byte)bytes[i++];
+                    ReportType = Utils.BytesToByte(bytes, ref i);
+                    Category = Utils.BytesToByte(bytes, ref i);
                     Position.FromBytes(bytes, i); i += 12;
-                    CheckFlags = (byte)bytes[i++];
+                    CheckFlags = Utils.BytesToByte(bytes, ref i);
                     ScreenshotID.FromBytes(bytes, i); i += 16;
                     ObjectID.FromBytes(bytes, i); i += 16;
                     AbuserID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     AbuseRegionName = new byte[length];
                     Buffer.BlockCopy(bytes, i, AbuseRegionName, 0, length); i += length;
                     AbuseRegionID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Summary = new byte[length];
                     Buffer.BlockCopy(bytes, i, Summary, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Details = new byte[length];
                     Buffer.BlockCopy(bytes, i, Details, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     VersionString = new byte[length];
                     Buffer.BlockCopy(bytes, i, VersionString, 0, length); i += length;
                 }
@@ -23811,22 +23996,21 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = ReportType;
-                bytes[i++] = Category;
+                Utils.ByteToBytes( ReportType, bytes, ref i);
+                Utils.ByteToBytes( Category, bytes, ref i);
                 Position.ToBytes(bytes, i); i += 12;
-                bytes[i++] = CheckFlags;
+                Utils.ByteToBytes( CheckFlags, bytes, ref i);
                 ScreenshotID.ToBytes(bytes, i); i += 16;
                 ObjectID.ToBytes(bytes, i); i += 16;
                 AbuserID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)AbuseRegionName.Length;
+                Utils.ByteToBytes((byte)AbuseRegionName.Length, bytes, ref i);
                 Buffer.BlockCopy(AbuseRegionName, 0, bytes, i, AbuseRegionName.Length); i += AbuseRegionName.Length;
                 AbuseRegionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Summary.Length;
+                Utils.ByteToBytes((byte)Summary.Length, bytes, ref i);
                 Buffer.BlockCopy(Summary, 0, bytes, i, Summary.Length); i += Summary.Length;
-                bytes[i++] = (byte)(Details.Length % 256);
-                bytes[i++] = (byte)((Details.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Details.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Details, 0, bytes, i, Details.Length); i += Details.Length;
-                bytes[i++] = (byte)VersionString.Length;
+                Utils.ByteToBytes((byte)VersionString.Length, bytes, ref i);
                 Buffer.BlockCopy(VersionString, 0, bytes, i, VersionString.Length); i += VersionString.Length;
             }
 
@@ -23845,6 +24029,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ReportDataBlock ReportData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public UserReportPacket()
         {
             HasVariableBlocks = false;
@@ -23853,6 +24039,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 133;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ReportData = new ReportDataBlock();
@@ -23878,11 +24065,10 @@ namespace OpenMetaverse.Packets
 
         public UserReportPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -23939,7 +24125,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
                 }
@@ -23951,7 +24137,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Message.Length;
+                Utils.ByteToBytes((byte)Message.Length, bytes, ref i);
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
             }
 
@@ -23985,10 +24171,10 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ExtraParams = new byte[length];
                     Buffer.BlockCopy(bytes, i, ExtraParams, 0, length); i += length;
                 }
@@ -24000,9 +24186,9 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Message.Length;
+                Utils.ByteToBytes((byte)Message.Length, bytes, ref i);
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
-                bytes[i++] = (byte)ExtraParams.Length;
+                Utils.ByteToBytes((byte)ExtraParams.Length, bytes, ref i);
                 Buffer.BlockCopy(ExtraParams, 0, bytes, i, ExtraParams.Length); i += ExtraParams.Length;
             }
 
@@ -24030,6 +24216,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 134;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AlertData = new AlertDataBlock();
             AlertInfo = null;
         }
@@ -24062,11 +24249,10 @@ namespace OpenMetaverse.Packets
 
         public AlertMessagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AlertData.FromBytes(bytes, ref i);
@@ -24092,7 +24278,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AlertData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)AlertInfo.Length;
+            Utils.ByteToBytes((byte)AlertInfo.Length, bytes, ref i);
             for (int j = 0; j < AlertInfo.Length; j++) { AlertInfo[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -24228,8 +24414,8 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    Modal = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    length = bytes[i++];
+                    Modal = (Utils.BytesToByte(bytes, ref i) != 0);
+                    length = Utils.BytesToByte(bytes, ref i);
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
                 }
@@ -24241,8 +24427,8 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((Modal) ? 1 : 0);
-                bytes[i++] = (byte)Message.Length;
+                Utils.ByteToBytes((byte)((Modal) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)Message.Length, bytes, ref i);
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
             }
 
@@ -24269,6 +24455,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 135;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             AlertData = new AlertDataBlock();
         }
@@ -24293,11 +24480,10 @@ namespace OpenMetaverse.Packets
 
         public AgentAlertMessagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -24359,7 +24545,7 @@ namespace OpenMetaverse.Packets
                     Perp.FromBytes(bytes, i); i += 16;
                     Time = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     Mag = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    Type = (byte)bytes[i++];
+                    Type = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -24373,7 +24559,7 @@ namespace OpenMetaverse.Packets
                 Perp.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(Time, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(Mag, bytes, i); i += 4;
-                bytes[i++] = Type;
+                Utils.ByteToBytes( Type, bytes, ref i);
             }
 
         }
@@ -24398,6 +24584,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 136;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             MeanCollision = null;
         }
@@ -24429,11 +24616,10 @@ namespace OpenMetaverse.Packets
 
         public MeanCollisionAlertPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -24456,7 +24642,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)MeanCollision.Length;
+            Utils.ByteToBytes((byte)MeanCollision.Length, bytes, ref i);
             for (int j = 0; j < MeanCollision.Length; j++) { MeanCollision[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -24549,7 +24735,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Data = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Data = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -24559,7 +24745,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((Data) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Data) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -24583,6 +24769,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 137;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             FrozenData = new FrozenDataBlock();
         }
 
@@ -24605,11 +24792,10 @@ namespace OpenMetaverse.Packets
 
         public ViewerFrozenMessagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             FrozenData.FromBytes(bytes, ref i);
@@ -24694,6 +24880,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 138;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             HealthData = new HealthDataBlock();
         }
@@ -24717,11 +24904,10 @@ namespace OpenMetaverse.Packets
 
         public HealthMessagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             HealthData.FromBytes(bytes, ref i);
@@ -24783,16 +24969,16 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     FromName = new byte[length];
                     Buffer.BlockCopy(bytes, i, FromName, 0, length); i += length;
                     SourceID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    SourceType = (byte)bytes[i++];
-                    ChatType = (byte)bytes[i++];
-                    Audible = (byte)bytes[i++];
+                    SourceType = Utils.BytesToByte(bytes, ref i);
+                    ChatType = Utils.BytesToByte(bytes, ref i);
+                    Audible = Utils.BytesToByte(bytes, ref i);
                     Position.FromBytes(bytes, i); i += 12;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
                 }
@@ -24804,16 +24990,15 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)FromName.Length;
+                Utils.ByteToBytes((byte)FromName.Length, bytes, ref i);
                 Buffer.BlockCopy(FromName, 0, bytes, i, FromName.Length); i += FromName.Length;
                 SourceID.ToBytes(bytes, i); i += 16;
                 OwnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = SourceType;
-                bytes[i++] = ChatType;
-                bytes[i++] = Audible;
+                Utils.ByteToBytes( SourceType, bytes, ref i);
+                Utils.ByteToBytes( ChatType, bytes, ref i);
+                Utils.ByteToBytes( Audible, bytes, ref i);
                 Position.ToBytes(bytes, i); i += 12;
-                bytes[i++] = (byte)(Message.Length % 256);
-                bytes[i++] = (byte)((Message.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Message.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
             }
 
@@ -24838,6 +25023,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 139;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ChatData = new ChatDataBlock();
         }
 
@@ -24860,11 +25046,10 @@ namespace OpenMetaverse.Packets
 
         public ChatFromSimulatorPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ChatData.FromBytes(bytes, ref i);
@@ -25083,6 +25268,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 140;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Region = new RegionBlock();
             Stat = null;
             PidStat = new PidStatBlock();
@@ -25127,11 +25313,10 @@ namespace OpenMetaverse.Packets
 
         public SimStatsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Region.FromBytes(bytes, ref i);
@@ -25170,10 +25355,10 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             Region.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Stat.Length;
+            Utils.ByteToBytes((byte)Stat.Length, bytes, ref i);
             for (int j = 0; j < Stat.Length; j++) { Stat[j].ToBytes(bytes, ref i); }
             PidStat.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)RegionInfo.Length;
+            Utils.ByteToBytes((byte)RegionInfo.Length, bytes, ref i);
             for (int j = 0; j < RegionInfo.Length; j++) { RegionInfo[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -25240,6 +25425,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RequestRegionInfoPacket()
         {
             HasVariableBlocks = false;
@@ -25248,6 +25435,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 141;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -25270,11 +25458,10 @@ namespace OpenMetaverse.Packets
 
         public RequestRegionInfoPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -25384,14 +25571,14 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     EstateID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     ParentEstateID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     RegionFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SimAccess = (byte)bytes[i++];
-                    MaxAgents = (byte)bytes[i++];
+                    SimAccess = Utils.BytesToByte(bytes, ref i);
+                    MaxAgents = Utils.BytesToByte(bytes, ref i);
                     BillableFactor = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     ObjectBonusFactor = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     WaterHeight = Utils.BytesToFloatSafepos(bytes, i); i += 4;
@@ -25400,7 +25587,7 @@ namespace OpenMetaverse.Packets
                     PricePerMeter = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     RedirectGridX = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     RedirectGridY = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    UseEstateSun = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    UseEstateSun = (Utils.BytesToByte(bytes, ref i) != 0);
                     SunHour = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -25411,13 +25598,13 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
                 Utils.UIntToBytesSafepos(EstateID, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(ParentEstateID, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(RegionFlags, bytes, i); i += 4;
-                bytes[i++] = SimAccess;
-                bytes[i++] = MaxAgents;
+                Utils.ByteToBytes( SimAccess, bytes, ref i);
+                Utils.ByteToBytes( MaxAgents, bytes, ref i);
                 Utils.FloatToBytesSafepos(BillableFactor, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(ObjectBonusFactor, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(WaterHeight, bytes, i); i += 4;
@@ -25426,7 +25613,7 @@ namespace OpenMetaverse.Packets
                 Utils.IntToBytesSafepos(PricePerMeter, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(RedirectGridX, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(RedirectGridY, bytes, i); i += 4;
-                bytes[i++] = (byte)((UseEstateSun) ? 1 : 0);
+                Utils.ByteToBytes((byte)((UseEstateSun) ? 1 : 0), bytes, ref i);
                 Utils.FloatToBytesSafepos(SunHour, bytes, i); i += 4;
             }
 
@@ -25463,10 +25650,10 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ProductSKU = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProductSKU, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ProductName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProductName, 0, length); i += length;
                     MaxAgents32 = Utils.BytesToUIntSafepos(bytes, i); i += 4;
@@ -25481,9 +25668,9 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)ProductSKU.Length;
+                Utils.ByteToBytes((byte)ProductSKU.Length, bytes, ref i);
                 Buffer.BlockCopy(ProductSKU, 0, bytes, i, ProductSKU.Length); i += ProductSKU.Length;
-                bytes[i++] = (byte)ProductName.Length;
+                Utils.ByteToBytes((byte)ProductName.Length, bytes, ref i);
                 Buffer.BlockCopy(ProductName, 0, bytes, i, ProductName.Length); i += ProductName.Length;
                 Utils.UIntToBytesSafepos(MaxAgents32, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(HardMaxAgents, bytes, i); i += 4;
@@ -25548,6 +25735,8 @@ namespace OpenMetaverse.Packets
         public RegionInfo2Block RegionInfo2;
         public RegionInfo3Block[] RegionInfo3;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RegionInfoPacket()
         {
             HasVariableBlocks = true;
@@ -25556,6 +25745,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 142;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             RegionInfo = new RegionInfoBlock();
@@ -25593,11 +25783,10 @@ namespace OpenMetaverse.Packets
 
         public RegionInfoPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -25629,7 +25818,7 @@ namespace OpenMetaverse.Packets
             AgentData.ToBytes(bytes, ref i);
             RegionInfo.ToBytes(bytes, ref i);
             RegionInfo2.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)RegionInfo3.Length;
+            Utils.ByteToBytes((byte)RegionInfo3.Length, bytes, ref i);
             for (int j = 0; j < RegionInfo3.Length; j++) { RegionInfo3[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -25779,7 +25968,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     EstateID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
@@ -25798,7 +25987,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
                 Utils.UIntToBytesSafepos(EstateID, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(ParentEstateID, bytes, i); i += 4;
@@ -25865,6 +26054,8 @@ namespace OpenMetaverse.Packets
         public RegionInfoBlock RegionInfo;
         public RegionInfo2Block[] RegionInfo2;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GodUpdateRegionInfoPacket()
         {
             HasVariableBlocks = true;
@@ -25873,6 +26064,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 143;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             RegionInfo = new RegionInfoBlock();
@@ -25908,11 +26100,10 @@ namespace OpenMetaverse.Packets
 
         public GodUpdateRegionInfoPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -25941,7 +26132,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             RegionInfo.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)RegionInfo2.Length;
+            Utils.ByteToBytes((byte)RegionInfo2.Length, bytes, ref i);
             for (int j = 0; j < RegionInfo2.Length; j++) { RegionInfo2[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -26065,12 +26256,12 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     RegionFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SimAccess = (byte)bytes[i++];
-                    length = bytes[i++];
+                    SimAccess = Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     SimOwner.FromBytes(bytes, i); i += 16;
-                    IsEstateManager = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IsEstateManager = (Utils.BytesToByte(bytes, ref i) != 0);
                     WaterHeight = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     BillableFactor = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     CacheID.FromBytes(bytes, i); i += 16;
@@ -26100,11 +26291,11 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(RegionFlags, bytes, i); i += 4;
-                bytes[i++] = SimAccess;
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes( SimAccess, bytes, ref i);
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
                 SimOwner.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((IsEstateManager) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IsEstateManager) ? 1 : 0), bytes, ref i);
                 Utils.FloatToBytesSafepos(WaterHeight, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(BillableFactor, bytes, i); i += 4;
                 CacheID.ToBytes(bytes, i); i += 16;
@@ -26200,13 +26391,13 @@ namespace OpenMetaverse.Packets
                 {
                     CPUClassID = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     CPURatio = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ColoName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ColoName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ProductSKU = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProductSKU, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ProductName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProductName, 0, length); i += length;
                 }
@@ -26220,11 +26411,11 @@ namespace OpenMetaverse.Packets
             {
                 Utils.IntToBytesSafepos(CPUClassID, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(CPURatio, bytes, i); i += 4;
-                bytes[i++] = (byte)ColoName.Length;
+                Utils.ByteToBytes((byte)ColoName.Length, bytes, ref i);
                 Buffer.BlockCopy(ColoName, 0, bytes, i, ColoName.Length); i += ColoName.Length;
-                bytes[i++] = (byte)ProductSKU.Length;
+                Utils.ByteToBytes((byte)ProductSKU.Length, bytes, ref i);
                 Buffer.BlockCopy(ProductSKU, 0, bytes, i, ProductSKU.Length); i += ProductSKU.Length;
-                bytes[i++] = (byte)ProductName.Length;
+                Utils.ByteToBytes((byte)ProductName.Length, bytes, ref i);
                 Buffer.BlockCopy(ProductName, 0, bytes, i, ProductName.Length); i += ProductName.Length;
             }
 
@@ -26297,6 +26488,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 148;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             RegionInfo = new RegionInfoBlock();
             RegionInfo2 = new RegionInfo2Block();
@@ -26334,11 +26526,10 @@ namespace OpenMetaverse.Packets
 
         public RegionHandshakePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RegionInfo.FromBytes(bytes, ref i);
@@ -26370,7 +26561,7 @@ namespace OpenMetaverse.Packets
             RegionInfo.ToBytes(bytes, ref i);
             RegionInfo2.ToBytes(bytes, ref i);
             RegionInfo3.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)RegionInfo4.Length;
+            Utils.ByteToBytes((byte)RegionInfo4.Length, bytes, ref i);
             for (int j = 0; j < RegionInfo4.Length; j++) { RegionInfo4[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -26538,6 +26729,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public RegionInfoBlock RegionInfo;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RegionHandshakeReplyPacket()
         {
             HasVariableBlocks = false;
@@ -26546,6 +26739,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 149;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             RegionInfo = new RegionInfoBlock();
@@ -26571,11 +26765,10 @@ namespace OpenMetaverse.Packets
 
         public RegionHandshakeReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -26678,6 +26871,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 150;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             TimeInfo = new TimeInfoBlock();
         }
 
@@ -26700,11 +26894,10 @@ namespace OpenMetaverse.Packets
 
         public SimulatorViewerTimeMessagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TimeInfo.FromBytes(bytes, ref i);
@@ -26771,8 +26964,7 @@ namespace OpenMetaverse.Packets
             {
                 Utils.UInt64ToBytesSafepos(Handle, bytes, i); i += 8;
                 Utils.UIntToBytesSafepos(IP, bytes, i); i += 4;
-                bytes[i++] = (byte)((Port >> 8) % 256);
-                bytes[i++] = (byte)(Port % 256);
+                Utils.UInt16ToBytesBig(Port, bytes, i); i += 2;
             }
 
         }
@@ -26796,6 +26988,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 151;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             SimulatorInfo = new SimulatorInfoBlock();
         }
 
@@ -26818,11 +27011,10 @@ namespace OpenMetaverse.Packets
 
         public EnableSimulatorPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             SimulatorInfo.FromBytes(bytes, ref i);
@@ -26867,6 +27059,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 152;
             Header.Reliable = true;
+            NeedValidateIDs = false;
         }
 
         public DisableSimulatorPacket(byte[] bytes, ref int i) : this()
@@ -26887,11 +27080,10 @@ namespace OpenMetaverse.Packets
 
         public DisableSimulatorPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
         }
@@ -26950,7 +27142,7 @@ namespace OpenMetaverse.Packets
                     ChannelType = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     SourceType = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     Priority = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Params = new byte[length];
                     Buffer.BlockCopy(bytes, i, Params, 0, length); i += length;
                 }
@@ -26966,8 +27158,7 @@ namespace OpenMetaverse.Packets
                 Utils.IntToBytesSafepos(ChannelType, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(SourceType, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(Priority, bytes, i); i += 4;
-                bytes[i++] = (byte)(Params.Length % 256);
-                bytes[i++] = (byte)((Params.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Params.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Params, 0, bytes, i, Params.Length); i += Params.Length;
             }
 
@@ -26992,6 +27183,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 153;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             TransferInfo = new TransferInfoBlock();
         }
@@ -27015,11 +27207,10 @@ namespace OpenMetaverse.Packets
 
         public TransferRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TransferInfo.FromBytes(bytes, ref i);
@@ -27083,7 +27274,7 @@ namespace OpenMetaverse.Packets
                     TargetType = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     Status = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     Size = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Params = new byte[length];
                     Buffer.BlockCopy(bytes, i, Params, 0, length); i += length;
                 }
@@ -27100,8 +27291,7 @@ namespace OpenMetaverse.Packets
                 Utils.IntToBytesSafepos(TargetType, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(Status, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(Size, bytes, i); i += 4;
-                bytes[i++] = (byte)(Params.Length % 256);
-                bytes[i++] = (byte)((Params.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Params.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Params, 0, bytes, i, Params.Length); i += Params.Length;
             }
 
@@ -27126,6 +27316,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 154;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             TransferInfo = new TransferInfoBlock();
         }
@@ -27149,11 +27340,10 @@ namespace OpenMetaverse.Packets
 
         public TransferInfoPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TransferInfo.FromBytes(bytes, ref i);
@@ -27241,6 +27431,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 155;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             TransferInfo = new TransferInfoBlock();
         }
@@ -27264,11 +27455,10 @@ namespace OpenMetaverse.Packets
 
         public TransferAbortPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TransferInfo.FromBytes(bytes, ref i);
@@ -27329,12 +27519,12 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ID = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Filename = new byte[length];
                     Buffer.BlockCopy(bytes, i, Filename, 0, length); i += length;
-                    FilePath = (byte)bytes[i++];
-                    DeleteOnCompletion = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    UseBigPackets = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    FilePath = Utils.BytesToByte(bytes, ref i);
+                    DeleteOnCompletion = (Utils.BytesToByte(bytes, ref i) != 0);
+                    UseBigPackets = (Utils.BytesToByte(bytes, ref i) != 0);
                     VFileID.FromBytes(bytes, i); i += 16;
                     VFileType = Utils.BytesToInt16(bytes, i); i += 2;
                 }
@@ -27347,11 +27537,11 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UInt64ToBytesSafepos(ID, bytes, i); i += 8;
-                bytes[i++] = (byte)Filename.Length;
+                Utils.ByteToBytes((byte)Filename.Length, bytes, ref i);
                 Buffer.BlockCopy(Filename, 0, bytes, i, Filename.Length); i += Filename.Length;
-                bytes[i++] = FilePath;
-                bytes[i++] = (byte)((DeleteOnCompletion) ? 1 : 0);
-                bytes[i++] = (byte)((UseBigPackets) ? 1 : 0);
+                Utils.ByteToBytes( FilePath, bytes, ref i);
+                Utils.ByteToBytes((byte)((DeleteOnCompletion) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((UseBigPackets) ? 1 : 0), bytes, ref i);
                 VFileID.ToBytes(bytes, i); i += 16;
                 Utils.Int16ToBytes(VFileType, bytes, i); i += 2;
             }
@@ -27377,6 +27567,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 156;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             XferID = new XferIDBlock();
         }
@@ -27400,11 +27591,10 @@ namespace OpenMetaverse.Packets
 
         public RequestXferPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             XferID.FromBytes(bytes, ref i);
@@ -27492,6 +27682,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 157;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             XferID = new XferIDBlock();
         }
 
@@ -27514,11 +27705,10 @@ namespace OpenMetaverse.Packets
 
         public AbortXferPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             XferID.FromBytes(bytes, ref i);
@@ -27571,7 +27761,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ID.FromBytes(bytes, i); i += 16;
-                    IsTrial = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IsTrial = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -27582,7 +27772,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((IsTrial) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IsTrial) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -27613,7 +27803,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     TextureEntry = new byte[length];
                     Buffer.BlockCopy(bytes, i, TextureEntry, 0, length); i += length;
                 }
@@ -27625,8 +27815,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(TextureEntry.Length % 256);
-                bytes[i++] = (byte)((TextureEntry.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)TextureEntry.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(TextureEntry, 0, bytes, i, TextureEntry.Length); i += TextureEntry.Length;
             }
 
@@ -27655,7 +27844,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ParamValue = (byte)bytes[i++];
+                    ParamValue = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -27665,7 +27854,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = ParamValue;
+                Utils.ByteToBytes( ParamValue, bytes, ref i);
             }
 
         }
@@ -27695,7 +27884,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    AppearanceVersion = (byte)bytes[i++];
+                    AppearanceVersion = Utils.BytesToByte(bytes, ref i);
                     CofVersion = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                 }
@@ -27707,7 +27896,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = AppearanceVersion;
+                Utils.ByteToBytes( AppearanceVersion, bytes, ref i);
                 Utils.IntToBytesSafepos(CofVersion, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
             }
@@ -27782,6 +27971,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 158;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             Sender = new SenderBlock();
             ObjectData = new ObjectDataBlock();
@@ -27837,11 +28027,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarAppearancePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Sender.FromBytes(bytes, ref i);
@@ -27892,11 +28081,11 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             Sender.ToBytes(bytes, ref i);
             ObjectData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)VisualParam.Length;
+            Utils.ByteToBytes((byte)VisualParam.Length, bytes, ref i);
             for (int j = 0; j < VisualParam.Length; j++) { VisualParam[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)AppearanceData.Length;
+            Utils.ByteToBytes((byte)AppearanceData.Length, bytes, ref i);
             for (int j = 0; j < AppearanceData.Length; j++) { AppearanceData[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)AppearanceHover.Length;
+            Utils.ByteToBytes((byte)AppearanceHover.Length, bytes, ref i);
             for (int j = 0; j < AppearanceHover.Length; j++) { AppearanceHover[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -28111,6 +28300,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 159;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ObjectData = new ObjectDataBlock();
             CameraProperty = null;
         }
@@ -28143,11 +28333,10 @@ namespace OpenMetaverse.Packets
 
         public SetFollowCamPropertiesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -28173,7 +28362,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             ObjectData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)CameraProperty.Length;
+            Utils.ByteToBytes((byte)CameraProperty.Length, bytes, ref i);
             for (int j = 0; j < CameraProperty.Length; j++) { CameraProperty[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -28302,6 +28491,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 160;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ObjectData = new ObjectDataBlock();
         }
 
@@ -28324,11 +28514,10 @@ namespace OpenMetaverse.Packets
 
         public ClearFollowCamPropertiesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -28413,6 +28602,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 161;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ObjectData = new ObjectDataBlock();
         }
 
@@ -28435,11 +28625,10 @@ namespace OpenMetaverse.Packets
 
         public RequestPayPricePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -28568,6 +28757,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 162;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ObjectData = new ObjectDataBlock();
             ButtonData = null;
         }
@@ -28600,11 +28790,10 @@ namespace OpenMetaverse.Packets
 
         public PayPriceReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -28630,7 +28819,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             ObjectData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ButtonData.Length;
+            Utils.ByteToBytes((byte)ButtonData.Length, bytes, ref i);
             for (int j = 0; j < ButtonData.Length; j++) { ButtonData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -28738,8 +28927,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(TargetIP, bytes, i); i += 4;
-                bytes[i++] = (byte)((TargetPort >> 8) % 256);
-                bytes[i++] = (byte)(TargetPort % 256);
+                Utils.UInt16ToBytesBig(TargetPort, bytes, i); i += 2;
             }
 
         }
@@ -28774,7 +28962,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Reason = new byte[length];
                     Buffer.BlockCopy(bytes, i, Reason, 0, length); i += length;
                 }
@@ -28788,8 +28976,7 @@ namespace OpenMetaverse.Packets
             {
                 AgentID.ToBytes(bytes, i); i += 16;
                 SessionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)(Reason.Length % 256);
-                bytes[i++] = (byte)((Reason.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Reason.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Reason, 0, bytes, i, Reason.Length); i += Reason.Length;
             }
 
@@ -28816,6 +29003,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 163;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             TargetBlock = new TargetBlockBlock();
             UserInfo = new UserInfoBlock();
         }
@@ -28840,11 +29028,10 @@ namespace OpenMetaverse.Packets
 
         public KickUserPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TargetBlock.FromBytes(bytes, ref i);
@@ -28909,7 +29096,7 @@ namespace OpenMetaverse.Packets
                     GodSessionID.FromBytes(bytes, i); i += 16;
                     AgentID.FromBytes(bytes, i); i += 16;
                     KickFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Reason = new byte[length];
                     Buffer.BlockCopy(bytes, i, Reason, 0, length); i += length;
                 }
@@ -28925,8 +29112,7 @@ namespace OpenMetaverse.Packets
                 GodSessionID.ToBytes(bytes, i); i += 16;
                 AgentID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(KickFlags, bytes, i); i += 4;
-                bytes[i++] = (byte)(Reason.Length % 256);
-                bytes[i++] = (byte)((Reason.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Reason.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Reason, 0, bytes, i, Reason.Length); i += Reason.Length;
             }
 
@@ -28951,6 +29137,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 165;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             UserInfo = new UserInfoBlock();
         }
 
@@ -28973,11 +29160,10 @@ namespace OpenMetaverse.Packets
 
         public GodKickUserPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             UserInfo.FromBytes(bytes, ref i);
@@ -29100,6 +29286,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public EjectUserPacket()
         {
             HasVariableBlocks = false;
@@ -29108,6 +29296,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 167;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -29132,11 +29321,10 @@ namespace OpenMetaverse.Packets
 
         public EjectUserPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -29262,6 +29450,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public FreezeUserPacket()
         {
             HasVariableBlocks = false;
@@ -29270,6 +29460,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 168;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -29294,11 +29485,10 @@ namespace OpenMetaverse.Packets
 
         public FreezeUserPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -29384,6 +29574,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AvatarPropertiesRequestPacket()
         {
             HasVariableBlocks = false;
@@ -29392,6 +29584,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 169;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -29414,11 +29607,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPropertiesRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -29528,19 +29720,19 @@ namespace OpenMetaverse.Packets
                     ImageID.FromBytes(bytes, i); i += 16;
                     FLImageID.FromBytes(bytes, i); i += 16;
                     PartnerID.FromBytes(bytes, i); i += 16;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     AboutText = new byte[length];
                     Buffer.BlockCopy(bytes, i, AboutText, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     FLAboutText = new byte[length];
                     Buffer.BlockCopy(bytes, i, FLAboutText, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     BornOn = new byte[length];
                     Buffer.BlockCopy(bytes, i, BornOn, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ProfileURL = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProfileURL, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     CharterMember = new byte[length];
                     Buffer.BlockCopy(bytes, i, CharterMember, 0, length); i += length;
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
@@ -29556,16 +29748,15 @@ namespace OpenMetaverse.Packets
                 ImageID.ToBytes(bytes, i); i += 16;
                 FLImageID.ToBytes(bytes, i); i += 16;
                 PartnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)(AboutText.Length % 256);
-                bytes[i++] = (byte)((AboutText.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)AboutText.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(AboutText, 0, bytes, i, AboutText.Length); i += AboutText.Length;
-                bytes[i++] = (byte)FLAboutText.Length;
+                Utils.ByteToBytes((byte)FLAboutText.Length, bytes, ref i);
                 Buffer.BlockCopy(FLAboutText, 0, bytes, i, FLAboutText.Length); i += FLAboutText.Length;
-                bytes[i++] = (byte)BornOn.Length;
+                Utils.ByteToBytes((byte)BornOn.Length, bytes, ref i);
                 Buffer.BlockCopy(BornOn, 0, bytes, i, BornOn.Length); i += BornOn.Length;
-                bytes[i++] = (byte)ProfileURL.Length;
+                Utils.ByteToBytes((byte)ProfileURL.Length, bytes, ref i);
                 Buffer.BlockCopy(ProfileURL, 0, bytes, i, ProfileURL.Length); i += ProfileURL.Length;
-                bytes[i++] = (byte)CharterMember.Length;
+                Utils.ByteToBytes((byte)CharterMember.Length, bytes, ref i);
                 Buffer.BlockCopy(CharterMember, 0, bytes, i, CharterMember.Length); i += CharterMember.Length;
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
             }
@@ -29593,6 +29784,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 171;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             PropertiesData = new PropertiesDataBlock();
@@ -29618,11 +29810,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPropertiesReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -29727,14 +29918,14 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     WantToMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     WantToText = new byte[length];
                     Buffer.BlockCopy(bytes, i, WantToText, 0, length); i += length;
                     SkillsMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SkillsText = new byte[length];
                     Buffer.BlockCopy(bytes, i, SkillsText, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     LanguagesText = new byte[length];
                     Buffer.BlockCopy(bytes, i, LanguagesText, 0, length); i += length;
                 }
@@ -29747,12 +29938,12 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(WantToMask, bytes, i); i += 4;
-                bytes[i++] = (byte)WantToText.Length;
+                Utils.ByteToBytes((byte)WantToText.Length, bytes, ref i);
                 Buffer.BlockCopy(WantToText, 0, bytes, i, WantToText.Length); i += WantToText.Length;
                 Utils.UIntToBytesSafepos(SkillsMask, bytes, i); i += 4;
-                bytes[i++] = (byte)SkillsText.Length;
+                Utils.ByteToBytes((byte)SkillsText.Length, bytes, ref i);
                 Buffer.BlockCopy(SkillsText, 0, bytes, i, SkillsText.Length); i += SkillsText.Length;
-                bytes[i++] = (byte)LanguagesText.Length;
+                Utils.ByteToBytes((byte)LanguagesText.Length, bytes, ref i);
                 Buffer.BlockCopy(LanguagesText, 0, bytes, i, LanguagesText.Length); i += LanguagesText.Length;
             }
 
@@ -29779,6 +29970,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 172;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             PropertiesData = new PropertiesDataBlock();
@@ -29804,11 +29996,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarInterestsReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -29913,12 +30104,12 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupPowers = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
-                    AcceptNotices = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    length = bytes[i++];
+                    AcceptNotices = (Utils.BytesToByte(bytes, ref i) != 0);
+                    length = Utils.BytesToByte(bytes, ref i);
                     GroupTitle = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupTitle, 0, length); i += length;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     GroupName = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupName, 0, length); i += length;
                     GroupInsigniaID.FromBytes(bytes, i); i += 16;
@@ -29932,11 +30123,11 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UInt64ToBytesSafepos(GroupPowers, bytes, i); i += 8;
-                bytes[i++] = (byte)((AcceptNotices) ? 1 : 0);
-                bytes[i++] = (byte)GroupTitle.Length;
+                Utils.ByteToBytes((byte)((AcceptNotices) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)GroupTitle.Length, bytes, ref i);
                 Buffer.BlockCopy(GroupTitle, 0, bytes, i, GroupTitle.Length); i += GroupTitle.Length;
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)GroupName.Length;
+                Utils.ByteToBytes((byte)GroupName.Length, bytes, ref i);
                 Buffer.BlockCopy(GroupName, 0, bytes, i, GroupName.Length); i += GroupName.Length;
                 GroupInsigniaID.ToBytes(bytes, i); i += 16;
             }
@@ -29966,7 +30157,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ListInProfile = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    ListInProfile = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -29976,7 +30167,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((ListInProfile) ? 1 : 0);
+                Utils.ByteToBytes((byte)((ListInProfile) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -30005,6 +30196,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 173;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             GroupData = null;
@@ -30040,11 +30232,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarGroupsReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30072,7 +30263,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)GroupData.Length;
+            Utils.ByteToBytes((byte)GroupData.Length, bytes, ref i);
             for (int j = 0; j < GroupData.Length; j++) { GroupData[j].ToBytes(bytes, ref i); }
             NewGroupData.ToBytes(bytes, ref i);
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
@@ -30165,15 +30356,15 @@ namespace OpenMetaverse.Packets
                 {
                     ImageID.FromBytes(bytes, i); i += 16;
                     FLImageID.FromBytes(bytes, i); i += 16;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     AboutText = new byte[length];
                     Buffer.BlockCopy(bytes, i, AboutText, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     FLAboutText = new byte[length];
                     Buffer.BlockCopy(bytes, i, FLAboutText, 0, length); i += length;
-                    AllowPublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    MaturePublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    length = bytes[i++];
+                    AllowPublish = (Utils.BytesToByte(bytes, ref i) != 0);
+                    MaturePublish = (Utils.BytesToByte(bytes, ref i) != 0);
+                    length = Utils.BytesToByte(bytes, ref i);
                     ProfileURL = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProfileURL, 0, length); i += length;
                 }
@@ -30187,14 +30378,13 @@ namespace OpenMetaverse.Packets
             {
                 ImageID.ToBytes(bytes, i); i += 16;
                 FLImageID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)(AboutText.Length % 256);
-                bytes[i++] = (byte)((AboutText.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)AboutText.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(AboutText, 0, bytes, i, AboutText.Length); i += AboutText.Length;
-                bytes[i++] = (byte)FLAboutText.Length;
+                Utils.ByteToBytes((byte)FLAboutText.Length, bytes, ref i);
                 Buffer.BlockCopy(FLAboutText, 0, bytes, i, FLAboutText.Length); i += FLAboutText.Length;
-                bytes[i++] = (byte)((AllowPublish) ? 1 : 0);
-                bytes[i++] = (byte)((MaturePublish) ? 1 : 0);
-                bytes[i++] = (byte)ProfileURL.Length;
+                Utils.ByteToBytes((byte)((AllowPublish) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((MaturePublish) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)ProfileURL.Length, bytes, ref i);
                 Buffer.BlockCopy(ProfileURL, 0, bytes, i, ProfileURL.Length); i += ProfileURL.Length;
             }
 
@@ -30213,6 +30403,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public PropertiesDataBlock PropertiesData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AvatarPropertiesUpdatePacket()
         {
             HasVariableBlocks = false;
@@ -30221,6 +30413,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 174;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             PropertiesData = new PropertiesDataBlock();
@@ -30246,11 +30439,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPropertiesUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30355,14 +30547,14 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     WantToMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     WantToText = new byte[length];
                     Buffer.BlockCopy(bytes, i, WantToText, 0, length); i += length;
                     SkillsMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SkillsText = new byte[length];
                     Buffer.BlockCopy(bytes, i, SkillsText, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     LanguagesText = new byte[length];
                     Buffer.BlockCopy(bytes, i, LanguagesText, 0, length); i += length;
                 }
@@ -30375,12 +30567,12 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(WantToMask, bytes, i); i += 4;
-                bytes[i++] = (byte)WantToText.Length;
+                Utils.ByteToBytes((byte)WantToText.Length, bytes, ref i);
                 Buffer.BlockCopy(WantToText, 0, bytes, i, WantToText.Length); i += WantToText.Length;
                 Utils.UIntToBytesSafepos(SkillsMask, bytes, i); i += 4;
-                bytes[i++] = (byte)SkillsText.Length;
+                Utils.ByteToBytes((byte)SkillsText.Length, bytes, ref i);
                 Buffer.BlockCopy(SkillsText, 0, bytes, i, SkillsText.Length); i += SkillsText.Length;
-                bytes[i++] = (byte)LanguagesText.Length;
+                Utils.ByteToBytes((byte)LanguagesText.Length, bytes, ref i);
                 Buffer.BlockCopy(LanguagesText, 0, bytes, i, LanguagesText.Length); i += LanguagesText.Length;
             }
 
@@ -30399,6 +30591,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public PropertiesDataBlock PropertiesData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AvatarInterestsUpdatePacket()
         {
             HasVariableBlocks = false;
@@ -30407,6 +30601,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 175;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             PropertiesData = new PropertiesDataBlock();
@@ -30432,11 +30627,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarInterestsUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30533,7 +30727,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TargetID.FromBytes(bytes, i); i += 16;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Notes = new byte[length];
                     Buffer.BlockCopy(bytes, i, Notes, 0, length); i += length;
                 }
@@ -30546,8 +30740,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 TargetID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)(Notes.Length % 256);
-                bytes[i++] = (byte)((Notes.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Notes.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Notes, 0, bytes, i, Notes.Length); i += Notes.Length;
             }
 
@@ -30574,6 +30767,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 176;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -30598,11 +30792,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarNotesReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30702,7 +30895,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TargetID.FromBytes(bytes, i); i += 16;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Notes = new byte[length];
                     Buffer.BlockCopy(bytes, i, Notes, 0, length); i += length;
                 }
@@ -30715,8 +30908,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 TargetID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)(Notes.Length % 256);
-                bytes[i++] = (byte)((Notes.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Notes.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Notes, 0, bytes, i, Notes.Length); i += Notes.Length;
             }
 
@@ -30735,6 +30927,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AvatarNotesUpdatePacket()
         {
             HasVariableBlocks = false;
@@ -30743,6 +30937,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 177;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -30767,11 +30962,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarNotesUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30871,7 +31065,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     PickID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     PickName = new byte[length];
                     Buffer.BlockCopy(bytes, i, PickName, 0, length); i += length;
                 }
@@ -30884,7 +31078,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 PickID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)PickName.Length;
+                Utils.ByteToBytes((byte)PickName.Length, bytes, ref i);
                 Buffer.BlockCopy(PickName, 0, bytes, i, PickName.Length); i += PickName.Length;
             }
 
@@ -30912,6 +31106,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 178;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             Data = null;
         }
@@ -30944,11 +31139,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarPicksReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -30974,7 +31168,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Data.Length;
+            Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
             for (int j = 0; j < Data.Length; j++) { Data[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -31138,6 +31332,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public EventDataBlock EventData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public EventInfoRequestPacket()
         {
             HasVariableBlocks = false;
@@ -31146,6 +31342,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 179;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             EventData = new EventDataBlock();
         }
@@ -31170,11 +31367,10 @@ namespace OpenMetaverse.Packets
 
         public EventInfoRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -31287,26 +31483,26 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     EventID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Creator = new byte[length];
                     Buffer.BlockCopy(bytes, i, Creator, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Category = new byte[length];
                     Buffer.BlockCopy(bytes, i, Category, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Date = new byte[length];
                     Buffer.BlockCopy(bytes, i, Date, 0, length); i += length;
                     DateUTC = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     Duration = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     Cover = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     Amount = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     GlobalPos.FromBytes(bytes, i); i += 24;
@@ -31321,22 +31517,21 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(EventID, bytes, i); i += 4;
-                bytes[i++] = (byte)Creator.Length;
+                Utils.ByteToBytes((byte)Creator.Length, bytes, ref i);
                 Buffer.BlockCopy(Creator, 0, bytes, i, Creator.Length); i += Creator.Length;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Category.Length;
+                Utils.ByteToBytes((byte)Category.Length, bytes, ref i);
                 Buffer.BlockCopy(Category, 0, bytes, i, Category.Length); i += Category.Length;
-                bytes[i++] = (byte)(Desc.Length % 256);
-                bytes[i++] = (byte)((Desc.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Desc.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Desc, 0, bytes, i, Desc.Length); i += Desc.Length;
-                bytes[i++] = (byte)Date.Length;
+                Utils.ByteToBytes((byte)Date.Length, bytes, ref i);
                 Buffer.BlockCopy(Date, 0, bytes, i, Date.Length); i += Date.Length;
                 Utils.UIntToBytesSafepos(DateUTC, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(Duration, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(Cover, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(Amount, bytes, i); i += 4;
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
                 GlobalPos.ToBytes(bytes, i); i += 24;
                 Utils.UIntToBytesSafepos(EventFlags, bytes, i); i += 4;
@@ -31365,6 +31560,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 180;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             EventData = new EventDataBlock();
         }
@@ -31389,11 +31585,10 @@ namespace OpenMetaverse.Packets
 
         public EventInfoReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -31516,6 +31711,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public EventDataBlock EventData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public EventNotificationAddRequestPacket()
         {
             HasVariableBlocks = false;
@@ -31524,6 +31721,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 181;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             EventData = new EventDataBlock();
         }
@@ -31548,11 +31746,10 @@ namespace OpenMetaverse.Packets
 
         public EventNotificationAddRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -31675,6 +31872,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public EventDataBlock EventData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public EventNotificationRemoveRequestPacket()
         {
             HasVariableBlocks = false;
@@ -31683,6 +31882,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 182;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             EventData = new EventDataBlock();
         }
@@ -31707,11 +31907,10 @@ namespace OpenMetaverse.Packets
 
         public EventNotificationRemoveRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -31851,7 +32050,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     QueryID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     QueryText = new byte[length];
                     Buffer.BlockCopy(bytes, i, QueryText, 0, length); i += length;
                     QueryFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
@@ -31866,7 +32065,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 QueryID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)QueryText.Length;
+                Utils.ByteToBytes((byte)QueryText.Length, bytes, ref i);
                 Buffer.BlockCopy(QueryText, 0, bytes, i, QueryText.Length); i += QueryText.Length;
                 Utils.UIntToBytesSafepos(QueryFlags, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(QueryStart, bytes, i); i += 4;
@@ -31889,6 +32088,8 @@ namespace OpenMetaverse.Packets
         public EventDataBlock EventData;
         public QueryDataBlock QueryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public EventGodDeletePacket()
         {
             HasVariableBlocks = false;
@@ -31897,6 +32098,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 183;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             EventData = new EventDataBlock();
             QueryData = new QueryDataBlock();
@@ -31923,11 +32125,10 @@ namespace OpenMetaverse.Packets
 
         public EventGodDeletePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -32043,27 +32244,27 @@ namespace OpenMetaverse.Packets
                 {
                     PickID.FromBytes(bytes, i); i += 16;
                     CreatorID.FromBytes(bytes, i); i += 16;
-                    TopPick = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    TopPick = (Utils.BytesToByte(bytes, ref i) != 0);
                     ParcelID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
                     SnapshotID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     User = new byte[length];
                     Buffer.BlockCopy(bytes, i, User, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     OriginalName = new byte[length];
                     Buffer.BlockCopy(bytes, i, OriginalName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     PosGlobal.FromBytes(bytes, i); i += 24;
                     SortOrder = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    Enabled = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Enabled = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -32075,23 +32276,22 @@ namespace OpenMetaverse.Packets
             {
                 PickID.ToBytes(bytes, i); i += 16;
                 CreatorID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((TopPick) ? 1 : 0);
+                Utils.ByteToBytes((byte)((TopPick) ? 1 : 0), bytes, ref i);
                 ParcelID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)(Desc.Length % 256);
-                bytes[i++] = (byte)((Desc.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Desc.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Desc, 0, bytes, i, Desc.Length); i += Desc.Length;
                 SnapshotID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)User.Length;
+                Utils.ByteToBytes((byte)User.Length, bytes, ref i);
                 Buffer.BlockCopy(User, 0, bytes, i, User.Length); i += User.Length;
-                bytes[i++] = (byte)OriginalName.Length;
+                Utils.ByteToBytes((byte)OriginalName.Length, bytes, ref i);
                 Buffer.BlockCopy(OriginalName, 0, bytes, i, OriginalName.Length); i += OriginalName.Length;
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
                 PosGlobal.ToBytes(bytes, i); i += 24;
                 Utils.IntToBytesSafepos(SortOrder, bytes, i); i += 4;
-                bytes[i++] = (byte)((Enabled) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Enabled) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -32117,6 +32317,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 184;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -32141,11 +32342,10 @@ namespace OpenMetaverse.Packets
 
         public PickInfoReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -32255,18 +32455,18 @@ namespace OpenMetaverse.Packets
                 {
                     PickID.FromBytes(bytes, i); i += 16;
                     CreatorID.FromBytes(bytes, i); i += 16;
-                    TopPick = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    TopPick = (Utils.BytesToByte(bytes, ref i) != 0);
                     ParcelID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
                     SnapshotID.FromBytes(bytes, i); i += 16;
                     PosGlobal.FromBytes(bytes, i); i += 24;
                     SortOrder = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    Enabled = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Enabled = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -32278,17 +32478,16 @@ namespace OpenMetaverse.Packets
             {
                 PickID.ToBytes(bytes, i); i += 16;
                 CreatorID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((TopPick) ? 1 : 0);
+                Utils.ByteToBytes((byte)((TopPick) ? 1 : 0), bytes, ref i);
                 ParcelID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)(Desc.Length % 256);
-                bytes[i++] = (byte)((Desc.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Desc.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Desc, 0, bytes, i, Desc.Length); i += Desc.Length;
                 SnapshotID.ToBytes(bytes, i); i += 16;
                 PosGlobal.ToBytes(bytes, i); i += 24;
                 Utils.IntToBytesSafepos(SortOrder, bytes, i); i += 4;
-                bytes[i++] = (byte)((Enabled) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Enabled) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -32306,6 +32505,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public PickInfoUpdatePacket()
         {
             HasVariableBlocks = false;
@@ -32314,6 +32515,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 185;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -32338,11 +32540,10 @@ namespace OpenMetaverse.Packets
 
         public PickInfoUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -32465,6 +32666,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public PickDeletePacket()
         {
             HasVariableBlocks = false;
@@ -32473,6 +32676,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 186;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -32497,11 +32701,10 @@ namespace OpenMetaverse.Packets
 
         public PickDeletePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -32627,6 +32830,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public PickGodDeletePacket()
         {
             HasVariableBlocks = false;
@@ -32635,6 +32840,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 187;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -32659,11 +32865,10 @@ namespace OpenMetaverse.Packets
 
         public PickGodDeletePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -32727,10 +32932,10 @@ namespace OpenMetaverse.Packets
                 {
                     TaskID.FromBytes(bytes, i); i += 16;
                     ItemID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ObjectName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ObjectName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ObjectOwner = new byte[length];
                     Buffer.BlockCopy(bytes, i, ObjectOwner, 0, length); i += length;
                     Questions = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -32745,9 +32950,9 @@ namespace OpenMetaverse.Packets
             {
                 TaskID.ToBytes(bytes, i); i += 16;
                 ItemID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)ObjectName.Length;
+                Utils.ByteToBytes((byte)ObjectName.Length, bytes, ref i);
                 Buffer.BlockCopy(ObjectName, 0, bytes, i, ObjectName.Length); i += ObjectName.Length;
-                bytes[i++] = (byte)ObjectOwner.Length;
+                Utils.ByteToBytes((byte)ObjectOwner.Length, bytes, ref i);
                 Buffer.BlockCopy(ObjectOwner, 0, bytes, i, ObjectOwner.Length); i += ObjectOwner.Length;
                 Utils.IntToBytesSafepos(Questions, bytes, i); i += 4;
             }
@@ -32813,6 +33018,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 188;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Data = new DataBlock();
             Experience = new ExperienceBlock();
         }
@@ -32837,11 +33043,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptQuestionPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -32897,9 +33102,9 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    TakeControls = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    TakeControls = (Utils.BytesToByte(bytes, ref i) != 0);
                     Controls = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    PassToAgent = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    PassToAgent = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -32909,9 +33114,9 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((TakeControls) ? 1 : 0);
+                Utils.ByteToBytes((byte)((TakeControls) ? 1 : 0), bytes, ref i);
                 Utils.UIntToBytesSafepos(Controls, bytes, i); i += 4;
-                bytes[i++] = (byte)((PassToAgent) ? 1 : 0);
+                Utils.ByteToBytes((byte)((PassToAgent) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -32936,6 +33141,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 189;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Data = null;
         }
 
@@ -32966,11 +33172,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptControlChangePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -32993,7 +33198,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Data.Length;
+            Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
             for (int j = 0; j < Data.Length; j++) { Data[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -33099,16 +33304,16 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     FirstName = new byte[length];
                     Buffer.BlockCopy(bytes, i, FirstName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     LastName = new byte[length];
                     Buffer.BlockCopy(bytes, i, LastName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ObjectName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ObjectName, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
                     ChatChannel = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -33123,14 +33328,13 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ObjectID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)FirstName.Length;
+                Utils.ByteToBytes((byte)FirstName.Length, bytes, ref i);
                 Buffer.BlockCopy(FirstName, 0, bytes, i, FirstName.Length); i += FirstName.Length;
-                bytes[i++] = (byte)LastName.Length;
+                Utils.ByteToBytes((byte)LastName.Length, bytes, ref i);
                 Buffer.BlockCopy(LastName, 0, bytes, i, LastName.Length); i += LastName.Length;
-                bytes[i++] = (byte)ObjectName.Length;
+                Utils.ByteToBytes((byte)ObjectName.Length, bytes, ref i);
                 Buffer.BlockCopy(ObjectName, 0, bytes, i, ObjectName.Length); i += ObjectName.Length;
-                bytes[i++] = (byte)(Message.Length % 256);
-                bytes[i++] = (byte)((Message.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Message.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
                 Utils.IntToBytesSafepos(ChatChannel, bytes, i); i += 4;
                 ImageID.ToBytes(bytes, i); i += 16;
@@ -33164,7 +33368,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ButtonLabel = new byte[length];
                     Buffer.BlockCopy(bytes, i, ButtonLabel, 0, length); i += length;
                 }
@@ -33176,7 +33380,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)ButtonLabel.Length;
+                Utils.ByteToBytes((byte)ButtonLabel.Length, bytes, ref i);
                 Buffer.BlockCopy(ButtonLabel, 0, bytes, i, ButtonLabel.Length); i += ButtonLabel.Length;
             }
 
@@ -33245,6 +33449,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 190;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             Data = new DataBlock();
             Buttons = null;
@@ -33288,11 +33493,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptDialogPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -33329,9 +33533,9 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             Data.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Buttons.Length;
+            Utils.ByteToBytes((byte)Buttons.Length, bytes, ref i);
             for (int j = 0; j < Buttons.Length; j++) { Buttons[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)OwnerData.Length;
+            Utils.ByteToBytes((byte)OwnerData.Length, bytes, ref i);
             for (int j = 0; j < OwnerData.Length; j++) { OwnerData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -33496,7 +33700,7 @@ namespace OpenMetaverse.Packets
                     ObjectID.FromBytes(bytes, i); i += 16;
                     ChatChannel = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     ButtonIndex = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ButtonLabel = new byte[length];
                     Buffer.BlockCopy(bytes, i, ButtonLabel, 0, length); i += length;
                 }
@@ -33511,7 +33715,7 @@ namespace OpenMetaverse.Packets
                 ObjectID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(ChatChannel, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(ButtonIndex, bytes, i); i += 4;
-                bytes[i++] = (byte)ButtonLabel.Length;
+                Utils.ByteToBytes((byte)ButtonLabel.Length, bytes, ref i);
                 Buffer.BlockCopy(ButtonLabel, 0, bytes, i, ButtonLabel.Length); i += ButtonLabel.Length;
             }
 
@@ -33530,6 +33734,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ScriptDialogReplyPacket()
         {
             HasVariableBlocks = false;
@@ -33538,6 +33744,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 191;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
@@ -33563,11 +33770,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptDialogReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -33650,6 +33856,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ForceScriptControlReleasePacket()
         {
             HasVariableBlocks = false;
@@ -33658,6 +33866,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 192;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -33680,11 +33889,10 @@ namespace OpenMetaverse.Packets
 
         public ForceScriptControlReleasePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -33807,6 +34015,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RevokePermissionsPacket()
         {
             HasVariableBlocks = false;
@@ -33815,6 +34025,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 193;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -33839,11 +34050,10 @@ namespace OpenMetaverse.Packets
 
         public RevokePermissionsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -33907,16 +34117,16 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ObjectName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ObjectName, 0, length); i += length;
                     ObjectID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    OwnerIsGroup = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    length = bytes[i++];
+                    OwnerIsGroup = (Utils.BytesToByte(bytes, ref i) != 0);
+                    length = Utils.BytesToByte(bytes, ref i);
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     URL = new byte[length];
                     Buffer.BlockCopy(bytes, i, URL, 0, length); i += length;
                 }
@@ -33928,14 +34138,14 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)ObjectName.Length;
+                Utils.ByteToBytes((byte)ObjectName.Length, bytes, ref i);
                 Buffer.BlockCopy(ObjectName, 0, bytes, i, ObjectName.Length); i += ObjectName.Length;
                 ObjectID.ToBytes(bytes, i); i += 16;
                 OwnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((OwnerIsGroup) ? 1 : 0);
-                bytes[i++] = (byte)Message.Length;
+                Utils.ByteToBytes((byte)((OwnerIsGroup) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)Message.Length, bytes, ref i);
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
-                bytes[i++] = (byte)URL.Length;
+                Utils.ByteToBytes((byte)URL.Length, bytes, ref i);
                 Buffer.BlockCopy(URL, 0, bytes, i, URL.Length); i += URL.Length;
             }
 
@@ -33960,6 +34170,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 194;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Data = new DataBlock();
         }
 
@@ -33982,11 +34193,10 @@ namespace OpenMetaverse.Packets
 
         public LoadURLPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -34044,10 +34254,10 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ObjectName = new byte[length];
                     Buffer.BlockCopy(bytes, i, ObjectName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     SimPosition.FromBytes(bytes, i); i += 12;
@@ -34061,12 +34271,50 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)ObjectName.Length;
+                Utils.ByteToBytes((byte)ObjectName.Length, bytes, ref i);
                 Buffer.BlockCopy(ObjectName, 0, bytes, i, ObjectName.Length); i += ObjectName.Length;
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
                 SimPosition.ToBytes(bytes, i); i += 12;
                 LookAt.ToBytes(bytes, i); i += 12;
+            }
+
+        }
+
+        /// <exclude/>
+        public sealed class OptionsBlock : PacketBlock
+        {
+            public uint Flags;
+
+            public override int Length
+            {
+                get
+                {
+                    return 4;
+                }
+            }
+
+            public OptionsBlock() { }
+            public OptionsBlock(byte[] bytes, ref int i)
+            {
+                FromBytes(bytes, ref i);
+            }
+
+            public override void FromBytes(byte[] bytes, ref int i)
+            {
+                try
+                {
+                    Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
+                }
+                catch (Exception)
+                {
+                    throw new MalformedDataException();
+                }
+            }
+
+            public override void ToBytes(byte[] bytes, ref int i)
+            {
+                Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
             }
 
         }
@@ -34075,22 +34323,27 @@ namespace OpenMetaverse.Packets
         {
             get
             {
-                int length = 10;
+                int length = 11;
                 length += Data.Length;
+                for (int j = 0; j < Options.Length; j++)
+                    length += Options[j].Length;
                 return length;
             }
         }
         public DataBlock Data;
+        public OptionsBlock[] Options;
 
         public ScriptTeleportRequestPacket()
         {
-            HasVariableBlocks = false;
+            HasVariableBlocks = true;
             Type = PacketType.ScriptTeleportRequest;
             Header = new Header();
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 195;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Data = new DataBlock();
+            Options = null;
         }
 
         public ScriptTeleportRequestPacket(byte[] bytes, ref int i) : this()
@@ -34108,36 +34361,108 @@ namespace OpenMetaverse.Packets
                 bytes = zeroBuffer;
             }
             Data.FromBytes(bytes, ref i);
+            int count = (int)bytes[i++];
+            if(Options == null || Options.Length != -1) {
+                Options = new OptionsBlock[count];
+                for(int j = 0; j < count; j++)
+                { Options[j] = new OptionsBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { Options[j].FromBytes(bytes, ref i); }
         }
 
         public ScriptTeleportRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
+            int count = (int)bytes[i++];
+            if(Options == null || Options.Length != count) {
+                Options = new OptionsBlock[count];
+                for(int j = 0; j < count; j++)
+                { Options[j] = new OptionsBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { Options[j].FromBytes(bytes, ref i); }
         }
 
         public override byte[] ToBytes()
         {
             int length = 10;
             length += Data.Length;
+            length++;
+            for (int j = 0; j < Options.Length; j++) { length += Options[j].Length; }
             if (Header.AckList != null && Header.AckList.Length > 0) { length += Header.AckList.Length * 4 + 1; }
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
             Data.ToBytes(bytes, ref i);
+            Utils.ByteToBytes((byte)Options.Length, bytes, ref i);
+            for (int j = 0; j < Options.Length; j++) { Options[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
         }
 
         public override byte[][] ToBytesMultiple()
         {
-            return new byte[][] { ToBytes() };
+            System.Collections.Generic.List<byte[]> packets = new System.Collections.Generic.List<byte[]>();
+            int i = 0;
+            int fixedLength = 10;
+
+            byte[] ackBytes = null;
+            int acksLength = 0;
+            if (Header.AckList != null && Header.AckList.Length > 0) {
+                Header.AppendedAcks = true;
+                ackBytes = new byte[Header.AckList.Length * 4 + 1];
+                Header.AcksToBytes(ackBytes, ref acksLength);
+            }
+
+            fixedLength += Data.Length;
+            byte[] fixedBytes = new byte[fixedLength];
+            Header.ToBytes(fixedBytes, ref i);
+            Data.ToBytes(fixedBytes, ref i);
+            fixedLength += 1;
+
+            int OptionsStart = 0;
+            do
+            {
+                int variableLength = 0;
+                int OptionsCount = 0;
+
+                i = OptionsStart;
+                while (fixedLength + variableLength + acksLength < Packet.MTU && i < Options.Length) {
+                    int blockLength = Options[i].Length;
+                    if (fixedLength + variableLength + blockLength + acksLength <= MTU || i == OptionsStart) {
+                        variableLength += blockLength;
+                        ++OptionsCount;
+                    }
+                    else { break; }
+                    ++i;
+                }
+
+                byte[] packet = new byte[fixedLength + variableLength + acksLength];
+                int length = fixedBytes.Length;
+                Buffer.BlockCopy(fixedBytes, 0, packet, 0, length);
+                if (packets.Count > 0) { packet[0] = (byte)(packet[0] & ~0x10); }
+
+                packet[length++] = (byte)OptionsCount;
+                for (i = OptionsStart; i < OptionsStart + OptionsCount; i++) { Options[i].ToBytes(packet, ref length); }
+                OptionsStart += OptionsCount;
+
+                if (acksLength > 0) {
+                    Buffer.BlockCopy(ackBytes, 0, packet, length, acksLength);
+                    acksLength = 0;
+                }
+
+                packets.Add(packet);
+            } while (
+                OptionsStart < Options.Length);
+
+            return packets.ToArray();
         }
     }
 
@@ -34172,7 +34497,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     SequenceID = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
                 }
@@ -34185,8 +34510,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.IntToBytesSafepos(SequenceID, bytes, i); i += 4;
-                bytes[i++] = (byte)(Data.Length % 256);
-                bytes[i++] = (byte)((Data.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Data.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
             }
 
@@ -34211,6 +34535,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 196;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             ParcelData = new ParcelDataBlock();
         }
@@ -34234,11 +34559,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelOverlayPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ParcelData.FromBytes(bytes, ref i);
@@ -34361,6 +34685,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ParcelDataBlock ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelPropertiesRequestByIDPacket()
         {
             HasVariableBlocks = false;
@@ -34369,6 +34695,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 197;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
@@ -34394,11 +34721,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelPropertiesRequestByIDPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -34521,29 +34847,29 @@ namespace OpenMetaverse.Packets
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     ParcelFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     MusicURL = new byte[length];
                     Buffer.BlockCopy(bytes, i, MusicURL, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     MediaURL = new byte[length];
                     Buffer.BlockCopy(bytes, i, MediaURL, 0, length); i += length;
                     MediaID.FromBytes(bytes, i); i += 16;
-                    MediaAutoScale = (byte)bytes[i++];
+                    MediaAutoScale = Utils.BytesToByte(bytes, ref i);
                     GroupID.FromBytes(bytes, i); i += 16;
                     PassPrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     PassHours = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    Category = (byte)bytes[i++];
+                    Category = Utils.BytesToByte(bytes, ref i);
                     AuthBuyerID.FromBytes(bytes, i); i += 16;
                     SnapshotID.FromBytes(bytes, i); i += 16;
                     UserLocation.FromBytes(bytes, i); i += 12;
                     UserLookAt.FromBytes(bytes, i); i += 12;
-                    LandingType = (byte)bytes[i++];
+                    LandingType = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -34557,25 +34883,25 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(ParcelFlags, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Desc.Length;
+                Utils.ByteToBytes((byte)Desc.Length, bytes, ref i);
                 Buffer.BlockCopy(Desc, 0, bytes, i, Desc.Length); i += Desc.Length;
-                bytes[i++] = (byte)MusicURL.Length;
+                Utils.ByteToBytes((byte)MusicURL.Length, bytes, ref i);
                 Buffer.BlockCopy(MusicURL, 0, bytes, i, MusicURL.Length); i += MusicURL.Length;
-                bytes[i++] = (byte)MediaURL.Length;
+                Utils.ByteToBytes((byte)MediaURL.Length, bytes, ref i);
                 Buffer.BlockCopy(MediaURL, 0, bytes, i, MediaURL.Length); i += MediaURL.Length;
                 MediaID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = MediaAutoScale;
+                Utils.ByteToBytes( MediaAutoScale, bytes, ref i);
                 GroupID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(PassPrice, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(PassHours, bytes, i); i += 4;
-                bytes[i++] = Category;
+                Utils.ByteToBytes( Category, bytes, ref i);
                 AuthBuyerID.ToBytes(bytes, i); i += 16;
                 SnapshotID.ToBytes(bytes, i); i += 16;
                 UserLocation.ToBytes(bytes, i); i += 12;
                 UserLookAt.ToBytes(bytes, i); i += 12;
-                bytes[i++] = LandingType;
+                Utils.ByteToBytes( LandingType, bytes, ref i);
             }
 
         }
@@ -34593,6 +34919,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ParcelDataBlock ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelPropertiesUpdatePacket()
         {
             HasVariableBlocks = false;
@@ -34601,6 +34929,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 198;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
@@ -34626,11 +34955,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelPropertiesUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -34838,6 +35166,8 @@ namespace OpenMetaverse.Packets
         public TaskIDsBlock[] TaskIDs;
         public OwnerIDsBlock[] OwnerIDs;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelReturnObjectsPacket()
         {
             HasVariableBlocks = true;
@@ -34846,6 +35176,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 199;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
@@ -34891,11 +35222,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelReturnObjectsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -34935,9 +35265,9 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             ParcelData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)TaskIDs.Length;
+            Utils.ByteToBytes((byte)TaskIDs.Length, bytes, ref i);
             for (int j = 0; j < TaskIDs.Length; j++) { TaskIDs[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)OwnerIDs.Length;
+            Utils.ByteToBytes((byte)OwnerIDs.Length, bytes, ref i);
             for (int j = 0; j < OwnerIDs.Length; j++) { OwnerIDs[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -35126,6 +35456,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ParcelDataBlock ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelSetOtherCleanTimePacket()
         {
             HasVariableBlocks = false;
@@ -35134,6 +35466,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 200;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
@@ -35159,11 +35492,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelSetOtherCleanTimePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -35371,6 +35703,8 @@ namespace OpenMetaverse.Packets
         public TaskIDsBlock[] TaskIDs;
         public OwnerIDsBlock[] OwnerIDs;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelDisableObjectsPacket()
         {
             HasVariableBlocks = true;
@@ -35379,6 +35713,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 201;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
@@ -35424,11 +35759,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelDisableObjectsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -35468,9 +35802,9 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             ParcelData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)TaskIDs.Length;
+            Utils.ByteToBytes((byte)TaskIDs.Length, bytes, ref i);
             for (int j = 0; j < TaskIDs.Length; j++) { TaskIDs[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)OwnerIDs.Length;
+            Utils.ByteToBytes((byte)OwnerIDs.Length, bytes, ref i);
             for (int j = 0; j < OwnerIDs.Length; j++) { OwnerIDs[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -35700,6 +36034,8 @@ namespace OpenMetaverse.Packets
         public ParcelDataBlock ParcelData;
         public ReturnIDsBlock[] ReturnIDs;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelSelectObjectsPacket()
         {
             HasVariableBlocks = true;
@@ -35708,6 +36044,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 202;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
@@ -35743,11 +36080,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelSelectObjectsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -35776,7 +36112,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             ParcelData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ReturnIDs.Length;
+            Utils.ByteToBytes((byte)ReturnIDs.Length, bytes, ref i);
             for (int j = 0; j < ReturnIDs.Length; j++) { ReturnIDs[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -35902,6 +36238,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public EstateCovenantRequestPacket()
         {
             HasVariableBlocks = false;
@@ -35910,6 +36248,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 203;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -35932,11 +36271,10 @@ namespace OpenMetaverse.Packets
 
         public EstateCovenantRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -35995,7 +36333,7 @@ namespace OpenMetaverse.Packets
                 {
                     CovenantID.FromBytes(bytes, i); i += 16;
                     CovenantTimestamp = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     EstateName = new byte[length];
                     Buffer.BlockCopy(bytes, i, EstateName, 0, length); i += length;
                     EstateOwnerID.FromBytes(bytes, i); i += 16;
@@ -36010,7 +36348,7 @@ namespace OpenMetaverse.Packets
             {
                 CovenantID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(CovenantTimestamp, bytes, i); i += 4;
-                bytes[i++] = (byte)EstateName.Length;
+                Utils.ByteToBytes((byte)EstateName.Length, bytes, ref i);
                 Buffer.BlockCopy(EstateName, 0, bytes, i, EstateName.Length); i += EstateName.Length;
                 EstateOwnerID.ToBytes(bytes, i); i += 16;
             }
@@ -36036,6 +36374,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 204;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Data = new DataBlock();
         }
 
@@ -36058,11 +36397,10 @@ namespace OpenMetaverse.Packets
 
         public EstateCovenantReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -36113,7 +36451,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ResetList = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    ResetList = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -36123,7 +36461,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((ResetList) ? 1 : 0);
+                Utils.ByteToBytes((byte)((ResetList) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -36188,6 +36526,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 205;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             _Header = new HeaderBlock();
             Data = null;
         }
@@ -36220,11 +36559,10 @@ namespace OpenMetaverse.Packets
 
         public ForceObjectSelectPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             _Header.FromBytes(bytes, ref i);
@@ -36250,7 +36588,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             _Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Data.Length;
+            Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
             for (int j = 0; j < Data.Length; j++) { Data[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -36414,6 +36752,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ParcelDataBlock ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelBuyPassPacket()
         {
             HasVariableBlocks = false;
@@ -36422,6 +36762,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 206;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
         }
@@ -36446,11 +36787,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelBuyPassPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -36576,6 +36916,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelDeedToGroupPacket()
         {
             HasVariableBlocks = false;
@@ -36584,6 +36926,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 207;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -36608,11 +36951,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelDeedToGroupPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -36735,6 +37077,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelReclaimPacket()
         {
             HasVariableBlocks = false;
@@ -36743,6 +37087,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 208;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -36767,11 +37112,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelReclaimPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -36869,8 +37213,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    IsGroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    Final = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IsGroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
+                    Final = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -36881,8 +37225,8 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((IsGroupOwned) ? 1 : 0);
-                bytes[i++] = (byte)((Final) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IsGroupOwned) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((Final) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -36950,6 +37294,8 @@ namespace OpenMetaverse.Packets
         public DataBlock Data;
         public ParcelDataBlock[] ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelClaimPacket()
         {
             HasVariableBlocks = true;
@@ -36958,6 +37304,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 209;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
@@ -36993,11 +37340,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelClaimPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -37026,7 +37372,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             Data.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ParcelData.Length;
+            Utils.ByteToBytes((byte)ParcelData.Length, bytes, ref i);
             for (int j = 0; j < ParcelData.Length; j++) { ParcelData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -37201,6 +37547,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ParcelDataBlock ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelJoinPacket()
         {
             HasVariableBlocks = false;
@@ -37209,6 +37557,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 210;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
         }
@@ -37233,11 +37582,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelJoinPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -37369,6 +37717,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ParcelDataBlock ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelDividePacket()
         {
             HasVariableBlocks = false;
@@ -37377,6 +37727,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 211;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
         }
@@ -37401,11 +37752,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelDividePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -37528,6 +37878,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelReleasePacket()
         {
             HasVariableBlocks = false;
@@ -37536,6 +37888,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 212;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -37560,11 +37913,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelReleasePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -37664,10 +38016,10 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    IsGroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    RemoveContribution = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IsGroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
+                    RemoveContribution = (Utils.BytesToByte(bytes, ref i) != 0);
                     LocalID = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    Final = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Final = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -37678,10 +38030,10 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((IsGroupOwned) ? 1 : 0);
-                bytes[i++] = (byte)((RemoveContribution) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IsGroupOwned) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((RemoveContribution) ? 1 : 0), bytes, ref i);
                 Utils.IntToBytesSafepos(LocalID, bytes, i); i += 4;
-                bytes[i++] = (byte)((Final) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Final) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -37742,6 +38094,8 @@ namespace OpenMetaverse.Packets
         public DataBlock Data;
         public ParcelDataBlock ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelBuyPacket()
         {
             HasVariableBlocks = false;
@@ -37750,6 +38104,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 213;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
@@ -37777,11 +38132,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelBuyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -37910,6 +38264,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelGodForceOwnerPacket()
         {
             HasVariableBlocks = false;
@@ -37918,6 +38274,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 214;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
@@ -37943,11 +38300,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelGodForceOwnerPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -38076,6 +38432,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelAccessListRequestPacket()
         {
             HasVariableBlocks = false;
@@ -38084,6 +38442,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 215;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
@@ -38109,11 +38468,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelAccessListRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -38257,6 +38615,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 216;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             Data = new DataBlock();
             List = null;
@@ -38290,11 +38649,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelAccessListReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Data.FromBytes(bytes, ref i);
@@ -38320,7 +38678,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             Data.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)List.Length;
+            Utils.ByteToBytes((byte)List.Length, bytes, ref i);
             for (int j = 0; j < List.Length; j++) { List[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -38543,6 +38901,8 @@ namespace OpenMetaverse.Packets
         public DataBlock Data;
         public ListBlock[] List;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelAccessListUpdatePacket()
         {
             HasVariableBlocks = true;
@@ -38551,6 +38911,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 217;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
@@ -38586,11 +38947,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelAccessListUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -38619,7 +38979,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             Data.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)List.Length;
+            Utils.ByteToBytes((byte)List.Length, bytes, ref i);
             for (int j = 0; j < List.Length; j++) { List[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -38788,6 +39148,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelDwellRequestPacket()
         {
             HasVariableBlocks = false;
@@ -38796,6 +39158,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 218;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -38820,11 +39183,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelDwellRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -38958,6 +39320,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 219;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -38982,11 +39345,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelDwellReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -39109,6 +39471,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ParcelDataBlock ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelGodMarkAsContentPacket()
         {
             HasVariableBlocks = false;
@@ -39117,6 +39481,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 227;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
         }
@@ -39141,11 +39506,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelGodMarkAsContentPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -39271,6 +39635,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ParcelDataBlock ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ViewerStartAuctionPacket()
         {
             HasVariableBlocks = false;
@@ -39279,6 +39645,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 228;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
         }
@@ -39303,11 +39670,10 @@ namespace OpenMetaverse.Packets
 
         public ViewerStartAuctionPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -39396,6 +39762,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 235;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             UUIDNameBlock = null;
         }
 
@@ -39426,11 +39793,10 @@ namespace OpenMetaverse.Packets
 
         public UUIDNameRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -39453,7 +39819,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)UUIDNameBlock.Length;
+            Utils.ByteToBytes((byte)UUIDNameBlock.Length, bytes, ref i);
             for (int j = 0; j < UUIDNameBlock.Length; j++) { UUIDNameBlock[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -39553,10 +39919,10 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     FirstName = new byte[length];
                     Buffer.BlockCopy(bytes, i, FirstName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     LastName = new byte[length];
                     Buffer.BlockCopy(bytes, i, LastName, 0, length); i += length;
                 }
@@ -39569,9 +39935,9 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)FirstName.Length;
+                Utils.ByteToBytes((byte)FirstName.Length, bytes, ref i);
                 Buffer.BlockCopy(FirstName, 0, bytes, i, FirstName.Length); i += FirstName.Length;
-                bytes[i++] = (byte)LastName.Length;
+                Utils.ByteToBytes((byte)LastName.Length, bytes, ref i);
                 Buffer.BlockCopy(LastName, 0, bytes, i, LastName.Length); i += LastName.Length;
             }
 
@@ -39597,6 +39963,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 236;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             UUIDNameBlock = null;
         }
 
@@ -39627,11 +39994,10 @@ namespace OpenMetaverse.Packets
 
         public UUIDNameReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -39654,7 +40020,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)UUIDNameBlock.Length;
+            Utils.ByteToBytes((byte)UUIDNameBlock.Length, bytes, ref i);
             for (int j = 0; j < UUIDNameBlock.Length; j++) { UUIDNameBlock[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -39782,6 +40148,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 237;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             UUIDNameBlock = null;
         }
 
@@ -39812,11 +40179,10 @@ namespace OpenMetaverse.Packets
 
         public UUIDGroupNameRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -39839,7 +40205,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)UUIDNameBlock.Length;
+            Utils.ByteToBytes((byte)UUIDNameBlock.Length, bytes, ref i);
             for (int j = 0; j < UUIDNameBlock.Length; j++) { UUIDNameBlock[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -39937,7 +40303,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     GroupName = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupName, 0, length); i += length;
                 }
@@ -39950,7 +40316,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)GroupName.Length;
+                Utils.ByteToBytes((byte)GroupName.Length, bytes, ref i);
                 Buffer.BlockCopy(GroupName, 0, bytes, i, GroupName.Length); i += GroupName.Length;
             }
 
@@ -39976,6 +40342,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 238;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             UUIDNameBlock = null;
         }
 
@@ -40006,11 +40373,10 @@ namespace OpenMetaverse.Packets
 
         public UUIDGroupNameReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -40033,7 +40399,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)UUIDNameBlock.Length;
+            Utils.ByteToBytes((byte)UUIDNameBlock.Length, bytes, ref i);
             for (int j = 0; j < UUIDNameBlock.Length; j++) { UUIDNameBlock[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -40155,6 +40521,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ChildAgentDyingPacket()
         {
             HasVariableBlocks = false;
@@ -40163,6 +40531,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 240;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
         }
@@ -40186,11 +40555,10 @@ namespace OpenMetaverse.Packets
 
         public ChildAgentDyingPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -40270,6 +40638,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ChildAgentUnknownPacket()
         {
             HasVariableBlocks = false;
@@ -40278,6 +40648,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 241;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -40300,11 +40671,10 @@ namespace OpenMetaverse.Packets
 
         public ChildAgentUnknownPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -40392,6 +40762,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 243;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Script = new ScriptBlock();
         }
 
@@ -40414,11 +40785,10 @@ namespace OpenMetaverse.Packets
 
         public GetScriptRunningPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Script.FromBytes(bytes, ref i);
@@ -40473,7 +40843,7 @@ namespace OpenMetaverse.Packets
                 {
                     ObjectID.FromBytes(bytes, i); i += 16;
                     ItemID.FromBytes(bytes, i); i += 16;
-                    Running = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Running = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -40485,7 +40855,7 @@ namespace OpenMetaverse.Packets
             {
                 ObjectID.ToBytes(bytes, i); i += 16;
                 ItemID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((Running) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Running) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -40509,6 +40879,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 244;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Script = new ScriptBlock();
         }
 
@@ -40531,11 +40902,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptRunningReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Script.FromBytes(bytes, ref i);
@@ -40631,7 +41001,7 @@ namespace OpenMetaverse.Packets
                 {
                     ObjectID.FromBytes(bytes, i); i += 16;
                     ItemID.FromBytes(bytes, i); i += 16;
-                    Running = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Running = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -40643,7 +41013,7 @@ namespace OpenMetaverse.Packets
             {
                 ObjectID.ToBytes(bytes, i); i += 16;
                 ItemID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((Running) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Running) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -40661,6 +41031,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ScriptBlock Script;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public SetScriptRunningPacket()
         {
             HasVariableBlocks = false;
@@ -40669,6 +41041,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 245;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Script = new ScriptBlock();
         }
@@ -40693,11 +41066,10 @@ namespace OpenMetaverse.Packets
 
         public SetScriptRunningPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -40823,6 +41195,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ScriptBlock Script;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ScriptResetPacket()
         {
             HasVariableBlocks = false;
@@ -40831,6 +41205,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 246;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Script = new ScriptBlock();
         }
@@ -40855,11 +41230,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptResetPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -40931,14 +41305,14 @@ namespace OpenMetaverse.Packets
                     SearchID.FromBytes(bytes, i); i += 16;
                     SearchPos.FromBytes(bytes, i); i += 12;
                     SearchDir.FromBytes(bytes, i, true); i += 12;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SearchName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SearchName, 0, length); i += length;
                     Type = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     Range = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     Arc = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     RegionHandle = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
-                    SearchRegions = (byte)bytes[i++];
+                    SearchRegions = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -40953,13 +41327,13 @@ namespace OpenMetaverse.Packets
                 SearchID.ToBytes(bytes, i); i += 16;
                 SearchPos.ToBytes(bytes, i); i += 12;
                 SearchDir.ToBytes(bytes, i); i += 12;
-                bytes[i++] = (byte)SearchName.Length;
+                Utils.ByteToBytes((byte)SearchName.Length, bytes, ref i);
                 Buffer.BlockCopy(SearchName, 0, bytes, i, SearchName.Length); i += SearchName.Length;
                 Utils.IntToBytesSafepos(Type, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(Range, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(Arc, bytes, i); i += 4;
                 Utils.UInt64ToBytesSafepos(RegionHandle, bytes, i); i += 8;
-                bytes[i++] = SearchRegions;
+                Utils.ByteToBytes( SearchRegions, bytes, ref i);
             }
 
         }
@@ -40983,6 +41357,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 247;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             Requester = new RequesterBlock();
         }
@@ -41006,11 +41381,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptSensorRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Requester.FromBytes(bytes, ref i);
@@ -41116,7 +41490,7 @@ namespace OpenMetaverse.Packets
                     Position.FromBytes(bytes, i); i += 12;
                     Velocity.FromBytes(bytes, i); i += 12;
                     Rotation.FromBytes(bytes, i, true); i += 12;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                     Type = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -41136,7 +41510,7 @@ namespace OpenMetaverse.Packets
                 Position.ToBytes(bytes, i); i += 12;
                 Velocity.ToBytes(bytes, i); i += 12;
                 Rotation.ToBytes(bytes, i); i += 12;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
                 Utils.IntToBytesSafepos(Type, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(Range, bytes, i); i += 4;
@@ -41166,6 +41540,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 248;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             Requester = new RequesterBlock();
             SensedData = null;
@@ -41199,11 +41574,10 @@ namespace OpenMetaverse.Packets
 
         public ScriptSensorReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Requester.FromBytes(bytes, ref i);
@@ -41229,7 +41603,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             Requester.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)SensedData.Length;
+            Utils.ByteToBytes((byte)SensedData.Length, bytes, ref i);
             for (int j = 0; j < SensedData.Length; j++) { SensedData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -41356,6 +41730,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public CompleteAgentMovementPacket()
         {
             HasVariableBlocks = false;
@@ -41364,6 +41740,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 249;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -41386,11 +41763,10 @@ namespace OpenMetaverse.Packets
 
         public CompleteAgentMovementPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -41532,7 +41908,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     ChannelVersion = new byte[length];
                     Buffer.BlockCopy(bytes, i, ChannelVersion, 0, length); i += length;
                 }
@@ -41544,8 +41920,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(ChannelVersion.Length % 256);
-                bytes[i++] = (byte)((ChannelVersion.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)ChannelVersion.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(ChannelVersion, 0, bytes, i, ChannelVersion.Length); i += ChannelVersion.Length;
             }
 
@@ -41566,6 +41941,8 @@ namespace OpenMetaverse.Packets
         public DataBlock Data;
         public SimDataBlock SimData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentMovementCompletePacket()
         {
             HasVariableBlocks = false;
@@ -41574,6 +41951,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 250;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
             SimData = new SimDataBlock();
@@ -41600,11 +41978,10 @@ namespace OpenMetaverse.Packets
 
         public AgentMovementCompletePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -41690,6 +42067,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public LogoutRequestPacket()
         {
             HasVariableBlocks = false;
@@ -41698,6 +42077,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 252;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -41720,11 +42100,10 @@ namespace OpenMetaverse.Packets
 
         public LogoutRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -41845,6 +42224,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock[] InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public LogoutReplyPacket()
         {
             HasVariableBlocks = true;
@@ -41853,6 +42234,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 253;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryData = null;
@@ -41886,11 +42268,10 @@ namespace OpenMetaverse.Packets
 
         public LogoutReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -41916,7 +42297,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -42068,22 +42449,22 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    FromGroup = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    FromGroup = (Utils.BytesToByte(bytes, ref i) != 0);
                     ToAgentID.FromBytes(bytes, i); i += 16;
                     ParentEstateID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     RegionID.FromBytes(bytes, i); i += 16;
                     Position.FromBytes(bytes, i); i += 12;
-                    Offline = (byte)bytes[i++];
-                    Dialog = (byte)bytes[i++];
+                    Offline = Utils.BytesToByte(bytes, ref i);
+                    Dialog = Utils.BytesToByte(bytes, ref i);
                     ID.FromBytes(bytes, i); i += 16;
                     Timestamp = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     FromAgentName = new byte[length];
                     Buffer.BlockCopy(bytes, i, FromAgentName, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     BinaryBucket = new byte[length];
                     Buffer.BlockCopy(bytes, i, BinaryBucket, 0, length); i += length;
                 }
@@ -42095,22 +42476,20 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((FromGroup) ? 1 : 0);
+                Utils.ByteToBytes((byte)((FromGroup) ? 1 : 0), bytes, ref i);
                 ToAgentID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(ParentEstateID, bytes, i); i += 4;
                 RegionID.ToBytes(bytes, i); i += 16;
                 Position.ToBytes(bytes, i); i += 12;
-                bytes[i++] = Offline;
-                bytes[i++] = Dialog;
+                Utils.ByteToBytes( Offline, bytes, ref i);
+                Utils.ByteToBytes( Dialog, bytes, ref i);
                 ID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(Timestamp, bytes, i); i += 4;
-                bytes[i++] = (byte)FromAgentName.Length;
+                Utils.ByteToBytes((byte)FromAgentName.Length, bytes, ref i);
                 Buffer.BlockCopy(FromAgentName, 0, bytes, i, FromAgentName.Length); i += FromAgentName.Length;
-                bytes[i++] = (byte)(Message.Length % 256);
-                bytes[i++] = (byte)((Message.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Message.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
-                bytes[i++] = (byte)(BinaryBucket.Length % 256);
-                bytes[i++] = (byte)((BinaryBucket.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)BinaryBucket.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(BinaryBucket, 0, bytes, i, BinaryBucket.Length); i += BinaryBucket.Length;
             }
 
@@ -42129,6 +42508,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public MessageBlockBlock MessageBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ImprovedInstantMessagePacket()
         {
             HasVariableBlocks = false;
@@ -42137,6 +42518,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 254;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MessageBlock = new MessageBlockBlock();
@@ -42162,11 +42544,10 @@ namespace OpenMetaverse.Packets
 
         public ImprovedInstantMessagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -42249,6 +42630,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RetrieveInstantMessagesPacket()
         {
             HasVariableBlocks = false;
@@ -42257,6 +42640,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 255;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -42279,11 +42663,10 @@ namespace OpenMetaverse.Packets
 
         public RetrieveInstantMessagesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -42418,6 +42801,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 256;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentBlock = new AgentBlockBlock();
             LocationBlock = null;
         }
@@ -42450,11 +42834,10 @@ namespace OpenMetaverse.Packets
 
         public FindAgentPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentBlock.FromBytes(bytes, ref i);
@@ -42480,7 +42863,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentBlock.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)LocationBlock.Length;
+            Utils.ByteToBytes((byte)LocationBlock.Length, bytes, ref i);
             for (int j = 0; j < LocationBlock.Length; j++) { LocationBlock[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -42617,7 +43000,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Godlike = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Godlike = (Utils.BytesToByte(bytes, ref i) != 0);
                     Token.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -42628,7 +43011,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((Godlike) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Godlike) ? 1 : 0), bytes, ref i);
                 Token.ToBytes(bytes, i); i += 16;
             }
 
@@ -42647,6 +43030,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public RequestBlockBlock RequestBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RequestGodlikePowersPacket()
         {
             HasVariableBlocks = false;
@@ -42655,6 +43040,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 257;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             RequestBlock = new RequestBlockBlock();
         }
@@ -42679,11 +43065,10 @@ namespace OpenMetaverse.Packets
 
         public RequestGodlikePowersPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -42779,7 +43164,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    GodLevel = (byte)bytes[i++];
+                    GodLevel = Utils.BytesToByte(bytes, ref i);
                     Token.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -42790,7 +43175,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = GodLevel;
+                Utils.ByteToBytes( GodLevel, bytes, ref i);
                 Token.ToBytes(bytes, i); i += 16;
             }
 
@@ -42809,6 +43194,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public GrantDataBlock GrantData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GrantGodlikePowersPacket()
         {
             HasVariableBlocks = false;
@@ -42817,6 +43204,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 258;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             GrantData = new GrantDataBlock();
         }
@@ -42841,11 +43229,10 @@ namespace OpenMetaverse.Packets
 
         public GrantGodlikePowersPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -42947,7 +43334,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Method = new byte[length];
                     Buffer.BlockCopy(bytes, i, Method, 0, length); i += length;
                     Invoice.FromBytes(bytes, i); i += 16;
@@ -42960,7 +43347,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Method.Length;
+                Utils.ByteToBytes((byte)Method.Length, bytes, ref i);
                 Buffer.BlockCopy(Method, 0, bytes, i, Method.Length); i += Method.Length;
                 Invoice.ToBytes(bytes, i); i += 16;
             }
@@ -42993,7 +43380,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Parameter = new byte[length];
                     Buffer.BlockCopy(bytes, i, Parameter, 0, length); i += length;
                 }
@@ -43005,7 +43392,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Parameter.Length;
+                Utils.ByteToBytes((byte)Parameter.Length, bytes, ref i);
                 Buffer.BlockCopy(Parameter, 0, bytes, i, Parameter.Length); i += Parameter.Length;
             }
 
@@ -43027,6 +43414,8 @@ namespace OpenMetaverse.Packets
         public MethodDataBlock MethodData;
         public ParamListBlock[] ParamList;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GodlikeMessagePacket()
         {
             HasVariableBlocks = true;
@@ -43035,6 +43424,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 259;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MethodData = new MethodDataBlock();
@@ -43070,11 +43460,10 @@ namespace OpenMetaverse.Packets
 
         public GodlikeMessagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -43103,7 +43492,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             MethodData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ParamList.Length;
+            Utils.ByteToBytes((byte)ParamList.Length, bytes, ref i);
             for (int j = 0; j < ParamList.Length; j++) { ParamList[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -43248,7 +43637,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Method = new byte[length];
                     Buffer.BlockCopy(bytes, i, Method, 0, length); i += length;
                     Invoice.FromBytes(bytes, i); i += 16;
@@ -43261,7 +43650,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Method.Length;
+                Utils.ByteToBytes((byte)Method.Length, bytes, ref i);
                 Buffer.BlockCopy(Method, 0, bytes, i, Method.Length); i += Method.Length;
                 Invoice.ToBytes(bytes, i); i += 16;
             }
@@ -43294,7 +43683,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Parameter = new byte[length];
                     Buffer.BlockCopy(bytes, i, Parameter, 0, length); i += length;
                 }
@@ -43306,7 +43695,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Parameter.Length;
+                Utils.ByteToBytes((byte)Parameter.Length, bytes, ref i);
                 Buffer.BlockCopy(Parameter, 0, bytes, i, Parameter.Length); i += Parameter.Length;
             }
 
@@ -43328,6 +43717,8 @@ namespace OpenMetaverse.Packets
         public MethodDataBlock MethodData;
         public ParamListBlock[] ParamList;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public EstateOwnerMessagePacket()
         {
             HasVariableBlocks = true;
@@ -43336,6 +43727,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 260;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MethodData = new MethodDataBlock();
@@ -43371,11 +43763,10 @@ namespace OpenMetaverse.Packets
 
         public EstateOwnerMessagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -43404,7 +43795,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             MethodData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ParamList.Length;
+            Utils.ByteToBytes((byte)ParamList.Length, bytes, ref i);
             for (int j = 0; j < ParamList.Length; j++) { ParamList[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -43549,7 +43940,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Method = new byte[length];
                     Buffer.BlockCopy(bytes, i, Method, 0, length); i += length;
                     Invoice.FromBytes(bytes, i); i += 16;
@@ -43562,7 +43953,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Method.Length;
+                Utils.ByteToBytes((byte)Method.Length, bytes, ref i);
                 Buffer.BlockCopy(Method, 0, bytes, i, Method.Length); i += Method.Length;
                 Invoice.ToBytes(bytes, i); i += 16;
             }
@@ -43595,7 +43986,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Parameter = new byte[length];
                     Buffer.BlockCopy(bytes, i, Parameter, 0, length); i += length;
                 }
@@ -43607,7 +43998,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Parameter.Length;
+                Utils.ByteToBytes((byte)Parameter.Length, bytes, ref i);
                 Buffer.BlockCopy(Parameter, 0, bytes, i, Parameter.Length); i += Parameter.Length;
             }
 
@@ -43629,6 +44020,8 @@ namespace OpenMetaverse.Packets
         public MethodDataBlock MethodData;
         public ParamListBlock[] ParamList;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GenericMessagePacket()
         {
             HasVariableBlocks = true;
@@ -43637,6 +44030,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 261;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MethodData = new MethodDataBlock();
@@ -43672,11 +44066,10 @@ namespace OpenMetaverse.Packets
 
         public GenericMessagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -43705,7 +44098,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             MethodData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ParamList.Length;
+            Utils.ByteToBytes((byte)ParamList.Length, bytes, ref i);
             for (int j = 0; j < ParamList.Length; j++) { ParamList[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -43871,6 +44264,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public MuteDataBlock MuteData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public MuteListRequestPacket()
         {
             HasVariableBlocks = false;
@@ -43879,6 +44274,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 262;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             MuteData = new MuteDataBlock();
         }
@@ -43903,11 +44299,10 @@ namespace OpenMetaverse.Packets
 
         public MuteListRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -44009,7 +44404,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     MuteID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     MuteName = new byte[length];
                     Buffer.BlockCopy(bytes, i, MuteName, 0, length); i += length;
                     MuteType = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -44024,7 +44419,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 MuteID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)MuteName.Length;
+                Utils.ByteToBytes((byte)MuteName.Length, bytes, ref i);
                 Buffer.BlockCopy(MuteName, 0, bytes, i, MuteName.Length); i += MuteName.Length;
                 Utils.IntToBytesSafepos(MuteType, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(MuteFlags, bytes, i); i += 4;
@@ -44045,6 +44440,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public MuteDataBlock MuteData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public UpdateMuteListEntryPacket()
         {
             HasVariableBlocks = false;
@@ -44053,6 +44450,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 263;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             MuteData = new MuteDataBlock();
         }
@@ -44077,11 +44475,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateMuteListEntryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -44181,7 +44578,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     MuteID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     MuteName = new byte[length];
                     Buffer.BlockCopy(bytes, i, MuteName, 0, length); i += length;
                 }
@@ -44194,7 +44591,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 MuteID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)MuteName.Length;
+                Utils.ByteToBytes((byte)MuteName.Length, bytes, ref i);
                 Buffer.BlockCopy(MuteName, 0, bytes, i, MuteName.Length); i += MuteName.Length;
             }
 
@@ -44213,6 +44610,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public MuteDataBlock MuteData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RemoveMuteListEntryPacket()
         {
             HasVariableBlocks = false;
@@ -44221,6 +44620,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 264;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             MuteData = new MuteDataBlock();
         }
@@ -44245,11 +44645,10 @@ namespace OpenMetaverse.Packets
 
         public RemoveMuteListEntryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -44419,6 +44818,8 @@ namespace OpenMetaverse.Packets
         public NotecardDataBlock NotecardData;
         public InventoryDataBlock[] InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public CopyInventoryFromNotecardPacket()
         {
             HasVariableBlocks = true;
@@ -44427,6 +44828,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 265;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             NotecardData = new NotecardDataBlock();
@@ -44462,11 +44864,10 @@ namespace OpenMetaverse.Packets
 
         public CopyInventoryFromNotecardPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -44495,7 +44896,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             NotecardData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -44672,17 +45073,17 @@ namespace OpenMetaverse.Packets
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    GroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    InvType = (sbyte)bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    InvType = (sbyte)Utils.BytesToByte(bytes, ref i);
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                     CreationDate = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -44707,16 +45108,16 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)((GroupOwned) ? 1 : 0);
+                Utils.ByteToBytes((byte)((GroupOwned) ? 1 : 0), bytes, ref i);
                 TransactionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)InvType;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes( (byte)InvType, bytes, ref i);
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
                 Utils.IntToBytesSafepos(CreationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(CRC, bytes, i); i += 4;
@@ -44738,6 +45139,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock[] InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public UpdateInventoryItemPacket()
         {
             HasVariableBlocks = true;
@@ -44746,6 +45149,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 266;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryData = null;
@@ -44779,11 +45183,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateInventoryItemPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -44809,7 +45212,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -44907,7 +45310,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    SimApproved = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    SimApproved = (Utils.BytesToByte(bytes, ref i) != 0);
                     TransactionID.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -44919,7 +45322,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 AgentID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((SimApproved) ? 1 : 0);
+                Utils.ByteToBytes((byte)((SimApproved) ? 1 : 0), bytes, ref i);
                 TransactionID.ToBytes(bytes, i); i += 16;
             }
 
@@ -44984,17 +45387,17 @@ namespace OpenMetaverse.Packets
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    GroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
                     AssetID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    InvType = (sbyte)bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    InvType = (sbyte)Utils.BytesToByte(bytes, ref i);
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                     CreationDate = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -45019,16 +45422,16 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)((GroupOwned) ? 1 : 0);
+                Utils.ByteToBytes((byte)((GroupOwned) ? 1 : 0), bytes, ref i);
                 AssetID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)InvType;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes( (byte)InvType, bytes, ref i);
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
                 Utils.IntToBytesSafepos(CreationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(CRC, bytes, i); i += 4;
@@ -45058,6 +45461,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 267;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryData = null;
@@ -45091,11 +45495,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateCreateInventoryItemPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -45121,7 +45524,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -45220,7 +45623,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    Stamp = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Stamp = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -45232,7 +45635,7 @@ namespace OpenMetaverse.Packets
             {
                 AgentID.ToBytes(bytes, i); i += 16;
                 SessionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((Stamp) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Stamp) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -45267,7 +45670,7 @@ namespace OpenMetaverse.Packets
                 {
                     ItemID.FromBytes(bytes, i); i += 16;
                     FolderID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     NewName = new byte[length];
                     Buffer.BlockCopy(bytes, i, NewName, 0, length); i += length;
                 }
@@ -45281,7 +45684,7 @@ namespace OpenMetaverse.Packets
             {
                 ItemID.ToBytes(bytes, i); i += 16;
                 FolderID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)NewName.Length;
+                Utils.ByteToBytes((byte)NewName.Length, bytes, ref i);
                 Buffer.BlockCopy(NewName, 0, bytes, i, NewName.Length); i += NewName.Length;
             }
 
@@ -45301,6 +45704,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock[] InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public MoveInventoryItemPacket()
         {
             HasVariableBlocks = true;
@@ -45309,6 +45714,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 268;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryData = null;
@@ -45342,11 +45748,10 @@ namespace OpenMetaverse.Packets
 
         public MoveInventoryItemPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -45372,7 +45777,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -45519,7 +45924,7 @@ namespace OpenMetaverse.Packets
                     OldAgentID.FromBytes(bytes, i); i += 16;
                     OldItemID.FromBytes(bytes, i); i += 16;
                     NewFolderID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     NewName = new byte[length];
                     Buffer.BlockCopy(bytes, i, NewName, 0, length); i += length;
                 }
@@ -45535,7 +45940,7 @@ namespace OpenMetaverse.Packets
                 OldAgentID.ToBytes(bytes, i); i += 16;
                 OldItemID.ToBytes(bytes, i); i += 16;
                 NewFolderID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)NewName.Length;
+                Utils.ByteToBytes((byte)NewName.Length, bytes, ref i);
                 Buffer.BlockCopy(NewName, 0, bytes, i, NewName.Length); i += NewName.Length;
             }
 
@@ -45555,6 +45960,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock[] InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public CopyInventoryItemPacket()
         {
             HasVariableBlocks = true;
@@ -45563,6 +45970,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 269;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryData = null;
@@ -45596,11 +46004,10 @@ namespace OpenMetaverse.Packets
 
         public CopyInventoryItemPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -45626,7 +46033,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -45791,6 +46198,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock[] InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RemoveInventoryItemPacket()
         {
             HasVariableBlocks = true;
@@ -45799,6 +46208,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 270;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             InventoryData = null;
         }
@@ -45831,11 +46241,10 @@ namespace OpenMetaverse.Packets
 
         public RemoveInventoryItemPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -45861,7 +46270,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -46029,6 +46438,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock[] InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ChangeInventoryItemFlagsPacket()
         {
             HasVariableBlocks = true;
@@ -46037,6 +46448,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 271;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             InventoryData = null;
         }
@@ -46069,11 +46481,10 @@ namespace OpenMetaverse.Packets
 
         public ChangeInventoryItemFlagsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -46099,7 +46510,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -46271,6 +46682,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 272;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             InventoryData = new InventoryDataBlock();
         }
@@ -46295,11 +46707,10 @@ namespace OpenMetaverse.Packets
 
         public SaveAssetIntoInventoryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -46402,8 +46813,8 @@ namespace OpenMetaverse.Packets
                 {
                     FolderID.FromBytes(bytes, i); i += 16;
                     ParentID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    length = bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                 }
@@ -46417,8 +46828,8 @@ namespace OpenMetaverse.Packets
             {
                 FolderID.ToBytes(bytes, i); i += 16;
                 ParentID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
             }
 
@@ -46437,6 +46848,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public FolderDataBlock FolderData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public CreateInventoryFolderPacket()
         {
             HasVariableBlocks = false;
@@ -46445,6 +46858,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 273;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             FolderData = new FolderDataBlock();
         }
@@ -46469,11 +46883,10 @@ namespace OpenMetaverse.Packets
 
         public CreateInventoryFolderPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -46576,8 +46989,8 @@ namespace OpenMetaverse.Packets
                 {
                     FolderID.FromBytes(bytes, i); i += 16;
                     ParentID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    length = bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                 }
@@ -46591,8 +47004,8 @@ namespace OpenMetaverse.Packets
             {
                 FolderID.ToBytes(bytes, i); i += 16;
                 ParentID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
             }
 
@@ -46612,6 +47025,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public FolderDataBlock[] FolderData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public UpdateInventoryFolderPacket()
         {
             HasVariableBlocks = true;
@@ -46620,6 +47035,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 274;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             FolderData = null;
         }
@@ -46652,11 +47068,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateInventoryFolderPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -46682,7 +47097,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)FolderData.Length;
+            Utils.ByteToBytes((byte)FolderData.Length, bytes, ref i);
             for (int j = 0; j < FolderData.Length; j++) { FolderData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -46781,7 +47196,7 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     SessionID.FromBytes(bytes, i); i += 16;
-                    Stamp = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Stamp = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -46793,7 +47208,7 @@ namespace OpenMetaverse.Packets
             {
                 AgentID.ToBytes(bytes, i); i += 16;
                 SessionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((Stamp) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Stamp) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -46853,6 +47268,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock[] InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public MoveInventoryFolderPacket()
         {
             HasVariableBlocks = true;
@@ -46861,6 +47278,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 275;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryData = null;
@@ -46894,11 +47312,10 @@ namespace OpenMetaverse.Packets
 
         public MoveInventoryFolderPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -46924,7 +47341,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -47089,6 +47506,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public FolderDataBlock[] FolderData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RemoveInventoryFolderPacket()
         {
             HasVariableBlocks = true;
@@ -47097,6 +47516,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 276;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             FolderData = null;
         }
@@ -47129,11 +47549,10 @@ namespace OpenMetaverse.Packets
 
         public RemoveInventoryFolderPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -47159,7 +47578,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)FolderData.Length;
+            Utils.ByteToBytes((byte)FolderData.Length, bytes, ref i);
             for (int j = 0; j < FolderData.Length; j++) { FolderData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -47302,8 +47721,8 @@ namespace OpenMetaverse.Packets
                     FolderID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     SortOrder = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    FetchFolders = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    FetchItems = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    FetchFolders = (Utils.BytesToByte(bytes, ref i) != 0);
+                    FetchItems = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -47316,8 +47735,8 @@ namespace OpenMetaverse.Packets
                 FolderID.ToBytes(bytes, i); i += 16;
                 OwnerID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(SortOrder, bytes, i); i += 4;
-                bytes[i++] = (byte)((FetchFolders) ? 1 : 0);
-                bytes[i++] = (byte)((FetchItems) ? 1 : 0);
+                Utils.ByteToBytes((byte)((FetchFolders) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((FetchItems) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -47335,6 +47754,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public FetchInventoryDescendentsPacket()
         {
             HasVariableBlocks = false;
@@ -47343,6 +47764,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 277;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryData = new InventoryDataBlock();
@@ -47368,11 +47790,10 @@ namespace OpenMetaverse.Packets
 
         public FetchInventoryDescendentsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -47484,8 +47905,8 @@ namespace OpenMetaverse.Packets
                 {
                     FolderID.FromBytes(bytes, i); i += 16;
                     ParentID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    length = bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                 }
@@ -47499,8 +47920,8 @@ namespace OpenMetaverse.Packets
             {
                 FolderID.ToBytes(bytes, i); i += 16;
                 ParentID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
             }
 
@@ -47563,17 +47984,17 @@ namespace OpenMetaverse.Packets
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    GroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
                     AssetID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    InvType = (sbyte)bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    InvType = (sbyte)Utils.BytesToByte(bytes, ref i);
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                     CreationDate = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -47597,16 +48018,16 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)((GroupOwned) ? 1 : 0);
+                Utils.ByteToBytes((byte)((GroupOwned) ? 1 : 0), bytes, ref i);
                 AssetID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)InvType;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes( (byte)InvType, bytes, ref i);
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
                 Utils.IntToBytesSafepos(CreationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(CRC, bytes, i); i += 4;
@@ -47639,6 +48060,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 278;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             FolderData = null;
@@ -47682,11 +48104,10 @@ namespace OpenMetaverse.Packets
 
         public InventoryDescendentsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -47723,9 +48144,9 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)FolderData.Length;
+            Utils.ByteToBytes((byte)FolderData.Length, bytes, ref i);
             for (int j = 0; j < FolderData.Length; j++) { FolderData[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)ItemData.Length;
+            Utils.ByteToBytes((byte)ItemData.Length, bytes, ref i);
             for (int j = 0; j < ItemData.Length; j++) { ItemData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -47913,6 +48334,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock[] InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public FetchInventoryPacket()
         {
             HasVariableBlocks = true;
@@ -47921,6 +48344,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 279;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryData = null;
@@ -47954,11 +48378,10 @@ namespace OpenMetaverse.Packets
 
         public FetchInventoryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -47984,7 +48407,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -48151,17 +48574,17 @@ namespace OpenMetaverse.Packets
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    GroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
                     AssetID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    InvType = (sbyte)bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    InvType = (sbyte)Utils.BytesToByte(bytes, ref i);
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                     CreationDate = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -48185,16 +48608,16 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)((GroupOwned) ? 1 : 0);
+                Utils.ByteToBytes((byte)((GroupOwned) ? 1 : 0), bytes, ref i);
                 AssetID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)InvType;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes( (byte)InvType, bytes, ref i);
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
                 Utils.IntToBytesSafepos(CreationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(CRC, bytes, i); i += 4;
@@ -48224,6 +48647,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 280;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryData = null;
@@ -48257,11 +48681,10 @@ namespace OpenMetaverse.Packets
 
         public FetchInventoryReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -48287,7 +48710,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -48431,8 +48854,8 @@ namespace OpenMetaverse.Packets
                 {
                     FolderID.FromBytes(bytes, i); i += 16;
                     ParentID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    length = bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                 }
@@ -48446,8 +48869,8 @@ namespace OpenMetaverse.Packets
             {
                 FolderID.ToBytes(bytes, i); i += 16;
                 ParentID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
             }
 
@@ -48512,17 +48935,17 @@ namespace OpenMetaverse.Packets
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    GroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
                     AssetID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    InvType = (sbyte)bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    InvType = (sbyte)Utils.BytesToByte(bytes, ref i);
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                     CreationDate = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -48547,16 +48970,16 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)((GroupOwned) ? 1 : 0);
+                Utils.ByteToBytes((byte)((GroupOwned) ? 1 : 0), bytes, ref i);
                 AssetID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)InvType;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes( (byte)InvType, bytes, ref i);
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
                 Utils.IntToBytesSafepos(CreationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(CRC, bytes, i); i += 4;
@@ -48589,6 +49012,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 281;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             FolderData = null;
@@ -48632,11 +49056,10 @@ namespace OpenMetaverse.Packets
 
         public BulkUpdateInventoryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -48673,9 +49096,9 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)FolderData.Length;
+            Utils.ByteToBytes((byte)FolderData.Length, bytes, ref i);
             for (int j = 0; j < FolderData.Length; j++) { FolderData[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)ItemData.Length;
+            Utils.ByteToBytes((byte)ItemData.Length, bytes, ref i);
             for (int j = 0; j < ItemData.Length; j++) { ItemData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -48901,6 +49324,8 @@ namespace OpenMetaverse.Packets
         public FolderDataBlock[] FolderData;
         public ItemDataBlock[] ItemData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RemoveInventoryObjectsPacket()
         {
             HasVariableBlocks = true;
@@ -48909,6 +49334,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 284;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             FolderData = null;
             ItemData = null;
@@ -48951,11 +49377,10 @@ namespace OpenMetaverse.Packets
 
         public RemoveInventoryObjectsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -48992,9 +49417,9 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)FolderData.Length;
+            Utils.ByteToBytes((byte)FolderData.Length, bytes, ref i);
             for (int j = 0; j < FolderData.Length; j++) { FolderData[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)ItemData.Length;
+            Utils.ByteToBytes((byte)ItemData.Length, bytes, ref i);
             for (int j = 0; j < ItemData.Length; j++) { ItemData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -49178,6 +49603,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public PurgeInventoryDescendentsPacket()
         {
             HasVariableBlocks = false;
@@ -49186,6 +49613,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 285;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryData = new InventoryDataBlock();
@@ -49211,11 +49639,10 @@ namespace OpenMetaverse.Packets
 
         public PurgeInventoryDescendentsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -49312,7 +49739,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     LocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Key = (byte)bytes[i++];
+                    Key = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -49323,7 +49750,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(LocalID, bytes, i); i += 4;
-                bytes[i++] = Key;
+                Utils.ByteToBytes( Key, bytes, ref i);
             }
 
         }
@@ -49385,17 +49812,17 @@ namespace OpenMetaverse.Packets
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    GroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    InvType = (sbyte)bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    InvType = (sbyte)Utils.BytesToByte(bytes, ref i);
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                     CreationDate = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -49419,16 +49846,16 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)((GroupOwned) ? 1 : 0);
+                Utils.ByteToBytes((byte)((GroupOwned) ? 1 : 0), bytes, ref i);
                 TransactionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)InvType;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes( (byte)InvType, bytes, ref i);
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
                 Utils.IntToBytesSafepos(CreationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(CRC, bytes, i); i += 4;
@@ -49451,6 +49878,8 @@ namespace OpenMetaverse.Packets
         public UpdateDataBlock UpdateData;
         public InventoryDataBlock InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public UpdateTaskInventoryPacket()
         {
             HasVariableBlocks = false;
@@ -49459,6 +49888,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 286;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             UpdateData = new UpdateDataBlock();
@@ -49486,11 +49916,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateTaskInventoryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -49619,6 +50048,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RemoveTaskInventoryPacket()
         {
             HasVariableBlocks = false;
@@ -49627,6 +50058,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 287;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryData = new InventoryDataBlock();
@@ -49652,11 +50084,10 @@ namespace OpenMetaverse.Packets
 
         public RemoveTaskInventoryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -49785,6 +50216,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public MoveTaskInventoryPacket()
         {
             HasVariableBlocks = false;
@@ -49793,6 +50226,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 288;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             InventoryData = new InventoryDataBlock();
         }
@@ -49817,11 +50251,10 @@ namespace OpenMetaverse.Packets
 
         public MoveTaskInventoryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -49944,6 +50377,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RequestTaskInventoryPacket()
         {
             HasVariableBlocks = false;
@@ -49952,6 +50387,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 289;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             InventoryData = new InventoryDataBlock();
         }
@@ -49976,11 +50412,10 @@ namespace OpenMetaverse.Packets
 
         public RequestTaskInventoryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -50041,7 +50476,7 @@ namespace OpenMetaverse.Packets
                 {
                     TaskID.FromBytes(bytes, i); i += 16;
                     Serial = Utils.BytesToInt16(bytes, i); i += 2;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Filename = new byte[length];
                     Buffer.BlockCopy(bytes, i, Filename, 0, length); i += length;
                 }
@@ -50055,7 +50490,7 @@ namespace OpenMetaverse.Packets
             {
                 TaskID.ToBytes(bytes, i); i += 16;
                 Utils.Int16ToBytes(Serial, bytes, i); i += 2;
-                bytes[i++] = (byte)Filename.Length;
+                Utils.ByteToBytes((byte)Filename.Length, bytes, ref i);
                 Buffer.BlockCopy(Filename, 0, bytes, i, Filename.Length); i += Filename.Length;
             }
 
@@ -50080,6 +50515,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 290;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             InventoryData = new InventoryDataBlock();
         }
@@ -50103,11 +50539,10 @@ namespace OpenMetaverse.Packets
 
         public ReplyTaskInventoryPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             InventoryData.FromBytes(bytes, ref i);
@@ -50205,11 +50640,11 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    Destination = (byte)bytes[i++];
+                    Destination = Utils.BytesToByte(bytes, ref i);
                     DestinationID.FromBytes(bytes, i); i += 16;
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    PacketCount = (byte)bytes[i++];
-                    PacketNumber = (byte)bytes[i++];
+                    PacketCount = Utils.BytesToByte(bytes, ref i);
+                    PacketNumber = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -50220,11 +50655,11 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = Destination;
+                Utils.ByteToBytes( Destination, bytes, ref i);
                 DestinationID.ToBytes(bytes, i); i += 16;
                 TransactionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = PacketCount;
-                bytes[i++] = PacketNumber;
+                Utils.ByteToBytes( PacketCount, bytes, ref i);
+                Utils.ByteToBytes( PacketNumber, bytes, ref i);
             }
 
         }
@@ -50283,6 +50718,8 @@ namespace OpenMetaverse.Packets
         public AgentBlockBlock AgentBlock;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public DeRezObjectPacket()
         {
             HasVariableBlocks = true;
@@ -50291,6 +50728,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 291;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             AgentBlock = new AgentBlockBlock();
@@ -50326,11 +50764,10 @@ namespace OpenMetaverse.Packets
 
         public DeRezObjectPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -50359,7 +50796,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             AgentBlock.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -50458,7 +50895,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    Success = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Success = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -50469,7 +50906,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 TransactionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((Success) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Success) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -50493,6 +50930,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 292;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             TransactionData = new TransactionDataBlock();
         }
 
@@ -50515,11 +50953,10 @@ namespace OpenMetaverse.Packets
 
         public DeRezAckPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TransactionData.FromBytes(bytes, ref i);
@@ -50626,13 +51063,13 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     FromTaskID.FromBytes(bytes, i); i += 16;
-                    BypassRaycast = (byte)bytes[i++];
+                    BypassRaycast = Utils.BytesToByte(bytes, ref i);
                     RayStart.FromBytes(bytes, i); i += 12;
                     RayEnd.FromBytes(bytes, i); i += 12;
                     RayTargetID.FromBytes(bytes, i); i += 16;
-                    RayEndIsIntersection = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    RezSelected = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    RemoveItem = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    RayEndIsIntersection = (Utils.BytesToByte(bytes, ref i) != 0);
+                    RezSelected = (Utils.BytesToByte(bytes, ref i) != 0);
+                    RemoveItem = (Utils.BytesToByte(bytes, ref i) != 0);
                     ItemFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
@@ -50647,13 +51084,13 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 FromTaskID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = BypassRaycast;
+                Utils.ByteToBytes( BypassRaycast, bytes, ref i);
                 RayStart.ToBytes(bytes, i); i += 12;
                 RayEnd.ToBytes(bytes, i); i += 12;
                 RayTargetID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((RayEndIsIntersection) ? 1 : 0);
-                bytes[i++] = (byte)((RezSelected) ? 1 : 0);
-                bytes[i++] = (byte)((RemoveItem) ? 1 : 0);
+                Utils.ByteToBytes((byte)((RayEndIsIntersection) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((RezSelected) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((RemoveItem) ? 1 : 0), bytes, ref i);
                 Utils.UIntToBytesSafepos(ItemFlags, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
@@ -50719,17 +51156,17 @@ namespace OpenMetaverse.Packets
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    GroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    InvType = (sbyte)bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    InvType = (sbyte)Utils.BytesToByte(bytes, ref i);
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                     CreationDate = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -50753,16 +51190,16 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)((GroupOwned) ? 1 : 0);
+                Utils.ByteToBytes((byte)((GroupOwned) ? 1 : 0), bytes, ref i);
                 TransactionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)InvType;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes( (byte)InvType, bytes, ref i);
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
                 Utils.IntToBytesSafepos(CreationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(CRC, bytes, i); i += 4;
@@ -50785,6 +51222,8 @@ namespace OpenMetaverse.Packets
         public RezDataBlock RezData;
         public InventoryDataBlock InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RezObjectPacket()
         {
             HasVariableBlocks = false;
@@ -50793,6 +51232,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 293;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             RezData = new RezDataBlock();
@@ -50820,11 +51260,10 @@ namespace OpenMetaverse.Packets
 
         public RezObjectPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -50937,13 +51376,13 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     FromTaskID.FromBytes(bytes, i); i += 16;
-                    BypassRaycast = (byte)bytes[i++];
+                    BypassRaycast = Utils.BytesToByte(bytes, ref i);
                     RayStart.FromBytes(bytes, i); i += 12;
                     RayEnd.FromBytes(bytes, i); i += 12;
                     RayTargetID.FromBytes(bytes, i); i += 16;
-                    RayEndIsIntersection = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    RezSelected = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    RemoveItem = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    RayEndIsIntersection = (Utils.BytesToByte(bytes, ref i) != 0);
+                    RezSelected = (Utils.BytesToByte(bytes, ref i) != 0);
+                    RemoveItem = (Utils.BytesToByte(bytes, ref i) != 0);
                     ItemFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
@@ -50958,13 +51397,13 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 FromTaskID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = BypassRaycast;
+                Utils.ByteToBytes( BypassRaycast, bytes, ref i);
                 RayStart.ToBytes(bytes, i); i += 12;
                 RayEnd.ToBytes(bytes, i); i += 12;
                 RayTargetID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((RayEndIsIntersection) ? 1 : 0);
-                bytes[i++] = (byte)((RezSelected) ? 1 : 0);
-                bytes[i++] = (byte)((RemoveItem) ? 1 : 0);
+                Utils.ByteToBytes((byte)((RayEndIsIntersection) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((RezSelected) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((RemoveItem) ? 1 : 0), bytes, ref i);
                 Utils.UIntToBytesSafepos(ItemFlags, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
@@ -51070,6 +51509,8 @@ namespace OpenMetaverse.Packets
         public NotecardDataBlock NotecardData;
         public InventoryDataBlock[] InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RezObjectFromNotecardPacket()
         {
             HasVariableBlocks = true;
@@ -51078,6 +51519,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 294;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             RezData = new RezDataBlock();
@@ -51115,11 +51557,10 @@ namespace OpenMetaverse.Packets
 
         public RezObjectFromNotecardPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -51151,7 +51592,7 @@ namespace OpenMetaverse.Packets
             AgentData.ToBytes(bytes, ref i);
             RezData.ToBytes(bytes, ref i);
             NotecardData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InventoryData.Length;
+            Utils.ByteToBytes((byte)InventoryData.Length, bytes, ref i);
             for (int j = 0; j < InventoryData.Length; j++) { InventoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -51360,6 +51801,8 @@ namespace OpenMetaverse.Packets
         public TransactionBlockBlock TransactionBlock;
         public FolderDataBlock[] FolderData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AcceptFriendshipPacket()
         {
             HasVariableBlocks = true;
@@ -51368,6 +51811,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 297;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             TransactionBlock = new TransactionBlockBlock();
             FolderData = null;
@@ -51402,11 +51846,10 @@ namespace OpenMetaverse.Packets
 
         public AcceptFriendshipPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -51435,7 +51878,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             TransactionBlock.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)FolderData.Length;
+            Utils.ByteToBytes((byte)FolderData.Length, bytes, ref i);
             for (int j = 0; j < FolderData.Length; j++) { FolderData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -51601,6 +52044,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public TransactionBlockBlock TransactionBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public DeclineFriendshipPacket()
         {
             HasVariableBlocks = false;
@@ -51609,6 +52054,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 298;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             TransactionBlock = new TransactionBlockBlock();
         }
@@ -51633,11 +52079,10 @@ namespace OpenMetaverse.Packets
 
         public DeclineFriendshipPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -51760,6 +52205,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ExBlockBlock ExBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public TerminateFriendshipPacket()
         {
             HasVariableBlocks = false;
@@ -51768,6 +52215,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 300;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ExBlock = new ExBlockBlock();
         }
@@ -51792,11 +52240,10 @@ namespace OpenMetaverse.Packets
 
         public TerminateFriendshipPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -51922,6 +52369,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public AgentBlockBlock AgentBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public OfferCallingCardPacket()
         {
             HasVariableBlocks = false;
@@ -51930,6 +52379,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 301;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             AgentBlock = new AgentBlockBlock();
         }
@@ -51954,11 +52404,10 @@ namespace OpenMetaverse.Packets
 
         public OfferCallingCardPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -52122,6 +52571,8 @@ namespace OpenMetaverse.Packets
         public TransactionBlockBlock TransactionBlock;
         public FolderDataBlock[] FolderData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AcceptCallingCardPacket()
         {
             HasVariableBlocks = true;
@@ -52130,6 +52581,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 302;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             TransactionBlock = new TransactionBlockBlock();
             FolderData = null;
@@ -52164,11 +52616,10 @@ namespace OpenMetaverse.Packets
 
         public AcceptCallingCardPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -52197,7 +52648,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             TransactionBlock.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)FolderData.Length;
+            Utils.ByteToBytes((byte)FolderData.Length, bytes, ref i);
             for (int j = 0; j < FolderData.Length; j++) { FolderData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -52363,6 +52814,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public TransactionBlockBlock TransactionBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public DeclineCallingCardPacket()
         {
             HasVariableBlocks = false;
@@ -52371,6 +52824,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 303;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             TransactionBlock = new TransactionBlockBlock();
         }
@@ -52395,11 +52849,10 @@ namespace OpenMetaverse.Packets
 
         public DeclineCallingCardPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -52499,7 +52952,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectLocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Enabled = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Enabled = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -52510,7 +52963,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(ObjectLocalID, bytes, i); i += 4;
-                bytes[i++] = (byte)((Enabled) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Enabled) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -52572,17 +53025,17 @@ namespace OpenMetaverse.Packets
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    GroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    InvType = (sbyte)bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    InvType = (sbyte)Utils.BytesToByte(bytes, ref i);
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                     CreationDate = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -52606,16 +53059,16 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)((GroupOwned) ? 1 : 0);
+                Utils.ByteToBytes((byte)((GroupOwned) ? 1 : 0), bytes, ref i);
                 TransactionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)InvType;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes( (byte)InvType, bytes, ref i);
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
                 Utils.IntToBytesSafepos(CreationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(CRC, bytes, i); i += 4;
@@ -52638,6 +53091,8 @@ namespace OpenMetaverse.Packets
         public UpdateBlockBlock UpdateBlock;
         public InventoryBlockBlock InventoryBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RezScriptPacket()
         {
             HasVariableBlocks = false;
@@ -52646,6 +53101,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 304;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             UpdateBlock = new UpdateBlockBlock();
@@ -52673,11 +53129,10 @@ namespace OpenMetaverse.Packets
 
         public RezScriptPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -52791,13 +53246,13 @@ namespace OpenMetaverse.Packets
                     FolderID.FromBytes(bytes, i); i += 16;
                     TransactionID.FromBytes(bytes, i); i += 16;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Type = (sbyte)bytes[i++];
-                    InvType = (sbyte)bytes[i++];
-                    WearableType = (byte)bytes[i++];
-                    length = bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    InvType = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    WearableType = Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                 }
@@ -52813,12 +53268,12 @@ namespace OpenMetaverse.Packets
                 FolderID.ToBytes(bytes, i); i += 16;
                 TransactionID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)InvType;
-                bytes[i++] = WearableType;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes( (byte)InvType, bytes, ref i);
+                Utils.ByteToBytes( WearableType, bytes, ref i);
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
             }
 
@@ -52837,6 +53292,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryBlockBlock InventoryBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public CreateInventoryItemPacket()
         {
             HasVariableBlocks = false;
@@ -52845,6 +53302,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 305;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryBlock = new InventoryBlockBlock();
@@ -52870,11 +53328,10 @@ namespace OpenMetaverse.Packets
 
         public CreateInventoryItemPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -53012,7 +53469,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     FolderID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                 }
@@ -53025,7 +53482,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 FolderID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
             }
 
@@ -53046,6 +53503,8 @@ namespace OpenMetaverse.Packets
         public EventDataBlock EventData;
         public InventoryBlockBlock InventoryBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public CreateLandmarkForEventPacket()
         {
             HasVariableBlocks = false;
@@ -53054,6 +53513,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 306;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             EventData = new EventDataBlock();
@@ -53081,11 +53541,10 @@ namespace OpenMetaverse.Packets
 
         public CreateLandmarkForEventPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -53176,6 +53635,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 309;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             RequestBlock = new RequestBlockBlock();
         }
 
@@ -53198,11 +53658,10 @@ namespace OpenMetaverse.Packets
 
         public RegionHandleRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RequestBlock.FromBytes(bytes, ref i);
@@ -53290,6 +53749,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 310;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ReplyBlock = new ReplyBlockBlock();
         }
 
@@ -53312,11 +53772,10 @@ namespace OpenMetaverse.Packets
 
         public RegionIDAndHandleReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ReplyBlock.FromBytes(bytes, ref i);
@@ -53420,12 +53879,12 @@ namespace OpenMetaverse.Packets
                 {
                     SourceID.FromBytes(bytes, i); i += 16;
                     DestID.FromBytes(bytes, i); i += 16;
-                    Flags = (byte)bytes[i++];
+                    Flags = Utils.BytesToByte(bytes, ref i);
                     Amount = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    AggregatePermNextOwner = (byte)bytes[i++];
-                    AggregatePermInventory = (byte)bytes[i++];
+                    AggregatePermNextOwner = Utils.BytesToByte(bytes, ref i);
+                    AggregatePermInventory = Utils.BytesToByte(bytes, ref i);
                     TransactionType = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                 }
@@ -53439,12 +53898,12 @@ namespace OpenMetaverse.Packets
             {
                 SourceID.ToBytes(bytes, i); i += 16;
                 DestID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = Flags;
+                Utils.ByteToBytes( Flags, bytes, ref i);
                 Utils.IntToBytesSafepos(Amount, bytes, i); i += 4;
-                bytes[i++] = AggregatePermNextOwner;
-                bytes[i++] = AggregatePermInventory;
+                Utils.ByteToBytes( AggregatePermNextOwner, bytes, ref i);
+                Utils.ByteToBytes( AggregatePermInventory, bytes, ref i);
                 Utils.IntToBytesSafepos(TransactionType, bytes, i); i += 4;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
             }
 
@@ -53463,6 +53922,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public MoneyDataBlock MoneyData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public MoneyTransferRequestPacket()
         {
             HasVariableBlocks = false;
@@ -53471,6 +53932,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 311;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MoneyData = new MoneyDataBlock();
@@ -53496,11 +53958,10 @@ namespace OpenMetaverse.Packets
 
         public MoneyTransferRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -53623,6 +54084,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public MoneyDataBlock MoneyData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public MoneyBalanceRequestPacket()
         {
             HasVariableBlocks = false;
@@ -53631,6 +54094,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 313;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MoneyData = new MoneyDataBlock();
@@ -53656,11 +54120,10 @@ namespace OpenMetaverse.Packets
 
         public MoneyBalanceRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -53725,11 +54188,11 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    TransactionSuccess = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    TransactionSuccess = (Utils.BytesToByte(bytes, ref i) != 0);
                     MoneyBalance = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     SquareMetersCredit = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     SquareMetersCommitted = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                 }
@@ -53743,11 +54206,11 @@ namespace OpenMetaverse.Packets
             {
                 AgentID.ToBytes(bytes, i); i += 16;
                 TransactionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((TransactionSuccess) ? 1 : 0);
+                Utils.ByteToBytes((byte)((TransactionSuccess) ? 1 : 0), bytes, ref i);
                 Utils.IntToBytesSafepos(MoneyBalance, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(SquareMetersCredit, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(SquareMetersCommitted, bytes, i); i += 4;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
             }
 
@@ -53787,11 +54250,11 @@ namespace OpenMetaverse.Packets
                 {
                     TransactionType = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     SourceID.FromBytes(bytes, i); i += 16;
-                    IsSourceGroup = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IsSourceGroup = (Utils.BytesToByte(bytes, ref i) != 0);
                     DestID.FromBytes(bytes, i); i += 16;
-                    IsDestGroup = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IsDestGroup = (Utils.BytesToByte(bytes, ref i) != 0);
                     Amount = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ItemDescription = new byte[length];
                     Buffer.BlockCopy(bytes, i, ItemDescription, 0, length); i += length;
                 }
@@ -53805,11 +54268,11 @@ namespace OpenMetaverse.Packets
             {
                 Utils.IntToBytesSafepos(TransactionType, bytes, i); i += 4;
                 SourceID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((IsSourceGroup) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IsSourceGroup) ? 1 : 0), bytes, ref i);
                 DestID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((IsDestGroup) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IsDestGroup) ? 1 : 0), bytes, ref i);
                 Utils.IntToBytesSafepos(Amount, bytes, i); i += 4;
-                bytes[i++] = (byte)ItemDescription.Length;
+                Utils.ByteToBytes((byte)ItemDescription.Length, bytes, ref i);
                 Buffer.BlockCopy(ItemDescription, 0, bytes, i, ItemDescription.Length); i += ItemDescription.Length;
             }
 
@@ -53836,6 +54299,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 314;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             MoneyData = new MoneyDataBlock();
             TransactionInfo = new TransactionInfoBlock();
@@ -53861,11 +54325,10 @@ namespace OpenMetaverse.Packets
 
         public MoneyBalanceReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             MoneyData.FromBytes(bytes, ref i);
@@ -53932,8 +54395,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(TargetIP, bytes, i); i += 4;
-                bytes[i++] = (byte)((TargetPort >> 8) % 256);
-                bytes[i++] = (byte)(TargetPort % 256);
+                Utils.UInt16ToBytesBig(TargetPort, bytes, i); i += 2;
             }
 
         }
@@ -53972,11 +54434,11 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    TransactionSuccess = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    TransactionSuccess = (Utils.BytesToByte(bytes, ref i) != 0);
                     MoneyBalance = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     SquareMetersCredit = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     SquareMetersCommitted = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                 }
@@ -53990,11 +54452,11 @@ namespace OpenMetaverse.Packets
             {
                 AgentID.ToBytes(bytes, i); i += 16;
                 TransactionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((TransactionSuccess) ? 1 : 0);
+                Utils.ByteToBytes((byte)((TransactionSuccess) ? 1 : 0), bytes, ref i);
                 Utils.IntToBytesSafepos(MoneyBalance, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(SquareMetersCredit, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(SquareMetersCommitted, bytes, i); i += 4;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
             }
 
@@ -54034,11 +54496,11 @@ namespace OpenMetaverse.Packets
                 {
                     TransactionType = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     SourceID.FromBytes(bytes, i); i += 16;
-                    IsSourceGroup = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IsSourceGroup = (Utils.BytesToByte(bytes, ref i) != 0);
                     DestID.FromBytes(bytes, i); i += 16;
-                    IsDestGroup = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IsDestGroup = (Utils.BytesToByte(bytes, ref i) != 0);
                     Amount = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ItemDescription = new byte[length];
                     Buffer.BlockCopy(bytes, i, ItemDescription, 0, length); i += length;
                 }
@@ -54052,11 +54514,11 @@ namespace OpenMetaverse.Packets
             {
                 Utils.IntToBytesSafepos(TransactionType, bytes, i); i += 4;
                 SourceID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((IsSourceGroup) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IsSourceGroup) ? 1 : 0), bytes, ref i);
                 DestID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((IsDestGroup) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IsDestGroup) ? 1 : 0), bytes, ref i);
                 Utils.IntToBytesSafepos(Amount, bytes, i); i += 4;
-                bytes[i++] = (byte)ItemDescription.Length;
+                Utils.ByteToBytes((byte)ItemDescription.Length, bytes, ref i);
                 Buffer.BlockCopy(ItemDescription, 0, bytes, i, ItemDescription.Length); i += ItemDescription.Length;
             }
 
@@ -54085,6 +54547,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 315;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             TargetBlock = new TargetBlockBlock();
             MoneyData = new MoneyDataBlock();
@@ -54112,11 +54575,10 @@ namespace OpenMetaverse.Packets
 
         public RoutedMoneyBalanceReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TargetBlock.FromBytes(bytes, ref i);
@@ -54252,6 +54714,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock[] Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ActivateGesturesPacket()
         {
             HasVariableBlocks = true;
@@ -54260,6 +54724,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 316;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = null;
         }
@@ -54292,11 +54757,10 @@ namespace OpenMetaverse.Packets
 
         public ActivateGesturesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -54322,7 +54786,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Data.Length;
+            Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
             for (int j = 0; j < Data.Length; j++) { Data[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -54493,6 +54957,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock[] Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public DeactivateGesturesPacket()
         {
             HasVariableBlocks = true;
@@ -54501,6 +54967,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 317;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = null;
         }
@@ -54533,11 +55000,10 @@ namespace OpenMetaverse.Packets
 
         public DeactivateGesturesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -54563,7 +55029,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Data.Length;
+            Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
             for (int j = 0; j < Data.Length; j++) { Data[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -54663,7 +55129,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Filename = new byte[length];
                     Buffer.BlockCopy(bytes, i, Filename, 0, length); i += length;
                 }
@@ -54676,7 +55142,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 AgentID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Filename.Length;
+                Utils.ByteToBytes((byte)Filename.Length, bytes, ref i);
                 Buffer.BlockCopy(Filename, 0, bytes, i, Filename.Length); i += Filename.Length;
             }
 
@@ -54701,6 +55167,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 318;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             MuteData = new MuteDataBlock();
         }
 
@@ -54723,11 +55190,10 @@ namespace OpenMetaverse.Packets
 
         public MuteListUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             MuteData.FromBytes(bytes, ref i);
@@ -54812,6 +55278,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 319;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
         }
 
@@ -54834,11 +55301,10 @@ namespace OpenMetaverse.Packets
 
         public UseCachedMuteListPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -54962,6 +55428,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public RightsBlock[] Rights;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GrantUserRightsPacket()
         {
             HasVariableBlocks = true;
@@ -54970,6 +55438,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 320;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Rights = null;
         }
@@ -55002,11 +55471,10 @@ namespace OpenMetaverse.Packets
 
         public GrantUserRightsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -55032,7 +55500,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Rights.Length;
+            Utils.ByteToBytes((byte)Rights.Length, bytes, ref i);
             for (int j = 0; j < Rights.Length; j++) { Rights[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -55205,6 +55673,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 321;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             Rights = null;
         }
@@ -55237,11 +55706,10 @@ namespace OpenMetaverse.Packets
 
         public ChangeUserRightsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -55267,7 +55735,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Rights.Length;
+            Utils.ByteToBytes((byte)Rights.Length, bytes, ref i);
             for (int j = 0; j < Rights.Length; j++) { Rights[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -55397,6 +55865,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 322;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentBlock = null;
         }
 
@@ -55427,11 +55896,10 @@ namespace OpenMetaverse.Packets
 
         public OnlineNotificationPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -55454,7 +55922,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)AgentBlock.Length;
+            Utils.ByteToBytes((byte)AgentBlock.Length, bytes, ref i);
             for (int j = 0; j < AgentBlock.Length; j++) { AgentBlock[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -55582,6 +56050,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 323;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentBlock = null;
         }
 
@@ -55612,11 +56081,10 @@ namespace OpenMetaverse.Packets
 
         public OfflineNotificationPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -55639,7 +56107,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)AgentBlock.Length;
+            Utils.ByteToBytes((byte)AgentBlock.Length, bytes, ref i);
             for (int j = 0; j < AgentBlock.Length; j++) { AgentBlock[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -55779,7 +56247,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimName, 0, length); i += length;
                     LocationID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
@@ -55794,7 +56262,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)SimName.Length;
+                Utils.ByteToBytes((byte)SimName.Length, bytes, ref i);
                 Buffer.BlockCopy(SimName, 0, bytes, i, SimName.Length); i += SimName.Length;
                 Utils.UIntToBytesSafepos(LocationID, bytes, i); i += 4;
                 LocationPos.ToBytes(bytes, i); i += 12;
@@ -55816,6 +56284,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public StartLocationDataBlock StartLocationData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public SetStartLocationRequestPacket()
         {
             HasVariableBlocks = false;
@@ -55824,6 +56294,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 324;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             StartLocationData = new StartLocationDataBlock();
@@ -55849,11 +56320,10 @@ namespace OpenMetaverse.Packets
 
         public SetStartLocationRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -55915,10 +56385,10 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    Tempfile = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    StoreLocal = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    Tempfile = (Utils.BytesToByte(bytes, ref i) != 0);
+                    StoreLocal = (Utils.BytesToByte(bytes, ref i) != 0);
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     AssetData = new byte[length];
                     Buffer.BlockCopy(bytes, i, AssetData, 0, length); i += length;
                 }
@@ -55931,11 +56401,10 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 TransactionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)((Tempfile) ? 1 : 0);
-                bytes[i++] = (byte)((StoreLocal) ? 1 : 0);
-                bytes[i++] = (byte)(AssetData.Length % 256);
-                bytes[i++] = (byte)((AssetData.Length >> 8) % 256);
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes((byte)((Tempfile) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((StoreLocal) ? 1 : 0), bytes, ref i);
+                Utils.UInt16ToBytes((ushort)AssetData.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(AssetData, 0, bytes, i, AssetData.Length); i += AssetData.Length;
             }
 
@@ -55960,6 +56429,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 333;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AssetBlock = new AssetBlockBlock();
         }
 
@@ -55982,11 +56452,10 @@ namespace OpenMetaverse.Packets
 
         public AssetUploadRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AssetBlock.FromBytes(bytes, ref i);
@@ -56040,8 +56509,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     UUID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    Success = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    Success = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -56052,8 +56521,8 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 UUID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)((Success) ? 1 : 0);
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes((byte)((Success) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -56077,6 +56546,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 334;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AssetBlock = new AssetBlockBlock();
         }
 
@@ -56099,11 +56569,10 @@ namespace OpenMetaverse.Packets
 
         public AssetUploadCompletePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AssetBlock.FromBytes(bytes, ref i);
@@ -56206,18 +56675,18 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Charter = new byte[length];
                     Buffer.BlockCopy(bytes, i, Charter, 0, length); i += length;
-                    ShowInList = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    ShowInList = (Utils.BytesToByte(bytes, ref i) != 0);
                     InsigniaID.FromBytes(bytes, i); i += 16;
                     MembershipFee = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    OpenEnrollment = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    AllowPublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    MaturePublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    OpenEnrollment = (Utils.BytesToByte(bytes, ref i) != 0);
+                    AllowPublish = (Utils.BytesToByte(bytes, ref i) != 0);
+                    MaturePublish = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -56227,17 +56696,16 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)(Charter.Length % 256);
-                bytes[i++] = (byte)((Charter.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Charter.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Charter, 0, bytes, i, Charter.Length); i += Charter.Length;
-                bytes[i++] = (byte)((ShowInList) ? 1 : 0);
+                Utils.ByteToBytes((byte)((ShowInList) ? 1 : 0), bytes, ref i);
                 InsigniaID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(MembershipFee, bytes, i); i += 4;
-                bytes[i++] = (byte)((OpenEnrollment) ? 1 : 0);
-                bytes[i++] = (byte)((AllowPublish) ? 1 : 0);
-                bytes[i++] = (byte)((MaturePublish) ? 1 : 0);
+                Utils.ByteToBytes((byte)((OpenEnrollment) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((AllowPublish) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((MaturePublish) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -56255,6 +56723,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public GroupDataBlock GroupData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public CreateGroupRequestPacket()
         {
             HasVariableBlocks = false;
@@ -56263,6 +56733,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 339;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
@@ -56288,11 +56759,10 @@ namespace OpenMetaverse.Packets
 
         public CreateGroupRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -56390,8 +56860,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    Success = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    length = bytes[i++];
+                    Success = (Utils.BytesToByte(bytes, ref i) != 0);
+                    length = Utils.BytesToByte(bytes, ref i);
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
                 }
@@ -56404,8 +56874,8 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((Success) ? 1 : 0);
-                bytes[i++] = (byte)Message.Length;
+                Utils.ByteToBytes((byte)((Success) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)Message.Length, bytes, ref i);
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
             }
 
@@ -56432,6 +56902,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 340;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             ReplyData = new ReplyDataBlock();
         }
@@ -56456,11 +56927,10 @@ namespace OpenMetaverse.Packets
 
         public CreateGroupReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -56566,15 +57036,15 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Charter = new byte[length];
                     Buffer.BlockCopy(bytes, i, Charter, 0, length); i += length;
-                    ShowInList = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    ShowInList = (Utils.BytesToByte(bytes, ref i) != 0);
                     InsigniaID.FromBytes(bytes, i); i += 16;
                     MembershipFee = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    OpenEnrollment = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    AllowPublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    MaturePublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    OpenEnrollment = (Utils.BytesToByte(bytes, ref i) != 0);
+                    AllowPublish = (Utils.BytesToByte(bytes, ref i) != 0);
+                    MaturePublish = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -56585,15 +57055,14 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)(Charter.Length % 256);
-                bytes[i++] = (byte)((Charter.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Charter.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Charter, 0, bytes, i, Charter.Length); i += Charter.Length;
-                bytes[i++] = (byte)((ShowInList) ? 1 : 0);
+                Utils.ByteToBytes((byte)((ShowInList) ? 1 : 0), bytes, ref i);
                 InsigniaID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(MembershipFee, bytes, i); i += 4;
-                bytes[i++] = (byte)((OpenEnrollment) ? 1 : 0);
-                bytes[i++] = (byte)((AllowPublish) ? 1 : 0);
-                bytes[i++] = (byte)((MaturePublish) ? 1 : 0);
+                Utils.ByteToBytes((byte)((OpenEnrollment) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((AllowPublish) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((MaturePublish) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -56611,6 +57080,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public GroupDataBlock GroupData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public UpdateGroupInfoPacket()
         {
             HasVariableBlocks = false;
@@ -56619,6 +57090,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 341;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
@@ -56644,11 +57116,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateGroupInfoPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -56781,6 +57252,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public RoleChangeBlock[] RoleChange;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupRoleChangesPacket()
         {
             HasVariableBlocks = true;
@@ -56789,6 +57262,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 342;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             RoleChange = null;
         }
@@ -56821,11 +57295,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleChangesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -56851,7 +57324,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)RoleChange.Length;
+            Utils.ByteToBytes((byte)RoleChange.Length, bytes, ref i);
             for (int j = 0; j < RoleChange.Length; j++) { RoleChange[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -57015,6 +57488,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public GroupDataBlock GroupData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public JoinGroupRequestPacket()
         {
             HasVariableBlocks = false;
@@ -57023,6 +57498,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 343;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
@@ -57048,11 +57524,10 @@ namespace OpenMetaverse.Packets
 
         public JoinGroupRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -57146,7 +57621,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    Success = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Success = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -57157,7 +57632,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((Success) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Success) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -57183,6 +57658,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 344;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
         }
@@ -57207,11 +57683,10 @@ namespace OpenMetaverse.Packets
 
         public JoinGroupReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -57375,6 +57850,8 @@ namespace OpenMetaverse.Packets
         public GroupDataBlock GroupData;
         public EjectDataBlock[] EjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public EjectGroupMemberRequestPacket()
         {
             HasVariableBlocks = true;
@@ -57383,6 +57860,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 345;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
             EjectData = null;
@@ -57417,11 +57895,10 @@ namespace OpenMetaverse.Packets
 
         public EjectGroupMemberRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -57450,7 +57927,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             GroupData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)EjectData.Length;
+            Utils.ByteToBytes((byte)EjectData.Length, bytes, ref i);
             for (int j = 0; j < EjectData.Length; j++) { EjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -57623,7 +58100,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Success = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Success = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -57633,7 +58110,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((Success) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Success) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -57661,6 +58138,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 346;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
             EjectData = new EjectDataBlock();
@@ -57687,11 +58165,10 @@ namespace OpenMetaverse.Packets
 
         public EjectGroupMemberReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -57817,6 +58294,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public GroupDataBlock GroupData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public LeaveGroupRequestPacket()
         {
             HasVariableBlocks = false;
@@ -57825,6 +58304,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 347;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
         }
@@ -57849,11 +58329,10 @@ namespace OpenMetaverse.Packets
 
         public LeaveGroupRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -57947,7 +58426,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    Success = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Success = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -57958,7 +58437,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((Success) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Success) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -57984,6 +58463,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 348;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
         }
@@ -58008,11 +58488,10 @@ namespace OpenMetaverse.Packets
 
         public LeaveGroupReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -58179,6 +58658,8 @@ namespace OpenMetaverse.Packets
         public GroupDataBlock GroupData;
         public InviteDataBlock[] InviteData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public InviteGroupRequestPacket()
         {
             HasVariableBlocks = true;
@@ -58187,6 +58668,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 349;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
             InviteData = null;
@@ -58221,11 +58703,10 @@ namespace OpenMetaverse.Packets
 
         public InviteGroupRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -58254,7 +58735,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             GroupData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)InviteData.Length;
+            Utils.ByteToBytes((byte)InviteData.Length, bytes, ref i);
             for (int j = 0; j < InviteData.Length; j++) { InviteData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -58420,6 +58901,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public GroupDataBlock GroupData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupProfileRequestPacket()
         {
             HasVariableBlocks = false;
@@ -58428,6 +58911,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 351;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
         }
@@ -58452,11 +58936,10 @@ namespace OpenMetaverse.Packets
 
         public GroupProfileRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -58569,26 +59052,26 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Charter = new byte[length];
                     Buffer.BlockCopy(bytes, i, Charter, 0, length); i += length;
-                    ShowInList = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    length = bytes[i++];
+                    ShowInList = (Utils.BytesToByte(bytes, ref i) != 0);
+                    length = Utils.BytesToByte(bytes, ref i);
                     MemberTitle = new byte[length];
                     Buffer.BlockCopy(bytes, i, MemberTitle, 0, length); i += length;
                     PowersMask = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
                     InsigniaID.FromBytes(bytes, i); i += 16;
                     FounderID.FromBytes(bytes, i); i += 16;
                     MembershipFee = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    OpenEnrollment = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    OpenEnrollment = (Utils.BytesToByte(bytes, ref i) != 0);
                     Money = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     GroupMembershipCount = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     GroupRolesCount = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    AllowPublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    MaturePublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    AllowPublish = (Utils.BytesToByte(bytes, ref i) != 0);
+                    MaturePublish = (Utils.BytesToByte(bytes, ref i) != 0);
                     OwnerRole.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -58600,24 +59083,23 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)(Charter.Length % 256);
-                bytes[i++] = (byte)((Charter.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Charter.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Charter, 0, bytes, i, Charter.Length); i += Charter.Length;
-                bytes[i++] = (byte)((ShowInList) ? 1 : 0);
-                bytes[i++] = (byte)MemberTitle.Length;
+                Utils.ByteToBytes((byte)((ShowInList) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)MemberTitle.Length, bytes, ref i);
                 Buffer.BlockCopy(MemberTitle, 0, bytes, i, MemberTitle.Length); i += MemberTitle.Length;
                 Utils.UInt64ToBytesSafepos(PowersMask, bytes, i); i += 8;
                 InsigniaID.ToBytes(bytes, i); i += 16;
                 FounderID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(MembershipFee, bytes, i); i += 4;
-                bytes[i++] = (byte)((OpenEnrollment) ? 1 : 0);
+                Utils.ByteToBytes((byte)((OpenEnrollment) ? 1 : 0), bytes, ref i);
                 Utils.IntToBytesSafepos(Money, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(GroupMembershipCount, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(GroupRolesCount, bytes, i); i += 4;
-                bytes[i++] = (byte)((AllowPublish) ? 1 : 0);
-                bytes[i++] = (byte)((MaturePublish) ? 1 : 0);
+                Utils.ByteToBytes((byte)((AllowPublish) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((MaturePublish) ? 1 : 0), bytes, ref i);
                 OwnerRole.ToBytes(bytes, i); i += 16;
             }
 
@@ -58644,6 +59126,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 352;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
@@ -58669,11 +59152,10 @@ namespace OpenMetaverse.Packets
 
         public GroupProfileReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -58805,6 +59287,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public MoneyDataBlock MoneyData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupAccountSummaryRequestPacket()
         {
             HasVariableBlocks = false;
@@ -58813,6 +59297,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 353;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MoneyData = new MoneyDataBlock();
@@ -58838,11 +59323,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountSummaryRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -58964,7 +59448,7 @@ namespace OpenMetaverse.Packets
                     RequestID.FromBytes(bytes, i); i += 16;
                     IntervalDays = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     CurrentInterval = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     StartDate = new byte[length];
                     Buffer.BlockCopy(bytes, i, StartDate, 0, length); i += length;
                     Balance = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -58981,10 +59465,10 @@ namespace OpenMetaverse.Packets
                     GroupTaxEstimate = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     ParcelDirFeeEstimate = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     NonExemptMembers = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     LastTaxDate = new byte[length];
                     Buffer.BlockCopy(bytes, i, LastTaxDate, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     TaxDate = new byte[length];
                     Buffer.BlockCopy(bytes, i, TaxDate, 0, length); i += length;
                 }
@@ -58999,7 +59483,7 @@ namespace OpenMetaverse.Packets
                 RequestID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(IntervalDays, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(CurrentInterval, bytes, i); i += 4;
-                bytes[i++] = (byte)StartDate.Length;
+                Utils.ByteToBytes((byte)StartDate.Length, bytes, ref i);
                 Buffer.BlockCopy(StartDate, 0, bytes, i, StartDate.Length); i += StartDate.Length;
                 Utils.IntToBytesSafepos(Balance, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(TotalCredits, bytes, i); i += 4;
@@ -59015,9 +59499,9 @@ namespace OpenMetaverse.Packets
                 Utils.IntToBytesSafepos(GroupTaxEstimate, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(ParcelDirFeeEstimate, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(NonExemptMembers, bytes, i); i += 4;
-                bytes[i++] = (byte)LastTaxDate.Length;
+                Utils.ByteToBytes((byte)LastTaxDate.Length, bytes, ref i);
                 Buffer.BlockCopy(LastTaxDate, 0, bytes, i, LastTaxDate.Length); i += LastTaxDate.Length;
-                bytes[i++] = (byte)TaxDate.Length;
+                Utils.ByteToBytes((byte)TaxDate.Length, bytes, ref i);
                 Buffer.BlockCopy(TaxDate, 0, bytes, i, TaxDate.Length); i += TaxDate.Length;
             }
 
@@ -59044,6 +59528,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 354;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MoneyData = new MoneyDataBlock();
@@ -59069,11 +59554,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountSummaryReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -59205,6 +59689,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public MoneyDataBlock MoneyData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupAccountDetailsRequestPacket()
         {
             HasVariableBlocks = false;
@@ -59213,6 +59699,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 355;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MoneyData = new MoneyDataBlock();
@@ -59238,11 +59725,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountDetailsRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -59346,7 +59832,7 @@ namespace OpenMetaverse.Packets
                     RequestID.FromBytes(bytes, i); i += 16;
                     IntervalDays = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     CurrentInterval = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     StartDate = new byte[length];
                     Buffer.BlockCopy(bytes, i, StartDate, 0, length); i += length;
                 }
@@ -59361,7 +59847,7 @@ namespace OpenMetaverse.Packets
                 RequestID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(IntervalDays, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(CurrentInterval, bytes, i); i += 4;
-                bytes[i++] = (byte)StartDate.Length;
+                Utils.ByteToBytes((byte)StartDate.Length, bytes, ref i);
                 Buffer.BlockCopy(StartDate, 0, bytes, i, StartDate.Length); i += StartDate.Length;
             }
 
@@ -59394,7 +59880,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                     Amount = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -59407,7 +59893,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
                 Utils.IntToBytesSafepos(Amount, bytes, i); i += 4;
             }
@@ -59438,6 +59924,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 356;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MoneyData = new MoneyDataBlock();
@@ -59473,11 +59960,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountDetailsReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -59506,7 +59992,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             MoneyData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)HistoryData.Length;
+            Utils.ByteToBytes((byte)HistoryData.Length, bytes, ref i);
             for (int j = 0; j < HistoryData.Length; j++) { HistoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -59681,6 +60167,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public MoneyDataBlock MoneyData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupAccountTransactionsRequestPacket()
         {
             HasVariableBlocks = false;
@@ -59689,6 +60177,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 357;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MoneyData = new MoneyDataBlock();
@@ -59714,11 +60203,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountTransactionsRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -59822,7 +60310,7 @@ namespace OpenMetaverse.Packets
                     RequestID.FromBytes(bytes, i); i += 16;
                     IntervalDays = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     CurrentInterval = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     StartDate = new byte[length];
                     Buffer.BlockCopy(bytes, i, StartDate, 0, length); i += length;
                 }
@@ -59837,7 +60325,7 @@ namespace OpenMetaverse.Packets
                 RequestID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(IntervalDays, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(CurrentInterval, bytes, i); i += 4;
-                bytes[i++] = (byte)StartDate.Length;
+                Utils.ByteToBytes((byte)StartDate.Length, bytes, ref i);
                 Buffer.BlockCopy(StartDate, 0, bytes, i, StartDate.Length); i += StartDate.Length;
             }
 
@@ -59875,14 +60363,14 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Time = new byte[length];
                     Buffer.BlockCopy(bytes, i, Time, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     User = new byte[length];
                     Buffer.BlockCopy(bytes, i, User, 0, length); i += length;
                     Type = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Item = new byte[length];
                     Buffer.BlockCopy(bytes, i, Item, 0, length); i += length;
                     Amount = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -59895,12 +60383,12 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Time.Length;
+                Utils.ByteToBytes((byte)Time.Length, bytes, ref i);
                 Buffer.BlockCopy(Time, 0, bytes, i, Time.Length); i += Time.Length;
-                bytes[i++] = (byte)User.Length;
+                Utils.ByteToBytes((byte)User.Length, bytes, ref i);
                 Buffer.BlockCopy(User, 0, bytes, i, User.Length); i += User.Length;
                 Utils.IntToBytesSafepos(Type, bytes, i); i += 4;
-                bytes[i++] = (byte)Item.Length;
+                Utils.ByteToBytes((byte)Item.Length, bytes, ref i);
                 Buffer.BlockCopy(Item, 0, bytes, i, Item.Length); i += Item.Length;
                 Utils.IntToBytesSafepos(Amount, bytes, i); i += 4;
             }
@@ -59931,6 +60419,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 358;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MoneyData = new MoneyDataBlock();
@@ -59966,11 +60455,10 @@ namespace OpenMetaverse.Packets
 
         public GroupAccountTransactionsReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -59999,7 +60487,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             MoneyData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)HistoryData.Length;
+            Utils.ByteToBytes((byte)HistoryData.Length, bytes, ref i);
             for (int j = 0; j < HistoryData.Length; j++) { HistoryData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -60205,6 +60693,8 @@ namespace OpenMetaverse.Packets
         public GroupDataBlock GroupData;
         public TransactionDataBlock TransactionData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupActiveProposalsRequestPacket()
         {
             HasVariableBlocks = false;
@@ -60213,6 +60703,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 359;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
             TransactionData = new TransactionDataBlock();
@@ -60239,11 +60730,10 @@ namespace OpenMetaverse.Packets
 
         public GroupActiveProposalsRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -60400,22 +60890,22 @@ namespace OpenMetaverse.Packets
                 {
                     VoteID.FromBytes(bytes, i); i += 16;
                     VoteInitiator.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     TerseDateID = new byte[length];
                     Buffer.BlockCopy(bytes, i, TerseDateID, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     StartDateTime = new byte[length];
                     Buffer.BlockCopy(bytes, i, StartDateTime, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     EndDateTime = new byte[length];
                     Buffer.BlockCopy(bytes, i, EndDateTime, 0, length); i += length;
-                    AlreadyVoted = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    length = bytes[i++];
+                    AlreadyVoted = (Utils.BytesToByte(bytes, ref i) != 0);
+                    length = Utils.BytesToByte(bytes, ref i);
                     VoteCast = new byte[length];
                     Buffer.BlockCopy(bytes, i, VoteCast, 0, length); i += length;
                     Majority = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     Quorum = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ProposalText = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProposalText, 0, length); i += length;
                 }
@@ -60429,18 +60919,18 @@ namespace OpenMetaverse.Packets
             {
                 VoteID.ToBytes(bytes, i); i += 16;
                 VoteInitiator.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)TerseDateID.Length;
+                Utils.ByteToBytes((byte)TerseDateID.Length, bytes, ref i);
                 Buffer.BlockCopy(TerseDateID, 0, bytes, i, TerseDateID.Length); i += TerseDateID.Length;
-                bytes[i++] = (byte)StartDateTime.Length;
+                Utils.ByteToBytes((byte)StartDateTime.Length, bytes, ref i);
                 Buffer.BlockCopy(StartDateTime, 0, bytes, i, StartDateTime.Length); i += StartDateTime.Length;
-                bytes[i++] = (byte)EndDateTime.Length;
+                Utils.ByteToBytes((byte)EndDateTime.Length, bytes, ref i);
                 Buffer.BlockCopy(EndDateTime, 0, bytes, i, EndDateTime.Length); i += EndDateTime.Length;
-                bytes[i++] = (byte)((AlreadyVoted) ? 1 : 0);
-                bytes[i++] = (byte)VoteCast.Length;
+                Utils.ByteToBytes((byte)((AlreadyVoted) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)VoteCast.Length, bytes, ref i);
                 Buffer.BlockCopy(VoteCast, 0, bytes, i, VoteCast.Length); i += VoteCast.Length;
                 Utils.FloatToBytesSafepos(Majority, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(Quorum, bytes, i); i += 4;
-                bytes[i++] = (byte)ProposalText.Length;
+                Utils.ByteToBytes((byte)ProposalText.Length, bytes, ref i);
                 Buffer.BlockCopy(ProposalText, 0, bytes, i, ProposalText.Length); i += ProposalText.Length;
             }
 
@@ -60470,6 +60960,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 360;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             TransactionData = new TransactionDataBlock();
@@ -60505,11 +60996,10 @@ namespace OpenMetaverse.Packets
 
         public GroupActiveProposalItemReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -60538,7 +61028,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             TransactionData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ProposalData.Length;
+            Utils.ByteToBytes((byte)ProposalData.Length, bytes, ref i);
             for (int j = 0; j < ProposalData.Length; j++) { ProposalData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -60744,6 +61234,8 @@ namespace OpenMetaverse.Packets
         public GroupDataBlock GroupData;
         public TransactionDataBlock TransactionData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupVoteHistoryRequestPacket()
         {
             HasVariableBlocks = false;
@@ -60752,6 +61244,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 361;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
             TransactionData = new TransactionDataBlock();
@@ -60778,11 +61271,10 @@ namespace OpenMetaverse.Packets
 
         public GroupVoteHistoryRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -60939,25 +61431,25 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     VoteID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     TerseDateID = new byte[length];
                     Buffer.BlockCopy(bytes, i, TerseDateID, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     StartDateTime = new byte[length];
                     Buffer.BlockCopy(bytes, i, StartDateTime, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     EndDateTime = new byte[length];
                     Buffer.BlockCopy(bytes, i, EndDateTime, 0, length); i += length;
                     VoteInitiator.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     VoteType = new byte[length];
                     Buffer.BlockCopy(bytes, i, VoteType, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     VoteResult = new byte[length];
                     Buffer.BlockCopy(bytes, i, VoteResult, 0, length); i += length;
                     Majority = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     Quorum = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     ProposalText = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProposalText, 0, length); i += length;
                 }
@@ -60970,21 +61462,20 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 VoteID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)TerseDateID.Length;
+                Utils.ByteToBytes((byte)TerseDateID.Length, bytes, ref i);
                 Buffer.BlockCopy(TerseDateID, 0, bytes, i, TerseDateID.Length); i += TerseDateID.Length;
-                bytes[i++] = (byte)StartDateTime.Length;
+                Utils.ByteToBytes((byte)StartDateTime.Length, bytes, ref i);
                 Buffer.BlockCopy(StartDateTime, 0, bytes, i, StartDateTime.Length); i += StartDateTime.Length;
-                bytes[i++] = (byte)EndDateTime.Length;
+                Utils.ByteToBytes((byte)EndDateTime.Length, bytes, ref i);
                 Buffer.BlockCopy(EndDateTime, 0, bytes, i, EndDateTime.Length); i += EndDateTime.Length;
                 VoteInitiator.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)VoteType.Length;
+                Utils.ByteToBytes((byte)VoteType.Length, bytes, ref i);
                 Buffer.BlockCopy(VoteType, 0, bytes, i, VoteType.Length); i += VoteType.Length;
-                bytes[i++] = (byte)VoteResult.Length;
+                Utils.ByteToBytes((byte)VoteResult.Length, bytes, ref i);
                 Buffer.BlockCopy(VoteResult, 0, bytes, i, VoteResult.Length); i += VoteResult.Length;
                 Utils.FloatToBytesSafepos(Majority, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(Quorum, bytes, i); i += 4;
-                bytes[i++] = (byte)(ProposalText.Length % 256);
-                bytes[i++] = (byte)((ProposalText.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)ProposalText.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(ProposalText, 0, bytes, i, ProposalText.Length); i += ProposalText.Length;
             }
 
@@ -61019,7 +61510,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     CandidateID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     VoteCast = new byte[length];
                     Buffer.BlockCopy(bytes, i, VoteCast, 0, length); i += length;
                     NumVotes = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -61033,7 +61524,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 CandidateID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)VoteCast.Length;
+                Utils.ByteToBytes((byte)VoteCast.Length, bytes, ref i);
                 Buffer.BlockCopy(VoteCast, 0, bytes, i, VoteCast.Length); i += VoteCast.Length;
                 Utils.IntToBytesSafepos(NumVotes, bytes, i); i += 4;
             }
@@ -61066,6 +61557,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 362;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             TransactionData = new TransactionDataBlock();
@@ -61103,11 +61595,10 @@ namespace OpenMetaverse.Packets
 
         public GroupVoteHistoryItemReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -61139,7 +61630,7 @@ namespace OpenMetaverse.Packets
             AgentData.ToBytes(bytes, ref i);
             TransactionData.ToBytes(bytes, ref i);
             HistoryItemData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)VoteItem.Length;
+            Utils.ByteToBytes((byte)VoteItem.Length, bytes, ref i);
             for (int j = 0; j < VoteItem.Length; j++) { VoteItem[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -61290,7 +61781,7 @@ namespace OpenMetaverse.Packets
                     Quorum = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     Majority = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     Duration = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ProposalText = new byte[length];
                     Buffer.BlockCopy(bytes, i, ProposalText, 0, length); i += length;
                 }
@@ -61306,7 +61797,7 @@ namespace OpenMetaverse.Packets
                 Utils.IntToBytesSafepos(Quorum, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(Majority, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(Duration, bytes, i); i += 4;
-                bytes[i++] = (byte)ProposalText.Length;
+                Utils.ByteToBytes((byte)ProposalText.Length, bytes, ref i);
                 Buffer.BlockCopy(ProposalText, 0, bytes, i, ProposalText.Length); i += ProposalText.Length;
             }
 
@@ -61325,6 +61816,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ProposalDataBlock ProposalData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public StartGroupProposalPacket()
         {
             HasVariableBlocks = false;
@@ -61333,6 +61826,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 363;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ProposalData = new ProposalDataBlock();
@@ -61358,11 +61852,10 @@ namespace OpenMetaverse.Packets
 
         public StartGroupProposalPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -61464,7 +61957,7 @@ namespace OpenMetaverse.Packets
                 {
                     ProposalID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     VoteCast = new byte[length];
                     Buffer.BlockCopy(bytes, i, VoteCast, 0, length); i += length;
                 }
@@ -61478,7 +61971,7 @@ namespace OpenMetaverse.Packets
             {
                 ProposalID.ToBytes(bytes, i); i += 16;
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)VoteCast.Length;
+                Utils.ByteToBytes((byte)VoteCast.Length, bytes, ref i);
                 Buffer.BlockCopy(VoteCast, 0, bytes, i, VoteCast.Length); i += VoteCast.Length;
             }
 
@@ -61497,6 +61990,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ProposalDataBlock ProposalData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupProposalBallotPacket()
         {
             HasVariableBlocks = false;
@@ -61505,6 +62000,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 364;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ProposalData = new ProposalDataBlock();
         }
@@ -61529,11 +62025,10 @@ namespace OpenMetaverse.Packets
 
         public GroupProposalBallotPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -61659,6 +62154,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public GroupDataBlock GroupData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupMembersRequestPacket()
         {
             HasVariableBlocks = false;
@@ -61667,6 +62164,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 366;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
         }
@@ -61691,11 +62189,10 @@ namespace OpenMetaverse.Packets
 
         public GroupMembersRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -61842,14 +62339,14 @@ namespace OpenMetaverse.Packets
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
                     Contribution = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     OnlineStatus = new byte[length];
                     Buffer.BlockCopy(bytes, i, OnlineStatus, 0, length); i += length;
                     AgentPowers = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Title = new byte[length];
                     Buffer.BlockCopy(bytes, i, Title, 0, length); i += length;
-                    IsOwner = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IsOwner = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -61861,12 +62358,12 @@ namespace OpenMetaverse.Packets
             {
                 AgentID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(Contribution, bytes, i); i += 4;
-                bytes[i++] = (byte)OnlineStatus.Length;
+                Utils.ByteToBytes((byte)OnlineStatus.Length, bytes, ref i);
                 Buffer.BlockCopy(OnlineStatus, 0, bytes, i, OnlineStatus.Length); i += OnlineStatus.Length;
                 Utils.UInt64ToBytesSafepos(AgentPowers, bytes, i); i += 8;
-                bytes[i++] = (byte)Title.Length;
+                Utils.ByteToBytes((byte)Title.Length, bytes, ref i);
                 Buffer.BlockCopy(Title, 0, bytes, i, Title.Length); i += Title.Length;
-                bytes[i++] = (byte)((IsOwner) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IsOwner) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -61895,6 +62392,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 367;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
@@ -61930,11 +62428,10 @@ namespace OpenMetaverse.Packets
 
         public GroupMembersReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -61963,7 +62460,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             GroupData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)MemberData.Length;
+            Utils.ByteToBytes((byte)MemberData.Length, bytes, ref i);
             for (int j = 0; j < MemberData.Length; j++) { MemberData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -62092,6 +62589,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ActivateGroupPacket()
         {
             HasVariableBlocks = false;
@@ -62100,6 +62599,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 368;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
         }
@@ -62123,11 +62623,10 @@ namespace OpenMetaverse.Packets
 
         public ActivateGroupPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -62250,6 +62749,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public DataBlock Data;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public SetGroupContributionPacket()
         {
             HasVariableBlocks = false;
@@ -62258,6 +62759,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 369;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
         }
@@ -62282,11 +62784,10 @@ namespace OpenMetaverse.Packets
 
         public SetGroupContributionPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -62383,7 +62884,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
-                    AcceptNotices = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    AcceptNotices = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -62394,7 +62895,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((AcceptNotices) ? 1 : 0);
+                Utils.ByteToBytes((byte)((AcceptNotices) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -62422,7 +62923,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ListInProfile = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    ListInProfile = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -62432,7 +62933,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((ListInProfile) ? 1 : 0);
+                Utils.ByteToBytes((byte)((ListInProfile) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -62452,6 +62953,8 @@ namespace OpenMetaverse.Packets
         public DataBlock Data;
         public NewDataBlock NewData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public SetGroupAcceptNoticesPacket()
         {
             HasVariableBlocks = false;
@@ -62460,6 +62963,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 370;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
             NewData = new NewDataBlock();
@@ -62486,11 +62990,10 @@ namespace OpenMetaverse.Packets
 
         public SetGroupAcceptNoticesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -62619,6 +63122,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public GroupDataBlock GroupData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupRoleDataRequestPacket()
         {
             HasVariableBlocks = false;
@@ -62627,6 +63132,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 371;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
         }
@@ -62651,11 +63157,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleDataRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -62802,13 +63307,13 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     RoleID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Title = new byte[length];
                     Buffer.BlockCopy(bytes, i, Title, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                     Powers = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
@@ -62823,11 +63328,11 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 RoleID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Title.Length;
+                Utils.ByteToBytes((byte)Title.Length, bytes, ref i);
                 Buffer.BlockCopy(Title, 0, bytes, i, Title.Length); i += Title.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
                 Utils.UInt64ToBytesSafepos(Powers, bytes, i); i += 8;
                 Utils.UIntToBytesSafepos(Members, bytes, i); i += 4;
@@ -62859,6 +63364,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 372;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
             RoleData = null;
@@ -62893,11 +63399,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleDataReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -62926,7 +63431,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             GroupData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)RoleData.Length;
+            Utils.ByteToBytes((byte)RoleData.Length, bytes, ref i);
             for (int j = 0; j < RoleData.Length; j++) { RoleData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -63095,6 +63600,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public GroupDataBlock GroupData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupRoleMembersRequestPacket()
         {
             HasVariableBlocks = false;
@@ -63103,6 +63610,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 373;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
         }
@@ -63127,11 +63635,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleMembersRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -63272,6 +63779,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 374;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             MemberData = null;
         }
@@ -63304,11 +63812,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleMembersReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -63334,7 +63841,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)MemberData.Length;
+            Utils.ByteToBytes((byte)MemberData.Length, bytes, ref i);
             for (int j = 0; j < MemberData.Length; j++) { MemberData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -63464,6 +63971,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupTitlesRequestPacket()
         {
             HasVariableBlocks = false;
@@ -63472,6 +63981,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 375;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -63494,11 +64004,10 @@ namespace OpenMetaverse.Packets
 
         public GroupTitlesRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -63598,11 +64107,11 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Title = new byte[length];
                     Buffer.BlockCopy(bytes, i, Title, 0, length); i += length;
                     RoleID.FromBytes(bytes, i); i += 16;
-                    Selected = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Selected = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -63612,10 +64121,10 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Title.Length;
+                Utils.ByteToBytes((byte)Title.Length, bytes, ref i);
                 Buffer.BlockCopy(Title, 0, bytes, i, Title.Length); i += Title.Length;
                 RoleID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((Selected) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Selected) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -63642,6 +64151,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 376;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             GroupData = null;
@@ -63675,11 +64185,10 @@ namespace OpenMetaverse.Packets
 
         public GroupTitlesReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -63705,7 +64214,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)GroupData.Length;
+            Utils.ByteToBytes((byte)GroupData.Length, bytes, ref i);
             for (int j = 0; j < GroupData.Length; j++) { GroupData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -63835,6 +64344,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupTitleUpdatePacket()
         {
             HasVariableBlocks = false;
@@ -63843,6 +64354,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 377;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -63865,11 +64377,10 @@ namespace OpenMetaverse.Packets
 
         public GroupTitleUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -63975,17 +64486,17 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     RoleID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Title = new byte[length];
                     Buffer.BlockCopy(bytes, i, Title, 0, length); i += length;
                     Powers = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
-                    UpdateType = (byte)bytes[i++];
+                    UpdateType = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -63996,14 +64507,14 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 RoleID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
-                bytes[i++] = (byte)Title.Length;
+                Utils.ByteToBytes((byte)Title.Length, bytes, ref i);
                 Buffer.BlockCopy(Title, 0, bytes, i, Title.Length); i += Title.Length;
                 Utils.UInt64ToBytesSafepos(Powers, bytes, i); i += 8;
-                bytes[i++] = UpdateType;
+                Utils.ByteToBytes( UpdateType, bytes, ref i);
             }
 
         }
@@ -64022,6 +64533,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public RoleDataBlock[] RoleData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public GroupRoleUpdatePacket()
         {
             HasVariableBlocks = true;
@@ -64030,6 +64543,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 378;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             RoleData = null;
         }
@@ -64062,11 +64576,10 @@ namespace OpenMetaverse.Packets
 
         public GroupRoleUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -64092,7 +64605,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)RoleData.Length;
+            Utils.ByteToBytes((byte)RoleData.Length, bytes, ref i);
             for (int j = 0; j < RoleData.Length; j++) { RoleData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -64224,6 +64737,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 379;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             RequestData = new RequestDataBlock();
         }
 
@@ -64246,11 +64760,10 @@ namespace OpenMetaverse.Packets
 
         public LiveHelpGroupRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RequestData.FromBytes(bytes, ref i);
@@ -64308,7 +64821,7 @@ namespace OpenMetaverse.Packets
                 {
                     RequestID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Selection = new byte[length];
                     Buffer.BlockCopy(bytes, i, Selection, 0, length); i += length;
                 }
@@ -64322,7 +64835,7 @@ namespace OpenMetaverse.Packets
             {
                 RequestID.ToBytes(bytes, i); i += 16;
                 GroupID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Selection.Length;
+                Utils.ByteToBytes((byte)Selection.Length, bytes, ref i);
                 Buffer.BlockCopy(Selection, 0, bytes, i, Selection.Length); i += Selection.Length;
             }
 
@@ -64347,6 +64860,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 380;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ReplyData = new ReplyDataBlock();
         }
 
@@ -64369,11 +64883,10 @@ namespace OpenMetaverse.Packets
 
         public LiveHelpGroupReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ReplyData.FromBytes(bytes, ref i);
@@ -64453,6 +64966,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentWearablesRequestPacket()
         {
             HasVariableBlocks = false;
@@ -64461,6 +64976,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 381;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -64483,11 +64999,10 @@ namespace OpenMetaverse.Packets
 
         public AgentWearablesRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -64586,7 +65101,7 @@ namespace OpenMetaverse.Packets
                 {
                     ItemID.FromBytes(bytes, i); i += 16;
                     AssetID.FromBytes(bytes, i); i += 16;
-                    WearableType = (byte)bytes[i++];
+                    WearableType = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -64598,7 +65113,7 @@ namespace OpenMetaverse.Packets
             {
                 ItemID.ToBytes(bytes, i); i += 16;
                 AssetID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = WearableType;
+                Utils.ByteToBytes( WearableType, bytes, ref i);
             }
 
         }
@@ -64617,6 +65132,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public WearableDataBlock[] WearableData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentWearablesUpdatePacket()
         {
             HasVariableBlocks = true;
@@ -64625,6 +65142,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 382;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             WearableData = null;
@@ -64658,11 +65176,10 @@ namespace OpenMetaverse.Packets
 
         public AgentWearablesUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -64688,7 +65205,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)WearableData.Length;
+            Utils.ByteToBytes((byte)WearableData.Length, bytes, ref i);
             for (int j = 0; j < WearableData.Length; j++) { WearableData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -64826,7 +65343,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ItemID.FromBytes(bytes, i); i += 16;
-                    WearableType = (byte)bytes[i++];
+                    WearableType = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -64837,7 +65354,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ItemID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = WearableType;
+                Utils.ByteToBytes( WearableType, bytes, ref i);
             }
 
         }
@@ -64856,6 +65373,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public WearableDataBlock[] WearableData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentIsNowWearingPacket()
         {
             HasVariableBlocks = true;
@@ -64864,6 +65383,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 383;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             WearableData = null;
@@ -64897,11 +65417,10 @@ namespace OpenMetaverse.Packets
 
         public AgentIsNowWearingPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -64927,7 +65446,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)WearableData.Length;
+            Utils.ByteToBytes((byte)WearableData.Length, bytes, ref i);
             for (int j = 0; j < WearableData.Length; j++) { WearableData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -65068,7 +65587,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ID.FromBytes(bytes, i); i += 16;
-                    TextureIndex = (byte)bytes[i++];
+                    TextureIndex = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -65079,7 +65598,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = TextureIndex;
+                Utils.ByteToBytes( TextureIndex, bytes, ref i);
             }
 
         }
@@ -65098,6 +65617,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public WearableDataBlock[] WearableData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentCachedTexturePacket()
         {
             HasVariableBlocks = true;
@@ -65106,6 +65627,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 384;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             WearableData = null;
         }
@@ -65138,11 +65660,10 @@ namespace OpenMetaverse.Packets
 
         public AgentCachedTexturePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -65168,7 +65689,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)WearableData.Length;
+            Utils.ByteToBytes((byte)WearableData.Length, bytes, ref i);
             for (int j = 0; j < WearableData.Length; j++) { WearableData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -65313,8 +65834,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     TextureID.FromBytes(bytes, i); i += 16;
-                    TextureIndex = (byte)bytes[i++];
-                    length = bytes[i++];
+                    TextureIndex = Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     HostName = new byte[length];
                     Buffer.BlockCopy(bytes, i, HostName, 0, length); i += length;
                 }
@@ -65327,8 +65848,8 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 TextureID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = TextureIndex;
-                bytes[i++] = (byte)HostName.Length;
+                Utils.ByteToBytes( TextureIndex, bytes, ref i);
+                Utils.ByteToBytes((byte)HostName.Length, bytes, ref i);
                 Buffer.BlockCopy(HostName, 0, bytes, i, HostName.Length); i += HostName.Length;
             }
 
@@ -65348,6 +65869,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public WearableDataBlock[] WearableData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentCachedTextureResponsePacket()
         {
             HasVariableBlocks = true;
@@ -65356,6 +65879,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 385;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             WearableData = null;
         }
@@ -65388,11 +65912,10 @@ namespace OpenMetaverse.Packets
 
         public AgentCachedTextureResponsePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -65418,7 +65941,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)WearableData.Length;
+            Utils.ByteToBytes((byte)WearableData.Length, bytes, ref i);
             for (int j = 0; j < WearableData.Length; j++) { WearableData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -65542,6 +66065,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentDataUpdateRequestPacket()
         {
             HasVariableBlocks = false;
@@ -65550,6 +66075,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 386;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -65572,11 +66098,10 @@ namespace OpenMetaverse.Packets
 
         public AgentDataUpdateRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -65640,18 +66165,18 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AgentID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     FirstName = new byte[length];
                     Buffer.BlockCopy(bytes, i, FirstName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     LastName = new byte[length];
                     Buffer.BlockCopy(bytes, i, LastName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     GroupTitle = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupTitle, 0, length); i += length;
                     ActiveGroupID.FromBytes(bytes, i); i += 16;
                     GroupPowers = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     GroupName = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupName, 0, length); i += length;
                 }
@@ -65664,15 +66189,15 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 AgentID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)FirstName.Length;
+                Utils.ByteToBytes((byte)FirstName.Length, bytes, ref i);
                 Buffer.BlockCopy(FirstName, 0, bytes, i, FirstName.Length); i += FirstName.Length;
-                bytes[i++] = (byte)LastName.Length;
+                Utils.ByteToBytes((byte)LastName.Length, bytes, ref i);
                 Buffer.BlockCopy(LastName, 0, bytes, i, LastName.Length); i += LastName.Length;
-                bytes[i++] = (byte)GroupTitle.Length;
+                Utils.ByteToBytes((byte)GroupTitle.Length, bytes, ref i);
                 Buffer.BlockCopy(GroupTitle, 0, bytes, i, GroupTitle.Length); i += GroupTitle.Length;
                 ActiveGroupID.ToBytes(bytes, i); i += 16;
                 Utils.UInt64ToBytesSafepos(GroupPowers, bytes, i); i += 8;
-                bytes[i++] = (byte)GroupName.Length;
+                Utils.ByteToBytes((byte)GroupName.Length, bytes, ref i);
                 Buffer.BlockCopy(GroupName, 0, bytes, i, GroupName.Length); i += GroupName.Length;
             }
 
@@ -65697,6 +66222,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 387;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
         }
@@ -65720,11 +66246,10 @@ namespace OpenMetaverse.Packets
 
         public AgentDataUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -65784,7 +66309,7 @@ namespace OpenMetaverse.Packets
                     AgentID.FromBytes(bytes, i); i += 16;
                     GroupID.FromBytes(bytes, i); i += 16;
                     AgentPowers = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     GroupTitle = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupTitle, 0, length); i += length;
                 }
@@ -65799,7 +66324,7 @@ namespace OpenMetaverse.Packets
                 AgentID.ToBytes(bytes, i); i += 16;
                 GroupID.ToBytes(bytes, i); i += 16;
                 Utils.UInt64ToBytesSafepos(AgentPowers, bytes, i); i += 8;
-                bytes[i++] = (byte)GroupTitle.Length;
+                Utils.ByteToBytes((byte)GroupTitle.Length, bytes, ref i);
                 Buffer.BlockCopy(GroupTitle, 0, bytes, i, GroupTitle.Length); i += GroupTitle.Length;
             }
 
@@ -65825,6 +66350,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 388;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentGroupData = null;
         }
@@ -65856,11 +66382,10 @@ namespace OpenMetaverse.Packets
 
         public GroupDataUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -65883,7 +66408,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)AgentGroupData.Length;
+            Utils.ByteToBytes((byte)AgentGroupData.Length, bytes, ref i);
             for (int j = 0; j < AgentGroupData.Length; j++) { AgentGroupData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -66024,10 +66549,10 @@ namespace OpenMetaverse.Packets
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
                     GroupPowers = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
-                    AcceptNotices = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    AcceptNotices = (Utils.BytesToByte(bytes, ref i) != 0);
                     GroupInsigniaID.FromBytes(bytes, i); i += 16;
                     Contribution = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     GroupName = new byte[length];
                     Buffer.BlockCopy(bytes, i, GroupName, 0, length); i += length;
                 }
@@ -66041,10 +66566,10 @@ namespace OpenMetaverse.Packets
             {
                 GroupID.ToBytes(bytes, i); i += 16;
                 Utils.UInt64ToBytesSafepos(GroupPowers, bytes, i); i += 8;
-                bytes[i++] = (byte)((AcceptNotices) ? 1 : 0);
+                Utils.ByteToBytes((byte)((AcceptNotices) ? 1 : 0), bytes, ref i);
                 GroupInsigniaID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(Contribution, bytes, i); i += 4;
-                bytes[i++] = (byte)GroupName.Length;
+                Utils.ByteToBytes((byte)GroupName.Length, bytes, ref i);
                 Buffer.BlockCopy(GroupName, 0, bytes, i, GroupName.Length); i += GroupName.Length;
             }
 
@@ -66072,6 +66597,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 389;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             GroupData = null;
@@ -66105,11 +66631,10 @@ namespace OpenMetaverse.Packets
 
         public AgentGroupDataUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -66135,7 +66660,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)GroupData.Length;
+            Utils.ByteToBytes((byte)GroupData.Length, bytes, ref i);
             for (int j = 0; j < GroupData.Length; j++) { GroupData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -66267,6 +66792,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 390;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
         }
@@ -66290,11 +66816,10 @@ namespace OpenMetaverse.Packets
 
         public AgentDropGroupPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -66400,15 +66925,15 @@ namespace OpenMetaverse.Packets
                 {
                     ItemID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    AttachmentPt = (byte)bytes[i++];
+                    AttachmentPt = Utils.BytesToByte(bytes, ref i);
                     ItemFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                 }
@@ -66422,14 +66947,14 @@ namespace OpenMetaverse.Packets
             {
                 ItemID.ToBytes(bytes, i); i += 16;
                 OwnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = AttachmentPt;
+                Utils.ByteToBytes( AttachmentPt, bytes, ref i);
                 Utils.UIntToBytesSafepos(ItemFlags, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
             }
 
@@ -66448,6 +66973,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RezSingleAttachmentFromInvPacket()
         {
             HasVariableBlocks = false;
@@ -66456,6 +66983,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 395;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
@@ -66481,11 +67009,10 @@ namespace OpenMetaverse.Packets
 
         public RezSingleAttachmentFromInvPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -66583,8 +67110,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     CompoundMsgID.FromBytes(bytes, i); i += 16;
-                    TotalObjects = (byte)bytes[i++];
-                    FirstDetachAll = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    TotalObjects = Utils.BytesToByte(bytes, ref i);
+                    FirstDetachAll = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -66595,8 +67122,8 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 CompoundMsgID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = TotalObjects;
-                bytes[i++] = (byte)((FirstDetachAll) ? 1 : 0);
+                Utils.ByteToBytes( TotalObjects, bytes, ref i);
+                Utils.ByteToBytes((byte)((FirstDetachAll) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -66638,15 +67165,15 @@ namespace OpenMetaverse.Packets
                 {
                     ItemID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    AttachmentPt = (byte)bytes[i++];
+                    AttachmentPt = Utils.BytesToByte(bytes, ref i);
                     ItemFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                 }
@@ -66660,14 +67187,14 @@ namespace OpenMetaverse.Packets
             {
                 ItemID.ToBytes(bytes, i); i += 16;
                 OwnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = AttachmentPt;
+                Utils.ByteToBytes( AttachmentPt, bytes, ref i);
                 Utils.UIntToBytesSafepos(ItemFlags, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
             }
 
@@ -66689,6 +67216,8 @@ namespace OpenMetaverse.Packets
         public HeaderDataBlock HeaderData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RezMultipleAttachmentsFromInvPacket()
         {
             HasVariableBlocks = true;
@@ -66697,6 +67226,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 396;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             HeaderData = new HeaderDataBlock();
@@ -66732,11 +67262,10 @@ namespace OpenMetaverse.Packets
 
         public RezMultipleAttachmentsFromInvPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -66765,7 +67294,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             HeaderData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -66899,6 +67428,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 397;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ObjectData = new ObjectDataBlock();
         }
 
@@ -66921,11 +67451,10 @@ namespace OpenMetaverse.Packets
 
         public DetachAttachmentIntoInvPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -67089,6 +67618,8 @@ namespace OpenMetaverse.Packets
         public HeaderDataBlock HeaderData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public CreateNewOutfitAttachmentsPacket()
         {
             HasVariableBlocks = true;
@@ -67097,6 +67628,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 398;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             HeaderData = new HeaderDataBlock();
             ObjectData = null;
@@ -67131,11 +67663,10 @@ namespace OpenMetaverse.Packets
 
         public CreateNewOutfitAttachmentsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -67164,7 +67695,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             HeaderData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -67290,6 +67821,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public UserInfoRequestPacket()
         {
             HasVariableBlocks = false;
@@ -67298,6 +67831,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 399;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -67320,11 +67854,10 @@ namespace OpenMetaverse.Packets
 
         public UserInfoRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -67419,11 +67952,11 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    IMViaEMail = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    length = bytes[i++];
+                    IMViaEMail = (Utils.BytesToByte(bytes, ref i) != 0);
+                    length = Utils.BytesToByte(bytes, ref i);
                     DirectoryVisibility = new byte[length];
                     Buffer.BlockCopy(bytes, i, DirectoryVisibility, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     EMail = new byte[length];
                     Buffer.BlockCopy(bytes, i, EMail, 0, length); i += length;
                 }
@@ -67435,11 +67968,10 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((IMViaEMail) ? 1 : 0);
-                bytes[i++] = (byte)DirectoryVisibility.Length;
+                Utils.ByteToBytes((byte)((IMViaEMail) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)DirectoryVisibility.Length, bytes, ref i);
                 Buffer.BlockCopy(DirectoryVisibility, 0, bytes, i, DirectoryVisibility.Length); i += DirectoryVisibility.Length;
-                bytes[i++] = (byte)(EMail.Length % 256);
-                bytes[i++] = (byte)((EMail.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)EMail.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(EMail, 0, bytes, i, EMail.Length); i += EMail.Length;
             }
 
@@ -67466,6 +67998,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 400;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             UserData = new UserDataBlock();
         }
@@ -67490,11 +68023,10 @@ namespace OpenMetaverse.Packets
 
         public UserInfoReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -67593,8 +68125,8 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    IMViaEMail = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    length = bytes[i++];
+                    IMViaEMail = (Utils.BytesToByte(bytes, ref i) != 0);
+                    length = Utils.BytesToByte(bytes, ref i);
                     DirectoryVisibility = new byte[length];
                     Buffer.BlockCopy(bytes, i, DirectoryVisibility, 0, length); i += length;
                 }
@@ -67606,8 +68138,8 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((IMViaEMail) ? 1 : 0);
-                bytes[i++] = (byte)DirectoryVisibility.Length;
+                Utils.ByteToBytes((byte)((IMViaEMail) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)DirectoryVisibility.Length, bytes, ref i);
                 Buffer.BlockCopy(DirectoryVisibility, 0, bytes, i, DirectoryVisibility.Length); i += DirectoryVisibility.Length;
             }
 
@@ -67626,6 +68158,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public UserDataBlock UserData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public UpdateUserInfoPacket()
         {
             HasVariableBlocks = false;
@@ -67634,6 +68168,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 401;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             UserData = new UserDataBlock();
         }
@@ -67658,11 +68193,10 @@ namespace OpenMetaverse.Packets
 
         public UpdateUserInfoPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -67759,10 +68293,10 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SimFilename = new byte[length];
                     Buffer.BlockCopy(bytes, i, SimFilename, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ViewerFilename = new byte[length];
                     Buffer.BlockCopy(bytes, i, ViewerFilename, 0, length); i += length;
                 }
@@ -67774,9 +68308,9 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)SimFilename.Length;
+                Utils.ByteToBytes((byte)SimFilename.Length, bytes, ref i);
                 Buffer.BlockCopy(SimFilename, 0, bytes, i, SimFilename.Length); i += SimFilename.Length;
-                bytes[i++] = (byte)ViewerFilename.Length;
+                Utils.ByteToBytes((byte)ViewerFilename.Length, bytes, ref i);
                 Buffer.BlockCopy(ViewerFilename, 0, bytes, i, ViewerFilename.Length); i += ViewerFilename.Length;
             }
 
@@ -67803,6 +68337,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 403;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             FileData = new FileDataBlock();
         }
@@ -67827,11 +68362,10 @@ namespace OpenMetaverse.Packets
 
         public InitiateDownloadPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -67893,7 +68427,7 @@ namespace OpenMetaverse.Packets
                     SessionID.FromBytes(bytes, i); i += 16;
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EstateID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Godlike = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Godlike = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -67907,7 +68441,7 @@ namespace OpenMetaverse.Packets
                 SessionID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EstateID, bytes, i); i += 4;
-                bytes[i++] = (byte)((Godlike) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Godlike) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -67923,6 +68457,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public MapLayerRequestPacket()
         {
             HasVariableBlocks = false;
@@ -67931,6 +68467,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 405;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -67953,11 +68490,10 @@ namespace OpenMetaverse.Packets
 
         public MapLayerRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -68098,6 +68634,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 406;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             LayerData = null;
         }
@@ -68130,11 +68667,10 @@ namespace OpenMetaverse.Packets
 
         public MapLayerReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -68160,7 +68696,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)LayerData.Length;
+            Utils.ByteToBytes((byte)LayerData.Length, bytes, ref i);
             for (int j = 0; j < LayerData.Length; j++) { LayerData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -68263,7 +68799,7 @@ namespace OpenMetaverse.Packets
                     SessionID.FromBytes(bytes, i); i += 16;
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EstateID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Godlike = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Godlike = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -68277,7 +68813,7 @@ namespace OpenMetaverse.Packets
                 SessionID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EstateID, bytes, i); i += 4;
-                bytes[i++] = (byte)((Godlike) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Godlike) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -68342,6 +68878,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public PositionDataBlock PositionData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public MapBlockRequestPacket()
         {
             HasVariableBlocks = false;
@@ -68350,6 +68888,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 407;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             PositionData = new PositionDataBlock();
         }
@@ -68374,11 +68913,10 @@ namespace OpenMetaverse.Packets
 
         public MapBlockRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -68440,7 +68978,7 @@ namespace OpenMetaverse.Packets
                     SessionID.FromBytes(bytes, i); i += 16;
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EstateID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Godlike = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Godlike = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -68454,7 +68992,7 @@ namespace OpenMetaverse.Packets
                 SessionID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EstateID, bytes, i); i += 4;
-                bytes[i++] = (byte)((Godlike) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Godlike) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -68485,7 +69023,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                 }
@@ -68497,7 +69035,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
             }
 
@@ -68516,6 +69054,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public NameDataBlock NameData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public MapNameRequestPacket()
         {
             HasVariableBlocks = false;
@@ -68524,6 +69064,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 408;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             NameData = new NameDataBlock();
         }
@@ -68548,11 +69089,10 @@ namespace OpenMetaverse.Packets
 
         public MapNameRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -68659,13 +69199,13 @@ namespace OpenMetaverse.Packets
                 {
                     X = Utils.BytesToUInt16(bytes, i); i += 2;
                     Y = Utils.BytesToUInt16(bytes, i); i += 2;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    Access = (byte)bytes[i++];
+                    Access = Utils.BytesToByte(bytes, ref i);
                     RegionFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    WaterHeight = (byte)bytes[i++];
-                    Agents = (byte)bytes[i++];
+                    WaterHeight = Utils.BytesToByte(bytes, ref i);
+                    Agents = Utils.BytesToByte(bytes, ref i);
                     MapImageID.FromBytes(bytes, i); i += 16;
                 }
                 catch (Exception)
@@ -68678,12 +69218,12 @@ namespace OpenMetaverse.Packets
             {
                 Utils.UInt16ToBytes(X, bytes, i); i += 2;
                 Utils.UInt16ToBytes(Y, bytes, i); i += 2;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = Access;
+                Utils.ByteToBytes( Access, bytes, ref i);
                 Utils.UIntToBytesSafepos(RegionFlags, bytes, i); i += 4;
-                bytes[i++] = WaterHeight;
-                bytes[i++] = Agents;
+                Utils.ByteToBytes( WaterHeight, bytes, ref i);
+                Utils.ByteToBytes( Agents, bytes, ref i);
                 MapImageID.ToBytes(bytes, i); i += 16;
             }
 
@@ -68755,6 +69295,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 409;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             Data = null;
             Size = null;
@@ -68797,11 +69338,10 @@ namespace OpenMetaverse.Packets
 
         public MapBlockReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -68838,9 +69378,9 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Data.Length;
+            Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
             for (int j = 0; j < Data.Length; j++) { Data[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)Size.Length;
+            Utils.ByteToBytes((byte)Size.Length, bytes, ref i);
             for (int j = 0; j < Size.Length; j++) { Size[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -68963,7 +69503,7 @@ namespace OpenMetaverse.Packets
                     SessionID.FromBytes(bytes, i); i += 16;
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EstateID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Godlike = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    Godlike = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -68977,7 +69517,7 @@ namespace OpenMetaverse.Packets
                 SessionID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EstateID, bytes, i); i += 4;
-                bytes[i++] = (byte)((Godlike) ? 1 : 0);
+                Utils.ByteToBytes((byte)((Godlike) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -69036,6 +69576,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public RequestDataBlock RequestData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public MapItemRequestPacket()
         {
             HasVariableBlocks = false;
@@ -69044,6 +69586,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 410;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             RequestData = new RequestDataBlock();
         }
@@ -69068,11 +69611,10 @@ namespace OpenMetaverse.Packets
 
         public MapItemRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -69218,7 +69760,7 @@ namespace OpenMetaverse.Packets
                     ID.FromBytes(bytes, i); i += 16;
                     Extra = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     Extra2 = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
                 }
@@ -69235,7 +69777,7 @@ namespace OpenMetaverse.Packets
                 ID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(Extra, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(Extra2, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
             }
 
@@ -69265,6 +69807,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 411;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             AgentData = new AgentDataBlock();
             RequestData = new RequestDataBlock();
             Data = null;
@@ -69299,11 +69842,10 @@ namespace OpenMetaverse.Packets
 
         public MapItemReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -69332,7 +69874,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             RequestData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Data.Length;
+            Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
             for (int j = 0; j < Data.Length; j++) { Data[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -69450,23 +69992,23 @@ namespace OpenMetaverse.Packets
                     SessionID.FromBytes(bytes, i); i += 16;
                     AssetID.FromBytes(bytes, i); i += 16;
                     PosGlobal.FromBytes(bytes, i); i += 24;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     To = new byte[length];
                     Buffer.BlockCopy(bytes, i, To, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     From = new byte[length];
                     Buffer.BlockCopy(bytes, i, From, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Subject = new byte[length];
                     Buffer.BlockCopy(bytes, i, Subject, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Msg = new byte[length];
                     Buffer.BlockCopy(bytes, i, Msg, 0, length); i += length;
-                    AllowPublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    MaturePublish = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    AllowPublish = (Utils.BytesToByte(bytes, ref i) != 0);
+                    MaturePublish = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -69480,19 +70022,18 @@ namespace OpenMetaverse.Packets
                 SessionID.ToBytes(bytes, i); i += 16;
                 AssetID.ToBytes(bytes, i); i += 16;
                 PosGlobal.ToBytes(bytes, i); i += 24;
-                bytes[i++] = (byte)To.Length;
+                Utils.ByteToBytes((byte)To.Length, bytes, ref i);
                 Buffer.BlockCopy(To, 0, bytes, i, To.Length); i += To.Length;
-                bytes[i++] = (byte)From.Length;
+                Utils.ByteToBytes((byte)From.Length, bytes, ref i);
                 Buffer.BlockCopy(From, 0, bytes, i, From.Length); i += From.Length;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Subject.Length;
+                Utils.ByteToBytes((byte)Subject.Length, bytes, ref i);
                 Buffer.BlockCopy(Subject, 0, bytes, i, Subject.Length); i += Subject.Length;
-                bytes[i++] = (byte)(Msg.Length % 256);
-                bytes[i++] = (byte)((Msg.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Msg.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Msg, 0, bytes, i, Msg.Length); i += Msg.Length;
-                bytes[i++] = (byte)((AllowPublish) ? 1 : 0);
-                bytes[i++] = (byte)((MaturePublish) ? 1 : 0);
+                Utils.ByteToBytes((byte)((AllowPublish) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((MaturePublish) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -69508,6 +70049,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public SendPostcardPacket()
         {
             HasVariableBlocks = false;
@@ -69516,6 +70059,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 412;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -69538,11 +70082,10 @@ namespace OpenMetaverse.Packets
 
         public SendPostcardPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -69633,6 +70176,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 419;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             CommandBlock = new CommandBlockBlock();
         }
 
@@ -69655,11 +70199,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelMediaCommandMessagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             CommandBlock.FromBytes(bytes, ref i);
@@ -69715,11 +70258,11 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     MediaURL = new byte[length];
                     Buffer.BlockCopy(bytes, i, MediaURL, 0, length); i += length;
                     MediaID.FromBytes(bytes, i); i += 16;
-                    MediaAutoScale = (byte)bytes[i++];
+                    MediaAutoScale = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -69729,10 +70272,10 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)MediaURL.Length;
+                Utils.ByteToBytes((byte)MediaURL.Length, bytes, ref i);
                 Buffer.BlockCopy(MediaURL, 0, bytes, i, MediaURL.Length); i += MediaURL.Length;
                 MediaID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = MediaAutoScale;
+                Utils.ByteToBytes( MediaAutoScale, bytes, ref i);
             }
 
         }
@@ -69768,15 +70311,15 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     MediaType = new byte[length];
                     Buffer.BlockCopy(bytes, i, MediaType, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     MediaDesc = new byte[length];
                     Buffer.BlockCopy(bytes, i, MediaDesc, 0, length); i += length;
                     MediaWidth = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     MediaHeight = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    MediaLoop = (byte)bytes[i++];
+                    MediaLoop = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -69786,13 +70329,13 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)MediaType.Length;
+                Utils.ByteToBytes((byte)MediaType.Length, bytes, ref i);
                 Buffer.BlockCopy(MediaType, 0, bytes, i, MediaType.Length); i += MediaType.Length;
-                bytes[i++] = (byte)MediaDesc.Length;
+                Utils.ByteToBytes((byte)MediaDesc.Length, bytes, ref i);
                 Buffer.BlockCopy(MediaDesc, 0, bytes, i, MediaDesc.Length); i += MediaDesc.Length;
                 Utils.IntToBytesSafepos(MediaWidth, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(MediaHeight, bytes, i); i += 4;
-                bytes[i++] = MediaLoop;
+                Utils.ByteToBytes( MediaLoop, bytes, ref i);
             }
 
         }
@@ -69818,6 +70361,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 420;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             DataBlock = new DataBlockBlock();
             DataBlockExtended = new DataBlockExtendedBlock();
         }
@@ -69842,11 +70386,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelMediaUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             DataBlock.FromBytes(bytes, ref i);
@@ -69949,7 +70492,7 @@ namespace OpenMetaverse.Packets
                 {
                     ReportType = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     RequestFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Filter = new byte[length];
                     Buffer.BlockCopy(bytes, i, Filter, 0, length); i += length;
                     ParcelLocalID = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -69964,7 +70507,7 @@ namespace OpenMetaverse.Packets
             {
                 Utils.UIntToBytesSafepos(ReportType, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(RequestFlags, bytes, i); i += 4;
-                bytes[i++] = (byte)Filter.Length;
+                Utils.ByteToBytes((byte)Filter.Length, bytes, ref i);
                 Buffer.BlockCopy(Filter, 0, bytes, i, Filter.Length); i += Filter.Length;
                 Utils.IntToBytesSafepos(ParcelLocalID, bytes, i); i += 4;
             }
@@ -69984,6 +70527,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public RequestDataBlock RequestData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public LandStatRequestPacket()
         {
             HasVariableBlocks = false;
@@ -69992,6 +70537,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 421;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             RequestData = new RequestDataBlock();
         }
@@ -70016,11 +70562,10 @@ namespace OpenMetaverse.Packets
 
         public LandStatRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -70135,10 +70680,10 @@ namespace OpenMetaverse.Packets
                     LocationY = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     LocationZ = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     Score = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     TaskName = new byte[length];
                     Buffer.BlockCopy(bytes, i, TaskName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     OwnerName = new byte[length];
                     Buffer.BlockCopy(bytes, i, OwnerName, 0, length); i += length;
                 }
@@ -70156,9 +70701,9 @@ namespace OpenMetaverse.Packets
                 Utils.FloatToBytesSafepos(LocationY, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(LocationZ, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(Score, bytes, i); i += 4;
-                bytes[i++] = (byte)TaskName.Length;
+                Utils.ByteToBytes((byte)TaskName.Length, bytes, ref i);
                 Buffer.BlockCopy(TaskName, 0, bytes, i, TaskName.Length); i += TaskName.Length;
-                bytes[i++] = (byte)OwnerName.Length;
+                Utils.ByteToBytes((byte)OwnerName.Length, bytes, ref i);
                 Buffer.BlockCopy(OwnerName, 0, bytes, i, OwnerName.Length); i += OwnerName.Length;
             }
 
@@ -70186,6 +70731,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 422;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             RequestData = new RequestDataBlock();
             ReportData = null;
         }
@@ -70218,11 +70764,10 @@ namespace OpenMetaverse.Packets
 
         public LandStatReplyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RequestData.FromBytes(bytes, ref i);
@@ -70248,7 +70793,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             RequestData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ReportData.Length;
+            Utils.ByteToBytes((byte)ReportData.Length, bytes, ref i);
             for (int j = 0; j < ReportData.Length; j++) { ReportData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -70393,17 +70938,17 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     Code = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Token = new byte[length];
                     Buffer.BlockCopy(bytes, i, Token, 0, length); i += length;
                     ID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     System = new byte[length];
                     Buffer.BlockCopy(bytes, i, System, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Message = new byte[length];
                     Buffer.BlockCopy(bytes, i, Message, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
                 }
@@ -70416,16 +70961,14 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.IntToBytesSafepos(Code, bytes, i); i += 4;
-                bytes[i++] = (byte)Token.Length;
+                Utils.ByteToBytes((byte)Token.Length, bytes, ref i);
                 Buffer.BlockCopy(Token, 0, bytes, i, Token.Length); i += Token.Length;
                 ID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)System.Length;
+                Utils.ByteToBytes((byte)System.Length, bytes, ref i);
                 Buffer.BlockCopy(System, 0, bytes, i, System.Length); i += System.Length;
-                bytes[i++] = (byte)(Message.Length % 256);
-                bytes[i++] = (byte)((Message.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Message.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Message, 0, bytes, i, Message.Length); i += Message.Length;
-                bytes[i++] = (byte)(Data.Length % 256);
-                bytes[i++] = (byte)((Data.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Data.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
             }
 
@@ -70452,6 +70995,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 423;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
@@ -70477,11 +71021,10 @@ namespace OpenMetaverse.Packets
 
         public ErrorPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -70578,7 +71121,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectLocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    IncludeInSearch = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IncludeInSearch = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -70589,7 +71132,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(ObjectLocalID, bytes, i); i += 4;
-                bytes[i++] = (byte)((IncludeInSearch) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IncludeInSearch) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -70608,6 +71151,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectIncludeInSearchPacket()
         {
             HasVariableBlocks = true;
@@ -70616,6 +71161,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 424;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
         }
@@ -70648,11 +71194,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectIncludeInSearchPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -70678,7 +71223,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -70848,17 +71393,17 @@ namespace OpenMetaverse.Packets
                     GroupMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    GroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    GroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
                     TransactionID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    InvType = (sbyte)bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    InvType = (sbyte)Utils.BytesToByte(bytes, ref i);
                     Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                     CreationDate = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -70882,16 +71427,16 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(GroupMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
-                bytes[i++] = (byte)((GroupOwned) ? 1 : 0);
+                Utils.ByteToBytes((byte)((GroupOwned) ? 1 : 0), bytes, ref i);
                 TransactionID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)InvType;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes( (byte)InvType, bytes, ref i);
                 Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
                 Utils.IntToBytesSafepos(CreationDate, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(CRC, bytes, i); i += 4;
@@ -70912,6 +71457,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryDataBlock InventoryData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RezRestoreToWorldPacket()
         {
             HasVariableBlocks = false;
@@ -70920,6 +71467,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 425;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             InventoryData = new InventoryDataBlock();
         }
@@ -70944,11 +71492,10 @@ namespace OpenMetaverse.Packets
 
         public RezRestoreToWorldPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -71058,12 +71605,12 @@ namespace OpenMetaverse.Packets
                     FolderID.FromBytes(bytes, i); i += 16;
                     TransactionID.FromBytes(bytes, i); i += 16;
                     OldItemID.FromBytes(bytes, i); i += 16;
-                    Type = (sbyte)bytes[i++];
-                    InvType = (sbyte)bytes[i++];
-                    length = bytes[i++];
+                    Type = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    InvType = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                 }
@@ -71079,11 +71626,11 @@ namespace OpenMetaverse.Packets
                 FolderID.ToBytes(bytes, i); i += 16;
                 TransactionID.ToBytes(bytes, i); i += 16;
                 OldItemID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Type;
-                bytes[i++] = (byte)InvType;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes( (byte)Type, bytes, ref i);
+                Utils.ByteToBytes( (byte)InvType, bytes, ref i);
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
             }
 
@@ -71102,6 +71649,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public InventoryBlockBlock InventoryBlock;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public LinkInventoryItemPacket()
         {
             HasVariableBlocks = false;
@@ -71110,6 +71659,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 426;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             InventoryBlock = new InventoryBlockBlock();
@@ -71135,11 +71685,10 @@ namespace OpenMetaverse.Packets
 
         public LinkInventoryItemPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -71241,7 +71790,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Method = new byte[length];
                     Buffer.BlockCopy(bytes, i, Method, 0, length); i += length;
                     Invoice.FromBytes(bytes, i); i += 16;
@@ -71254,7 +71803,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Method.Length;
+                Utils.ByteToBytes((byte)Method.Length, bytes, ref i);
                 Buffer.BlockCopy(Method, 0, bytes, i, Method.Length); i += Method.Length;
                 Invoice.ToBytes(bytes, i); i += 16;
             }
@@ -71287,7 +71836,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Parameter = new byte[length];
                     Buffer.BlockCopy(bytes, i, Parameter, 0, length); i += length;
                 }
@@ -71299,8 +71848,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(Parameter.Length % 256);
-                bytes[i++] = (byte)((Parameter.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Parameter.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Parameter, 0, bytes, i, Parameter.Length); i += Parameter.Length;
             }
 
@@ -71322,6 +71870,8 @@ namespace OpenMetaverse.Packets
         public MethodDataBlock MethodData;
         public ParamListBlock[] ParamList;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public LargeGenericMessagePacket()
         {
             HasVariableBlocks = true;
@@ -71330,6 +71880,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 430;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             MethodData = new MethodDataBlock();
             ParamList = null;
@@ -71363,11 +71914,10 @@ namespace OpenMetaverse.Packets
 
         public LargeGenericMessagePacket(Header head, byte[] bytes, ref int i): this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -71395,7 +71945,7 @@ namespace OpenMetaverse.Packets
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
             MethodData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ParamList.Length;
+            Utils.ByteToBytes((byte)ParamList.Length, bytes, ref i);
             for (int j = 0; j < ParamList.Length; j++) { ParamList[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -71531,6 +72081,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 65531;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Packets = null;
         }
 
@@ -71561,11 +72112,10 @@ namespace OpenMetaverse.Packets
 
         public PacketAckPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -71588,7 +72138,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Packets.Length;
+            Utils.ByteToBytes((byte)Packets.Length, bytes, ref i);
             for (int j = 0; j < Packets.Length; j++) { Packets[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -71777,8 +72327,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(IP, bytes, i); i += 4;
-                bytes[i++] = (byte)((Port >> 8) % 256);
-                bytes[i++] = (byte)(Port % 256);
+                Utils.UInt16ToBytesBig(Port, bytes, i); i += 2;
             }
 
         }
@@ -71802,6 +72351,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 65532;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             CircuitInfo = new CircuitInfoBlock();
         }
 
@@ -71824,11 +72374,10 @@ namespace OpenMetaverse.Packets
 
         public OpenCircuitPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             CircuitInfo.FromBytes(bytes, ref i);
@@ -71873,6 +72422,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 65533;
             Header.Reliable = true;
+            NeedValidateIDs = false;
         }
 
         public CloseCircuitPacket(byte[] bytes, ref int i) : this()
@@ -71893,11 +72443,10 @@ namespace OpenMetaverse.Packets
 
         public CloseCircuitPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
         }
@@ -72017,35 +72566,35 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    PCode = (byte)bytes[i++];
-                    Material = (byte)bytes[i++];
+                    PCode = Utils.BytesToByte(bytes, ref i);
+                    Material = Utils.BytesToByte(bytes, ref i);
                     AddFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    PathCurve = (byte)bytes[i++];
-                    ProfileCurve = (byte)bytes[i++];
+                    PathCurve = Utils.BytesToByte(bytes, ref i);
+                    ProfileCurve = Utils.BytesToByte(bytes, ref i);
                     PathBegin = Utils.BytesToUInt16(bytes, i); i += 2;
                     PathEnd = Utils.BytesToUInt16(bytes, i); i += 2;
-                    PathScaleX = (byte)bytes[i++];
-                    PathScaleY = (byte)bytes[i++];
-                    PathShearX = (byte)bytes[i++];
-                    PathShearY = (byte)bytes[i++];
-                    PathTwist = (sbyte)bytes[i++];
-                    PathTwistBegin = (sbyte)bytes[i++];
-                    PathRadiusOffset = (sbyte)bytes[i++];
-                    PathTaperX = (sbyte)bytes[i++];
-                    PathTaperY = (sbyte)bytes[i++];
-                    PathRevolutions = (byte)bytes[i++];
-                    PathSkew = (sbyte)bytes[i++];
+                    PathScaleX = Utils.BytesToByte(bytes, ref i);
+                    PathScaleY = Utils.BytesToByte(bytes, ref i);
+                    PathShearX = Utils.BytesToByte(bytes, ref i);
+                    PathShearY = Utils.BytesToByte(bytes, ref i);
+                    PathTwist = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathTwistBegin = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathRadiusOffset = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathTaperX = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathTaperY = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathRevolutions = Utils.BytesToByte(bytes, ref i);
+                    PathSkew = (sbyte)Utils.BytesToByte(bytes, ref i);
                     ProfileBegin = Utils.BytesToUInt16(bytes, i); i += 2;
                     ProfileEnd = Utils.BytesToUInt16(bytes, i); i += 2;
                     ProfileHollow = Utils.BytesToUInt16(bytes, i); i += 2;
-                    BypassRaycast = (byte)bytes[i++];
+                    BypassRaycast = Utils.BytesToByte(bytes, ref i);
                     RayStart.FromBytes(bytes, i); i += 12;
                     RayEnd.FromBytes(bytes, i); i += 12;
                     RayTargetID.FromBytes(bytes, i); i += 16;
-                    RayEndIsIntersection = (byte)bytes[i++];
+                    RayEndIsIntersection = Utils.BytesToByte(bytes, ref i);
                     Scale.FromBytes(bytes, i); i += 12;
                     Rotation.FromBytes(bytes, i, true); i += 12;
-                    State = (byte)bytes[i++];
+                    State = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -72055,35 +72604,35 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = PCode;
-                bytes[i++] = Material;
+                Utils.ByteToBytes( PCode, bytes, ref i);
+                Utils.ByteToBytes( Material, bytes, ref i);
                 Utils.UIntToBytesSafepos(AddFlags, bytes, i); i += 4;
-                bytes[i++] = PathCurve;
-                bytes[i++] = ProfileCurve;
+                Utils.ByteToBytes( PathCurve, bytes, ref i);
+                Utils.ByteToBytes( ProfileCurve, bytes, ref i);
                 Utils.UInt16ToBytes(PathBegin, bytes, i); i += 2;
                 Utils.UInt16ToBytes(PathEnd, bytes, i); i += 2;
-                bytes[i++] = PathScaleX;
-                bytes[i++] = PathScaleY;
-                bytes[i++] = PathShearX;
-                bytes[i++] = PathShearY;
-                bytes[i++] = (byte)PathTwist;
-                bytes[i++] = (byte)PathTwistBegin;
-                bytes[i++] = (byte)PathRadiusOffset;
-                bytes[i++] = (byte)PathTaperX;
-                bytes[i++] = (byte)PathTaperY;
-                bytes[i++] = PathRevolutions;
-                bytes[i++] = (byte)PathSkew;
+                Utils.ByteToBytes( PathScaleX, bytes, ref i);
+                Utils.ByteToBytes( PathScaleY, bytes, ref i);
+                Utils.ByteToBytes( PathShearX, bytes, ref i);
+                Utils.ByteToBytes( PathShearY, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTwist, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTwistBegin, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathRadiusOffset, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTaperX, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTaperY, bytes, ref i);
+                Utils.ByteToBytes( PathRevolutions, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathSkew, bytes, ref i);
                 Utils.UInt16ToBytes(ProfileBegin, bytes, i); i += 2;
                 Utils.UInt16ToBytes(ProfileEnd, bytes, i); i += 2;
                 Utils.UInt16ToBytes(ProfileHollow, bytes, i); i += 2;
-                bytes[i++] = BypassRaycast;
+                Utils.ByteToBytes( BypassRaycast, bytes, ref i);
                 RayStart.ToBytes(bytes, i); i += 12;
                 RayEnd.ToBytes(bytes, i); i += 12;
                 RayTargetID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = RayEndIsIntersection;
+                Utils.ByteToBytes( RayEndIsIntersection, bytes, ref i);
                 Scale.ToBytes(bytes, i); i += 12;
                 Rotation.ToBytes(bytes, i); i += 12;
-                bytes[i++] = State;
+                Utils.ByteToBytes( State, bytes, ref i);
             }
 
         }
@@ -72101,6 +72650,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectAddPacket()
         {
             HasVariableBlocks = false;
@@ -72109,6 +72660,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 1;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
@@ -72134,11 +72686,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectAddPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -72239,8 +72790,8 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ObjectLocalID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Type = (byte)bytes[i++];
-                    length = bytes[i++];
+                    Type = Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToByte(bytes, ref i);
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
                 }
@@ -72253,8 +72804,8 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(ObjectLocalID, bytes, i); i += 4;
-                bytes[i++] = Type;
-                bytes[i++] = (byte)Data.Length;
+                Utils.ByteToBytes( Type, bytes, ref i);
+                Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
                 Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
             }
 
@@ -72274,6 +72825,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public MultipleObjectUpdatePacket()
         {
             HasVariableBlocks = true;
@@ -72282,6 +72835,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 2;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -72315,11 +72869,10 @@ namespace OpenMetaverse.Packets
 
         public MultipleObjectUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -72345,7 +72898,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -72482,7 +73035,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    CacheMissType = (byte)bytes[i++];
+                    CacheMissType = Utils.BytesToByte(bytes, ref i);
                     ID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -72493,7 +73046,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = CacheMissType;
+                Utils.ByteToBytes( CacheMissType, bytes, ref i);
                 Utils.UIntToBytesSafepos(ID, bytes, i); i += 4;
             }
 
@@ -72513,6 +73066,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RequestMultipleObjectsPacket()
         {
             HasVariableBlocks = true;
@@ -72521,6 +73076,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 3;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -72554,11 +73110,10 @@ namespace OpenMetaverse.Packets
 
         public RequestMultipleObjectsPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -72584,7 +73139,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -72752,6 +73307,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock[] ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ObjectPositionPacket()
         {
             HasVariableBlocks = true;
@@ -72760,6 +73317,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 4;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = null;
@@ -72793,11 +73351,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectPositionPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -72823,7 +73380,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -72990,6 +73547,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ObjectDataBlock ObjectData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RequestObjectPropertiesFamilyPacket()
         {
             HasVariableBlocks = false;
@@ -72998,6 +73557,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 5;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
@@ -73023,11 +73583,10 @@ namespace OpenMetaverse.Packets
 
         public RequestObjectPropertiesFamilyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -73083,9 +73642,9 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    X = (byte)bytes[i++];
-                    Y = (byte)bytes[i++];
-                    Z = (byte)bytes[i++];
+                    X = Utils.BytesToByte(bytes, ref i);
+                    Y = Utils.BytesToByte(bytes, ref i);
+                    Z = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -73095,9 +73654,9 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = X;
-                bytes[i++] = Y;
-                bytes[i++] = Z;
+                Utils.ByteToBytes( X, bytes, ref i);
+                Utils.ByteToBytes( Y, bytes, ref i);
+                Utils.ByteToBytes( Z, bytes, ref i);
             }
 
         }
@@ -73206,6 +73765,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 6;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Location = null;
             Index = new IndexBlock();
             AgentData = null;
@@ -73248,11 +73808,10 @@ namespace OpenMetaverse.Packets
 
         public CoarseLocationUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -73288,10 +73847,10 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Location.Length;
+            Utils.ByteToBytes((byte)Location.Length, bytes, ref i);
             for (int j = 0; j < Location.Length; j++) { Location[j].ToBytes(bytes, ref i); }
             Index.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)AgentData.Length;
+            Utils.ByteToBytes((byte)AgentData.Length, bytes, ref i);
             for (int j = 0; j < AgentData.Length; j++) { AgentData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -73379,7 +73938,7 @@ namespace OpenMetaverse.Packets
                     SimIP = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     SimPort = (ushort)((bytes[i++] << 8) + bytes[i++]);
                     RegionHandle = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     SeedCapability = new byte[length];
                     Buffer.BlockCopy(bytes, i, SeedCapability, 0, length); i += length;
                 }
@@ -73392,11 +73951,9 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(SimIP, bytes, i); i += 4;
-                bytes[i++] = (byte)((SimPort >> 8) % 256);
-                bytes[i++] = (byte)(SimPort % 256);
+                Utils.UInt16ToBytesBig(SimPort, bytes, i); i += 2;
                 Utils.UInt64ToBytesSafepos(RegionHandle, bytes, i); i += 8;
-                bytes[i++] = (byte)(SeedCapability.Length % 256);
-                bytes[i++] = (byte)((SeedCapability.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)SeedCapability.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(SeedCapability, 0, bytes, i, SeedCapability.Length); i += SeedCapability.Length;
             }
 
@@ -73458,6 +74015,8 @@ namespace OpenMetaverse.Packets
         public RegionDataBlock RegionData;
         public InfoBlock Info;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public CrossedRegionPacket()
         {
             HasVariableBlocks = false;
@@ -73466,6 +74025,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 7;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             RegionData = new RegionDataBlock();
             Info = new InfoBlock();
@@ -73492,11 +74052,10 @@ namespace OpenMetaverse.Packets
 
         public CrossedRegionPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -73582,6 +74141,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ConfirmEnableSimulatorPacket()
         {
             HasVariableBlocks = false;
@@ -73590,6 +74151,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 8;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -73612,11 +74174,10 @@ namespace OpenMetaverse.Packets
 
         public ConfirmEnableSimulatorPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -73711,30 +74272,30 @@ namespace OpenMetaverse.Packets
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     OwnershipCost = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    AggregatePerms = (byte)bytes[i++];
-                    AggregatePermTextures = (byte)bytes[i++];
-                    AggregatePermTexturesOwner = (byte)bytes[i++];
+                    AggregatePerms = Utils.BytesToByte(bytes, ref i);
+                    AggregatePermTextures = Utils.BytesToByte(bytes, ref i);
+                    AggregatePermTexturesOwner = Utils.BytesToByte(bytes, ref i);
                     Category = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     InventorySerial = Utils.BytesToInt16(bytes, i); i += 2;
                     ItemID.FromBytes(bytes, i); i += 16;
                     FolderID.FromBytes(bytes, i); i += 16;
                     FromTaskID.FromBytes(bytes, i); i += 16;
                     LastOwnerID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     TouchName = new byte[length];
                     Buffer.BlockCopy(bytes, i, TouchName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     SitName = new byte[length];
                     Buffer.BlockCopy(bytes, i, SitName, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     TextureID = new byte[length];
                     Buffer.BlockCopy(bytes, i, TextureID, 0, length); i += length;
                 }
@@ -73757,26 +74318,26 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(OwnershipCost, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = AggregatePerms;
-                bytes[i++] = AggregatePermTextures;
-                bytes[i++] = AggregatePermTexturesOwner;
+                Utils.ByteToBytes( AggregatePerms, bytes, ref i);
+                Utils.ByteToBytes( AggregatePermTextures, bytes, ref i);
+                Utils.ByteToBytes( AggregatePermTexturesOwner, bytes, ref i);
                 Utils.UIntToBytesSafepos(Category, bytes, i); i += 4;
                 Utils.Int16ToBytes(InventorySerial, bytes, i); i += 2;
                 ItemID.ToBytes(bytes, i); i += 16;
                 FolderID.ToBytes(bytes, i); i += 16;
                 FromTaskID.ToBytes(bytes, i); i += 16;
                 LastOwnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
-                bytes[i++] = (byte)TouchName.Length;
+                Utils.ByteToBytes((byte)TouchName.Length, bytes, ref i);
                 Buffer.BlockCopy(TouchName, 0, bytes, i, TouchName.Length); i += TouchName.Length;
-                bytes[i++] = (byte)SitName.Length;
+                Utils.ByteToBytes((byte)SitName.Length, bytes, ref i);
                 Buffer.BlockCopy(SitName, 0, bytes, i, SitName.Length); i += SitName.Length;
-                bytes[i++] = (byte)TextureID.Length;
+                Utils.ByteToBytes((byte)TextureID.Length, bytes, ref i);
                 Buffer.BlockCopy(TextureID, 0, bytes, i, TextureID.Length); i += TextureID.Length;
             }
 
@@ -73802,6 +74363,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 9;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             ObjectData = null;
         }
@@ -73833,11 +74395,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectPropertiesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -73860,7 +74421,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -73982,14 +74543,14 @@ namespace OpenMetaverse.Packets
                     EveryoneMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     NextOwnerMask = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     OwnershipCost = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    SaleType = (byte)bytes[i++];
+                    SaleType = Utils.BytesToByte(bytes, ref i);
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     Category = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     LastOwnerID.FromBytes(bytes, i); i += 16;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Description = new byte[length];
                     Buffer.BlockCopy(bytes, i, Description, 0, length); i += length;
                 }
@@ -74011,13 +74572,13 @@ namespace OpenMetaverse.Packets
                 Utils.UIntToBytesSafepos(EveryoneMask, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(NextOwnerMask, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(OwnershipCost, bytes, i); i += 4;
-                bytes[i++] = SaleType;
+                Utils.ByteToBytes( SaleType, bytes, ref i);
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(Category, bytes, i); i += 4;
                 LastOwnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Description.Length;
+                Utils.ByteToBytes((byte)Description.Length, bytes, ref i);
                 Buffer.BlockCopy(Description, 0, bytes, i, Description.Length); i += Description.Length;
             }
 
@@ -74042,6 +74603,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 10;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             ObjectData = new ObjectDataBlock();
         }
@@ -74065,11 +74627,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectPropertiesFamilyPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ObjectData.FromBytes(bytes, ref i);
@@ -74171,7 +74732,7 @@ namespace OpenMetaverse.Packets
                     South = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     East = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     North = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    SnapSelection = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    SnapSelection = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -74186,7 +74747,7 @@ namespace OpenMetaverse.Packets
                 Utils.FloatToBytesSafepos(South, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(East, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(North, bytes, i); i += 4;
-                bytes[i++] = (byte)((SnapSelection) ? 1 : 0);
+                Utils.ByteToBytes((byte)((SnapSelection) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -74204,6 +74765,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public ParcelDataBlock ParcelData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ParcelPropertiesRequestPacket()
         {
             HasVariableBlocks = false;
@@ -74212,6 +74775,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 11;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
@@ -74237,11 +74801,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelPropertiesRequestPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -74303,7 +74866,7 @@ namespace OpenMetaverse.Packets
                     ObjectID.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     Gain = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    Flags = (byte)bytes[i++];
+                    Flags = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -74317,7 +74880,7 @@ namespace OpenMetaverse.Packets
                 ObjectID.ToBytes(bytes, i); i += 16;
                 OwnerID.ToBytes(bytes, i); i += 16;
                 Utils.FloatToBytesSafepos(Gain, bytes, i); i += 4;
-                bytes[i++] = Flags;
+                Utils.ByteToBytes( Flags, bytes, ref i);
             }
 
         }
@@ -74341,6 +74904,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 13;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             DataBlock = new DataBlockBlock();
         }
 
@@ -74363,11 +74927,10 @@ namespace OpenMetaverse.Packets
 
         public AttachedSoundPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             DataBlock.FromBytes(bytes, ref i);
@@ -74455,6 +75018,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 14;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             DataBlock = new DataBlockBlock();
         }
 
@@ -74477,11 +75041,10 @@ namespace OpenMetaverse.Packets
 
         public AttachedSoundGainChangePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             DataBlock.FromBytes(bytes, ref i);
@@ -74573,6 +75136,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 15;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             DataBlock = null;
         }
 
@@ -74603,11 +75167,10 @@ namespace OpenMetaverse.Packets
 
         public PreloadSoundPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -74630,7 +75193,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)DataBlock.Length;
+            Utils.ByteToBytes((byte)DataBlock.Length, bytes, ref i);
             for (int j = 0; j < DataBlock.Length; j++) { DataBlock[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -74774,11 +75337,11 @@ namespace OpenMetaverse.Packets
                 {
                     ID.FromBytes(bytes, i); i += 16;
                     AgentID.FromBytes(bytes, i); i += 16;
-                    Type = (byte)bytes[i++];
+                    Type = Utils.BytesToByte(bytes, ref i);
                     Duration = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     Color = new byte[4];
                     Buffer.BlockCopy(bytes, i, Color, 0, 4); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     TypeData = new byte[length];
                     Buffer.BlockCopy(bytes, i, TypeData, 0, length); i += length;
                 }
@@ -74792,10 +75355,10 @@ namespace OpenMetaverse.Packets
             {
                 ID.ToBytes(bytes, i); i += 16;
                 AgentID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = Type;
+                Utils.ByteToBytes( Type, bytes, ref i);
                 Utils.FloatToBytesSafepos(Duration, bytes, i); i += 4;
                 Buffer.BlockCopy(Color, 0, bytes, i, 4); i += 4;
-                bytes[i++] = (byte)TypeData.Length;
+                Utils.ByteToBytes((byte)TypeData.Length, bytes, ref i);
                 Buffer.BlockCopy(TypeData, 0, bytes, i, TypeData.Length); i += TypeData.Length;
             }
 
@@ -74815,6 +75378,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public EffectBlock[] Effect;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ViewerEffectPacket()
         {
             HasVariableBlocks = true;
@@ -74823,6 +75388,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 17;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Effect = null;
@@ -74856,11 +75422,10 @@ namespace OpenMetaverse.Packets
 
         public ViewerEffectPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -74886,7 +75451,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)Effect.Length;
+            Utils.ByteToBytes((byte)Effect.Length, bytes, ref i);
             for (int j = 0; j < Effect.Length; j++) { Effect[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -74990,7 +75555,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    PingID = (byte)bytes[i++];
+                    PingID = Utils.BytesToByte(bytes, ref i);
                     OldestUnacked = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                 }
                 catch (Exception)
@@ -75001,7 +75566,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = PingID;
+                Utils.ByteToBytes( PingID, bytes, ref i);
                 Utils.UIntToBytesSafepos(OldestUnacked, bytes, i); i += 4;
             }
 
@@ -75026,6 +75591,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 1;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             PingID = new PingIDBlock();
         }
 
@@ -75048,11 +75614,10 @@ namespace OpenMetaverse.Packets
 
         public StartPingCheckPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             PingID.FromBytes(bytes, ref i);
@@ -75132,7 +75697,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    PingID = (byte)bytes[i++];
+                    PingID = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -75142,7 +75707,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = PingID;
+                Utils.ByteToBytes( PingID, bytes, ref i);
             }
 
         }
@@ -75166,6 +75731,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 2;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             PingID = new PingIDBlock();
         }
 
@@ -75188,11 +75754,10 @@ namespace OpenMetaverse.Packets
 
         public CompletePingCheckPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             PingID.FromBytes(bytes, ref i);
@@ -75287,14 +75852,14 @@ namespace OpenMetaverse.Packets
                     SessionID.FromBytes(bytes, i); i += 16;
                     BodyRotation.FromBytes(bytes, i, true); i += 12;
                     HeadRotation.FromBytes(bytes, i, true); i += 12;
-                    State = (byte)bytes[i++];
+                    State = Utils.BytesToByte(bytes, ref i);
                     CameraCenter.FromBytes(bytes, i); i += 12;
                     CameraAtAxis.FromBytes(bytes, i); i += 12;
                     CameraLeftAxis.FromBytes(bytes, i); i += 12;
                     CameraUpAxis.FromBytes(bytes, i); i += 12;
                     Far = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     ControlFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Flags = (byte)bytes[i++];
+                    Flags = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -75308,14 +75873,14 @@ namespace OpenMetaverse.Packets
                 SessionID.ToBytes(bytes, i); i += 16;
                 BodyRotation.ToBytes(bytes, i); i += 12;
                 HeadRotation.ToBytes(bytes, i); i += 12;
-                bytes[i++] = State;
+                Utils.ByteToBytes( State, bytes, ref i);
                 CameraCenter.ToBytes(bytes, i); i += 12;
                 CameraAtAxis.ToBytes(bytes, i); i += 12;
                 CameraLeftAxis.ToBytes(bytes, i); i += 12;
                 CameraUpAxis.ToBytes(bytes, i); i += 12;
                 Utils.FloatToBytesSafepos(Far, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(ControlFlags, bytes, i); i += 4;
-                bytes[i++] = Flags;
+                Utils.ByteToBytes( Flags, bytes, ref i);
             }
 
         }
@@ -75331,6 +75896,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentUpdatePacket()
         {
             HasVariableBlocks = false;
@@ -75339,6 +75906,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 4;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
         }
@@ -75362,11 +75930,10 @@ namespace OpenMetaverse.Packets
 
         public AgentUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -75489,7 +76056,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     AnimID.FromBytes(bytes, i); i += 16;
-                    StartAnim = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    StartAnim = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -75500,7 +76067,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 AnimID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((StartAnim) ? 1 : 0);
+                Utils.ByteToBytes((byte)((StartAnim) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -75531,7 +76098,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     TypeData = new byte[length];
                     Buffer.BlockCopy(bytes, i, TypeData, 0, length); i += length;
                 }
@@ -75543,7 +76110,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)TypeData.Length;
+                Utils.ByteToBytes((byte)TypeData.Length, bytes, ref i);
                 Buffer.BlockCopy(TypeData, 0, bytes, i, TypeData.Length); i += TypeData.Length;
             }
 
@@ -75566,6 +76133,8 @@ namespace OpenMetaverse.Packets
         public AnimationListBlock[] AnimationList;
         public PhysicalAvatarEventListBlock[] PhysicalAvatarEventList;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentAnimationPacket()
         {
             HasVariableBlocks = true;
@@ -75574,6 +76143,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 5;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             AnimationList = null;
             PhysicalAvatarEventList = null;
@@ -75616,11 +76186,10 @@ namespace OpenMetaverse.Packets
 
         public AgentAnimationPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -75657,9 +76226,9 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)AnimationList.Length;
+            Utils.ByteToBytes((byte)AnimationList.Length, bytes, ref i);
             for (int j = 0; j < AnimationList.Length; j++) { AnimationList[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)PhysicalAvatarEventList.Length;
+            Utils.ByteToBytes((byte)PhysicalAvatarEventList.Length, bytes, ref i);
             for (int j = 0; j < PhysicalAvatarEventList.Length; j++) { PhysicalAvatarEventList[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -75964,6 +76533,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public TargetObjectBlock TargetObject;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentRequestSitPacket()
         {
             HasVariableBlocks = false;
@@ -75972,6 +76543,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 6;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             TargetObject = new TargetObjectBlock();
@@ -75997,11 +76569,10 @@ namespace OpenMetaverse.Packets
 
         public AgentRequestSitPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -76115,6 +76686,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public AgentSitPacket()
         {
             HasVariableBlocks = false;
@@ -76123,6 +76696,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 7;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -76145,11 +76719,10 @@ namespace OpenMetaverse.Packets
 
         public AgentSitPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -76275,10 +76848,10 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     Image.FromBytes(bytes, i); i += 16;
-                    DiscardLevel = (sbyte)bytes[i++];
+                    DiscardLevel = (sbyte)Utils.BytesToByte(bytes, ref i);
                     DownloadPriority = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     Packet = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    Type = (byte)bytes[i++];
+                    Type = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -76289,10 +76862,10 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Image.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)DiscardLevel;
+                Utils.ByteToBytes( (byte)DiscardLevel, bytes, ref i);
                 Utils.FloatToBytesSafepos(DownloadPriority, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(Packet, bytes, i); i += 4;
-                bytes[i++] = Type;
+                Utils.ByteToBytes( Type, bytes, ref i);
             }
 
         }
@@ -76311,6 +76884,8 @@ namespace OpenMetaverse.Packets
         public AgentDataBlock AgentData;
         public RequestImageBlock[] RequestImage;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public RequestImagePacket()
         {
             HasVariableBlocks = true;
@@ -76319,6 +76894,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 8;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
             RequestImage = null;
         }
@@ -76351,11 +76927,10 @@ namespace OpenMetaverse.Packets
 
         public RequestImagePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -76381,7 +76956,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)RequestImage.Length;
+            Utils.ByteToBytes((byte)RequestImage.Length, bytes, ref i);
             for (int j = 0; j < RequestImage.Length; j++) { RequestImage[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -76574,7 +77149,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ID.FromBytes(bytes, i); i += 16;
-                    Codec = (byte)bytes[i++];
+                    Codec = Utils.BytesToByte(bytes, ref i);
                     Size = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     Packets = Utils.BytesToUInt16(bytes, i); i += 2;
                 }
@@ -76587,7 +77162,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 ID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = Codec;
+                Utils.ByteToBytes( Codec, bytes, ref i);
                 Utils.UIntToBytesSafepos(Size, bytes, i); i += 4;
                 Utils.UInt16ToBytes(Packets, bytes, i); i += 2;
             }
@@ -76620,7 +77195,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
                 }
@@ -76632,8 +77207,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(Data.Length % 256);
-                bytes[i++] = (byte)((Data.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Data.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
             }
 
@@ -76660,6 +77234,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 9;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ImageID = new ImageIDBlock();
             ImageData = new ImageDataBlock();
         }
@@ -76684,11 +77259,10 @@ namespace OpenMetaverse.Packets
 
         public ImageDataPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ImageID.FromBytes(bytes, ref i);
@@ -76818,7 +77392,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
                 }
@@ -76830,8 +77404,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(Data.Length % 256);
-                bytes[i++] = (byte)((Data.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Data.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
             }
 
@@ -76858,6 +77431,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 10;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ImageID = new ImageIDBlock();
             ImageData = new ImageDataBlock();
         }
@@ -76882,11 +77456,10 @@ namespace OpenMetaverse.Packets
 
         public ImagePacketPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ImageID.FromBytes(bytes, ref i);
@@ -76971,7 +77544,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    Type = (byte)bytes[i++];
+                    Type = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -76981,7 +77554,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = Type;
+                Utils.ByteToBytes( Type, bytes, ref i);
             }
 
         }
@@ -77012,7 +77585,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
                 }
@@ -77024,8 +77597,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(Data.Length % 256);
-                bytes[i++] = (byte)((Data.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Data.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
             }
 
@@ -77052,6 +77624,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 11;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             LayerID = new LayerIDBlock();
             LayerData = new LayerDataBlock();
         }
@@ -77076,11 +77649,10 @@ namespace OpenMetaverse.Packets
 
         public LayerDataPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             LayerID.FromBytes(bytes, ref i);
@@ -77263,68 +77835,68 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    State = (byte)bytes[i++];
+                    State = Utils.BytesToByte(bytes, ref i);
                     FullID.FromBytes(bytes, i); i += 16;
                     CRC = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    PCode = (byte)bytes[i++];
-                    Material = (byte)bytes[i++];
-                    ClickAction = (byte)bytes[i++];
+                    PCode = Utils.BytesToByte(bytes, ref i);
+                    Material = Utils.BytesToByte(bytes, ref i);
+                    ClickAction = Utils.BytesToByte(bytes, ref i);
                     Scale.FromBytes(bytes, i); i += 12;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ObjectData = new byte[length];
                     Buffer.BlockCopy(bytes, i, ObjectData, 0, length); i += length;
                     ParentID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     UpdateFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    PathCurve = (byte)bytes[i++];
-                    ProfileCurve = (byte)bytes[i++];
+                    PathCurve = Utils.BytesToByte(bytes, ref i);
+                    ProfileCurve = Utils.BytesToByte(bytes, ref i);
                     PathBegin = Utils.BytesToUInt16(bytes, i); i += 2;
                     PathEnd = Utils.BytesToUInt16(bytes, i); i += 2;
-                    PathScaleX = (byte)bytes[i++];
-                    PathScaleY = (byte)bytes[i++];
-                    PathShearX = (byte)bytes[i++];
-                    PathShearY = (byte)bytes[i++];
-                    PathTwist = (sbyte)bytes[i++];
-                    PathTwistBegin = (sbyte)bytes[i++];
-                    PathRadiusOffset = (sbyte)bytes[i++];
-                    PathTaperX = (sbyte)bytes[i++];
-                    PathTaperY = (sbyte)bytes[i++];
-                    PathRevolutions = (byte)bytes[i++];
-                    PathSkew = (sbyte)bytes[i++];
+                    PathScaleX = Utils.BytesToByte(bytes, ref i);
+                    PathScaleY = Utils.BytesToByte(bytes, ref i);
+                    PathShearX = Utils.BytesToByte(bytes, ref i);
+                    PathShearY = Utils.BytesToByte(bytes, ref i);
+                    PathTwist = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathTwistBegin = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathRadiusOffset = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathTaperX = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathTaperY = (sbyte)Utils.BytesToByte(bytes, ref i);
+                    PathRevolutions = Utils.BytesToByte(bytes, ref i);
+                    PathSkew = (sbyte)Utils.BytesToByte(bytes, ref i);
                     ProfileBegin = Utils.BytesToUInt16(bytes, i); i += 2;
                     ProfileEnd = Utils.BytesToUInt16(bytes, i); i += 2;
                     ProfileHollow = Utils.BytesToUInt16(bytes, i); i += 2;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     TextureEntry = new byte[length];
                     Buffer.BlockCopy(bytes, i, TextureEntry, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     TextureAnim = new byte[length];
                     Buffer.BlockCopy(bytes, i, TextureAnim, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     NameValue = new byte[length];
                     Buffer.BlockCopy(bytes, i, NameValue, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Text = new byte[length];
                     Buffer.BlockCopy(bytes, i, Text, 0, length); i += length;
                     TextColor = new byte[4];
                     Buffer.BlockCopy(bytes, i, TextColor, 0, 4); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     MediaURL = new byte[length];
                     Buffer.BlockCopy(bytes, i, MediaURL, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     PSBlock = new byte[length];
                     Buffer.BlockCopy(bytes, i, PSBlock, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     ExtraParams = new byte[length];
                     Buffer.BlockCopy(bytes, i, ExtraParams, 0, length); i += length;
                     Sound.FromBytes(bytes, i); i += 16;
                     OwnerID.FromBytes(bytes, i); i += 16;
                     Gain = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    Flags = (byte)bytes[i++];
+                    Flags = Utils.BytesToByte(bytes, ref i);
                     Radius = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    JointType = (byte)bytes[i++];
+                    JointType = Utils.BytesToByte(bytes, ref i);
                     JointPivot.FromBytes(bytes, i); i += 12;
                     JointAxisOrAnchor.FromBytes(bytes, i); i += 12;
                 }
@@ -77337,61 +77909,58 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(ID, bytes, i); i += 4;
-                bytes[i++] = State;
+                Utils.ByteToBytes( State, bytes, ref i);
                 FullID.ToBytes(bytes, i); i += 16;
                 Utils.UIntToBytesSafepos(CRC, bytes, i); i += 4;
-                bytes[i++] = PCode;
-                bytes[i++] = Material;
-                bytes[i++] = ClickAction;
+                Utils.ByteToBytes( PCode, bytes, ref i);
+                Utils.ByteToBytes( Material, bytes, ref i);
+                Utils.ByteToBytes( ClickAction, bytes, ref i);
                 Scale.ToBytes(bytes, i); i += 12;
-                bytes[i++] = (byte)ObjectData.Length;
+                Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
                 Buffer.BlockCopy(ObjectData, 0, bytes, i, ObjectData.Length); i += ObjectData.Length;
                 Utils.UIntToBytesSafepos(ParentID, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(UpdateFlags, bytes, i); i += 4;
-                bytes[i++] = PathCurve;
-                bytes[i++] = ProfileCurve;
+                Utils.ByteToBytes( PathCurve, bytes, ref i);
+                Utils.ByteToBytes( ProfileCurve, bytes, ref i);
                 Utils.UInt16ToBytes(PathBegin, bytes, i); i += 2;
                 Utils.UInt16ToBytes(PathEnd, bytes, i); i += 2;
-                bytes[i++] = PathScaleX;
-                bytes[i++] = PathScaleY;
-                bytes[i++] = PathShearX;
-                bytes[i++] = PathShearY;
-                bytes[i++] = (byte)PathTwist;
-                bytes[i++] = (byte)PathTwistBegin;
-                bytes[i++] = (byte)PathRadiusOffset;
-                bytes[i++] = (byte)PathTaperX;
-                bytes[i++] = (byte)PathTaperY;
-                bytes[i++] = PathRevolutions;
-                bytes[i++] = (byte)PathSkew;
+                Utils.ByteToBytes( PathScaleX, bytes, ref i);
+                Utils.ByteToBytes( PathScaleY, bytes, ref i);
+                Utils.ByteToBytes( PathShearX, bytes, ref i);
+                Utils.ByteToBytes( PathShearY, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTwist, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTwistBegin, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathRadiusOffset, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTaperX, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathTaperY, bytes, ref i);
+                Utils.ByteToBytes( PathRevolutions, bytes, ref i);
+                Utils.ByteToBytes( (byte)PathSkew, bytes, ref i);
                 Utils.UInt16ToBytes(ProfileBegin, bytes, i); i += 2;
                 Utils.UInt16ToBytes(ProfileEnd, bytes, i); i += 2;
                 Utils.UInt16ToBytes(ProfileHollow, bytes, i); i += 2;
-                bytes[i++] = (byte)(TextureEntry.Length % 256);
-                bytes[i++] = (byte)((TextureEntry.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)TextureEntry.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(TextureEntry, 0, bytes, i, TextureEntry.Length); i += TextureEntry.Length;
-                bytes[i++] = (byte)TextureAnim.Length;
+                Utils.ByteToBytes((byte)TextureAnim.Length, bytes, ref i);
                 Buffer.BlockCopy(TextureAnim, 0, bytes, i, TextureAnim.Length); i += TextureAnim.Length;
-                bytes[i++] = (byte)(NameValue.Length % 256);
-                bytes[i++] = (byte)((NameValue.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)NameValue.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(NameValue, 0, bytes, i, NameValue.Length); i += NameValue.Length;
-                bytes[i++] = (byte)(Data.Length % 256);
-                bytes[i++] = (byte)((Data.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Data.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
-                bytes[i++] = (byte)Text.Length;
+                Utils.ByteToBytes((byte)Text.Length, bytes, ref i);
                 Buffer.BlockCopy(Text, 0, bytes, i, Text.Length); i += Text.Length;
                 Buffer.BlockCopy(TextColor, 0, bytes, i, 4); i += 4;
-                bytes[i++] = (byte)MediaURL.Length;
+                Utils.ByteToBytes((byte)MediaURL.Length, bytes, ref i);
                 Buffer.BlockCopy(MediaURL, 0, bytes, i, MediaURL.Length); i += MediaURL.Length;
-                bytes[i++] = (byte)PSBlock.Length;
+                Utils.ByteToBytes((byte)PSBlock.Length, bytes, ref i);
                 Buffer.BlockCopy(PSBlock, 0, bytes, i, PSBlock.Length); i += PSBlock.Length;
-                bytes[i++] = (byte)ExtraParams.Length;
+                Utils.ByteToBytes((byte)ExtraParams.Length, bytes, ref i);
                 Buffer.BlockCopy(ExtraParams, 0, bytes, i, ExtraParams.Length); i += ExtraParams.Length;
                 Sound.ToBytes(bytes, i); i += 16;
                 OwnerID.ToBytes(bytes, i); i += 16;
                 Utils.FloatToBytesSafepos(Gain, bytes, i); i += 4;
-                bytes[i++] = Flags;
+                Utils.ByteToBytes( Flags, bytes, ref i);
                 Utils.FloatToBytesSafepos(Radius, bytes, i); i += 4;
-                bytes[i++] = JointType;
+                Utils.ByteToBytes( JointType, bytes, ref i);
                 JointPivot.ToBytes(bytes, i); i += 12;
                 JointAxisOrAnchor.ToBytes(bytes, i); i += 12;
             }
@@ -77420,6 +77989,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 12;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             RegionData = new RegionDataBlock();
             ObjectData = null;
@@ -77453,11 +78023,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RegionData.FromBytes(bytes, ref i);
@@ -77483,7 +78052,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             RegionData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -77718,7 +78287,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     UpdateFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
                 }
@@ -77731,8 +78300,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.UIntToBytesSafepos(UpdateFlags, bytes, i); i += 4;
-                bytes[i++] = (byte)(Data.Length % 256);
-                bytes[i++] = (byte)((Data.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Data.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
             }
 
@@ -77760,6 +78328,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 13;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             RegionData = new RegionDataBlock();
             ObjectData = null;
         }
@@ -77792,11 +78361,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectUpdateCompressedPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RegionData.FromBytes(bytes, ref i);
@@ -77822,7 +78390,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             RegionData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -78095,6 +78663,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 14;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             RegionData = new RegionDataBlock();
             ObjectData = null;
         }
@@ -78127,11 +78696,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectUpdateCachedPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RegionData.FromBytes(bytes, ref i);
@@ -78157,7 +78725,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             RegionData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -78392,10 +78960,10 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     TextureEntry = new byte[length];
                     Buffer.BlockCopy(bytes, i, TextureEntry, 0, length); i += length;
                 }
@@ -78407,10 +78975,9 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)Data.Length;
+                Utils.ByteToBytes((byte)Data.Length, bytes, ref i);
                 Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
-                bytes[i++] = (byte)(TextureEntry.Length % 256);
-                bytes[i++] = (byte)((TextureEntry.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)TextureEntry.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(TextureEntry, 0, bytes, i, TextureEntry.Length); i += TextureEntry.Length;
             }
 
@@ -78438,6 +79005,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 15;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             RegionData = new RegionDataBlock();
             ObjectData = null;
         }
@@ -78470,11 +79038,10 @@ namespace OpenMetaverse.Packets
 
         public ImprovedTerseObjectUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             RegionData.FromBytes(bytes, ref i);
@@ -78500,7 +79067,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             RegionData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -78725,6 +79292,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 16;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             ObjectData = null;
         }
 
@@ -78755,11 +79323,10 @@ namespace OpenMetaverse.Packets
 
         public KillObjectPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             int count = (int)bytes[i++];
@@ -78782,7 +79349,7 @@ namespace OpenMetaverse.Packets
             byte[] bytes = new byte[length];
             int i = 0;
             Header.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)ObjectData.Length;
+            Utils.ByteToBytes((byte)ObjectData.Length, bytes, ref i);
             for (int j = 0; j < ObjectData.Length; j++) { ObjectData[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -78976,7 +79543,7 @@ namespace OpenMetaverse.Packets
                     ChannelType = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     Packet = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     Status = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
                 }
@@ -78992,8 +79559,7 @@ namespace OpenMetaverse.Packets
                 Utils.IntToBytesSafepos(ChannelType, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(Packet, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(Status, bytes, i); i += 4;
-                bytes[i++] = (byte)(Data.Length % 256);
-                bytes[i++] = (byte)((Data.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Data.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
             }
 
@@ -79018,6 +79584,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 17;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             TransferData = new TransferDataBlock();
         }
 
@@ -79040,11 +79607,10 @@ namespace OpenMetaverse.Packets
 
         public TransferPacketPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             TransferData.FromBytes(bytes, ref i);
@@ -79168,7 +79734,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Data = new byte[length];
                     Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
                 }
@@ -79180,8 +79746,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(Data.Length % 256);
-                bytes[i++] = (byte)((Data.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Data.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
             }
 
@@ -79208,6 +79773,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 18;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             XferID = new XferIDBlock();
             DataPacket = new DataPacketBlock();
         }
@@ -79232,11 +79798,10 @@ namespace OpenMetaverse.Packets
 
         public SendXferPacketPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             XferID.FromBytes(bytes, ref i);
@@ -79358,6 +79923,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 19;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             XferID = new XferIDBlock();
         }
 
@@ -79380,11 +79946,10 @@ namespace OpenMetaverse.Packets
 
         public ConfirmXferPacketPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             XferID.FromBytes(bytes, ref i);
@@ -79584,7 +80149,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     TypeData = new byte[length];
                     Buffer.BlockCopy(bytes, i, TypeData, 0, length); i += length;
                 }
@@ -79596,7 +80161,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)TypeData.Length;
+                Utils.ByteToBytes((byte)TypeData.Length, bytes, ref i);
                 Buffer.BlockCopy(TypeData, 0, bytes, i, TypeData.Length); i += TypeData.Length;
             }
 
@@ -79630,6 +80195,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 20;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Sender = new SenderBlock();
             AnimationList = null;
             AnimationSourceList = null;
@@ -79682,11 +80248,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarAnimationPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Sender.FromBytes(bytes, ref i);
@@ -79734,11 +80299,11 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             Sender.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)AnimationList.Length;
+            Utils.ByteToBytes((byte)AnimationList.Length, bytes, ref i);
             for (int j = 0; j < AnimationList.Length; j++) { AnimationList[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)AnimationSourceList.Length;
+            Utils.ByteToBytes((byte)AnimationSourceList.Length, bytes, ref i);
             for (int j = 0; j < AnimationSourceList.Length; j++) { AnimationSourceList[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)PhysicalAvatarEventList.Length;
+            Utils.ByteToBytes((byte)PhysicalAvatarEventList.Length, bytes, ref i);
             for (int j = 0; j < PhysicalAvatarEventList.Length; j++) { PhysicalAvatarEventList[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -80058,12 +80623,12 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    AutoPilot = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    AutoPilot = (Utils.BytesToByte(bytes, ref i) != 0);
                     SitPosition.FromBytes(bytes, i); i += 12;
                     SitRotation.FromBytes(bytes, i, true); i += 12;
                     CameraEyeOffset.FromBytes(bytes, i); i += 12;
                     CameraAtOffset.FromBytes(bytes, i); i += 12;
-                    ForceMouselook = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    ForceMouselook = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -80073,12 +80638,12 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((AutoPilot) ? 1 : 0);
+                Utils.ByteToBytes((byte)((AutoPilot) ? 1 : 0), bytes, ref i);
                 SitPosition.ToBytes(bytes, i); i += 12;
                 SitRotation.ToBytes(bytes, i); i += 12;
                 CameraEyeOffset.ToBytes(bytes, i); i += 12;
                 CameraAtOffset.ToBytes(bytes, i); i += 12;
-                bytes[i++] = (byte)((ForceMouselook) ? 1 : 0);
+                Utils.ByteToBytes((byte)((ForceMouselook) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -80104,6 +80669,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 21;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             SitObject = new SitObjectBlock();
             SitTransform = new SitTransformBlock();
@@ -80129,11 +80695,10 @@ namespace OpenMetaverse.Packets
 
         public AvatarSitResponsePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             SitObject.FromBytes(bytes, ref i);
@@ -80252,6 +80817,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 22;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             CameraCollidePlane = new CameraCollidePlaneBlock();
         }
@@ -80275,11 +80841,10 @@ namespace OpenMetaverse.Packets
 
         public CameraConstraintPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             CameraCollidePlane.FromBytes(bytes, ref i);
@@ -80416,24 +80981,24 @@ namespace OpenMetaverse.Packets
                 {
                     RequestResult = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     SequenceID = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    SnapSelection = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    SnapSelection = (Utils.BytesToByte(bytes, ref i) != 0);
                     SelfCount = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     OtherCount = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     PublicCount = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     LocalID = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     OwnerID.FromBytes(bytes, i); i += 16;
-                    IsGroupOwned = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    IsGroupOwned = (Utils.BytesToByte(bytes, ref i) != 0);
                     AuctionID = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     ClaimDate = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     ClaimPrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     RentPrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     AABBMin.FromBytes(bytes, i); i += 12;
                     AABBMax.FromBytes(bytes, i); i += 12;
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     Bitmap = new byte[length];
                     Buffer.BlockCopy(bytes, i, Bitmap, 0, length); i += length;
                     Area = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    Status = (byte)bytes[i++];
+                    Status = Utils.BytesToByte(bytes, ref i);
                     SimWideMaxPrims = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     SimWideTotalPrims = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     MaxPrims = Utils.BytesToIntSafepos(bytes, i); i += 4;
@@ -80446,33 +81011,33 @@ namespace OpenMetaverse.Packets
                     OtherCleanTime = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     ParcelFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     SalePrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Name = new byte[length];
                     Buffer.BlockCopy(bytes, i, Name, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Desc = new byte[length];
                     Buffer.BlockCopy(bytes, i, Desc, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     MusicURL = new byte[length];
                     Buffer.BlockCopy(bytes, i, MusicURL, 0, length); i += length;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     MediaURL = new byte[length];
                     Buffer.BlockCopy(bytes, i, MediaURL, 0, length); i += length;
                     MediaID.FromBytes(bytes, i); i += 16;
-                    MediaAutoScale = (byte)bytes[i++];
+                    MediaAutoScale = Utils.BytesToByte(bytes, ref i);
                     GroupID.FromBytes(bytes, i); i += 16;
                     PassPrice = Utils.BytesToIntSafepos(bytes, i); i += 4;
                     PassHours = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    Category = (byte)bytes[i++];
+                    Category = Utils.BytesToByte(bytes, ref i);
                     AuthBuyerID.FromBytes(bytes, i); i += 16;
                     SnapshotID.FromBytes(bytes, i); i += 16;
                     UserLocation.FromBytes(bytes, i); i += 12;
                     UserLookAt.FromBytes(bytes, i); i += 12;
-                    LandingType = (byte)bytes[i++];
-                    RegionPushOverride = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    RegionDenyAnonymous = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    RegionDenyIdentified = (bytes[i++] != 0) ? (bool)true : (bool)false;
-                    RegionDenyTransacted = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    LandingType = Utils.BytesToByte(bytes, ref i);
+                    RegionPushOverride = (Utils.BytesToByte(bytes, ref i) != 0);
+                    RegionDenyAnonymous = (Utils.BytesToByte(bytes, ref i) != 0);
+                    RegionDenyIdentified = (Utils.BytesToByte(bytes, ref i) != 0);
+                    RegionDenyTransacted = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -80484,24 +81049,23 @@ namespace OpenMetaverse.Packets
             {
                 Utils.IntToBytesSafepos(RequestResult, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(SequenceID, bytes, i); i += 4;
-                bytes[i++] = (byte)((SnapSelection) ? 1 : 0);
+                Utils.ByteToBytes((byte)((SnapSelection) ? 1 : 0), bytes, ref i);
                 Utils.IntToBytesSafepos(SelfCount, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(OtherCount, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(PublicCount, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(LocalID, bytes, i); i += 4;
                 OwnerID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = (byte)((IsGroupOwned) ? 1 : 0);
+                Utils.ByteToBytes((byte)((IsGroupOwned) ? 1 : 0), bytes, ref i);
                 Utils.UIntToBytesSafepos(AuctionID, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(ClaimDate, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(ClaimPrice, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(RentPrice, bytes, i); i += 4;
                 AABBMin.ToBytes(bytes, i); i += 12;
                 AABBMax.ToBytes(bytes, i); i += 12;
-                bytes[i++] = (byte)(Bitmap.Length % 256);
-                bytes[i++] = (byte)((Bitmap.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)Bitmap.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(Bitmap, 0, bytes, i, Bitmap.Length); i += Bitmap.Length;
                 Utils.IntToBytesSafepos(Area, bytes, i); i += 4;
-                bytes[i++] = Status;
+                Utils.ByteToBytes( Status, bytes, ref i);
                 Utils.IntToBytesSafepos(SimWideMaxPrims, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(SimWideTotalPrims, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(MaxPrims, bytes, i); i += 4;
@@ -80514,29 +81078,29 @@ namespace OpenMetaverse.Packets
                 Utils.IntToBytesSafepos(OtherCleanTime, bytes, i); i += 4;
                 Utils.UIntToBytesSafepos(ParcelFlags, bytes, i); i += 4;
                 Utils.IntToBytesSafepos(SalePrice, bytes, i); i += 4;
-                bytes[i++] = (byte)Name.Length;
+                Utils.ByteToBytes((byte)Name.Length, bytes, ref i);
                 Buffer.BlockCopy(Name, 0, bytes, i, Name.Length); i += Name.Length;
-                bytes[i++] = (byte)Desc.Length;
+                Utils.ByteToBytes((byte)Desc.Length, bytes, ref i);
                 Buffer.BlockCopy(Desc, 0, bytes, i, Desc.Length); i += Desc.Length;
-                bytes[i++] = (byte)MusicURL.Length;
+                Utils.ByteToBytes((byte)MusicURL.Length, bytes, ref i);
                 Buffer.BlockCopy(MusicURL, 0, bytes, i, MusicURL.Length); i += MusicURL.Length;
-                bytes[i++] = (byte)MediaURL.Length;
+                Utils.ByteToBytes((byte)MediaURL.Length, bytes, ref i);
                 Buffer.BlockCopy(MediaURL, 0, bytes, i, MediaURL.Length); i += MediaURL.Length;
                 MediaID.ToBytes(bytes, i); i += 16;
-                bytes[i++] = MediaAutoScale;
+                Utils.ByteToBytes( MediaAutoScale, bytes, ref i);
                 GroupID.ToBytes(bytes, i); i += 16;
                 Utils.IntToBytesSafepos(PassPrice, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(PassHours, bytes, i); i += 4;
-                bytes[i++] = Category;
+                Utils.ByteToBytes( Category, bytes, ref i);
                 AuthBuyerID.ToBytes(bytes, i); i += 16;
                 SnapshotID.ToBytes(bytes, i); i += 16;
                 UserLocation.ToBytes(bytes, i); i += 12;
                 UserLookAt.ToBytes(bytes, i); i += 12;
-                bytes[i++] = LandingType;
-                bytes[i++] = (byte)((RegionPushOverride) ? 1 : 0);
-                bytes[i++] = (byte)((RegionDenyAnonymous) ? 1 : 0);
-                bytes[i++] = (byte)((RegionDenyIdentified) ? 1 : 0);
-                bytes[i++] = (byte)((RegionDenyTransacted) ? 1 : 0);
+                Utils.ByteToBytes( LandingType, bytes, ref i);
+                Utils.ByteToBytes((byte)((RegionPushOverride) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((RegionDenyAnonymous) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((RegionDenyIdentified) ? 1 : 0), bytes, ref i);
+                Utils.ByteToBytes((byte)((RegionDenyTransacted) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -80564,7 +81128,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionDenyAgeUnverified = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    RegionDenyAgeUnverified = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -80574,7 +81138,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((RegionDenyAgeUnverified) ? 1 : 0);
+                Utils.ByteToBytes((byte)((RegionDenyAgeUnverified) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -80602,7 +81166,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    RegionAllowAccessOverride = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    RegionAllowAccessOverride = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -80612,7 +81176,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)((RegionAllowAccessOverride) ? 1 : 0);
+                Utils.ByteToBytes((byte)((RegionAllowAccessOverride) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -80642,7 +81206,7 @@ namespace OpenMetaverse.Packets
                 try
                 {
                     ParcelEnvironmentVersion = Utils.BytesToIntSafepos(bytes, i); i +=4;
-                    RegionAllowEnvironmentOverride = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    RegionAllowEnvironmentOverride = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -80653,7 +81217,7 @@ namespace OpenMetaverse.Packets
             public override void ToBytes(byte[] bytes, ref int i)
             {
                 Utils.IntToBytesSafepos(ParcelEnvironmentVersion, bytes, i); i += 4;
-                bytes[i++] = (byte)((RegionAllowEnvironmentOverride) ? 1 : 0);
+                Utils.ByteToBytes((byte)((RegionAllowEnvironmentOverride) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -80683,6 +81247,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 23;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Header.Zerocoded = true;
             ParcelData = new ParcelDataBlock();
             AgeVerificationBlock = new AgeVerificationBlockBlock();
@@ -80712,11 +81277,10 @@ namespace OpenMetaverse.Packets
 
         public ParcelPropertiesPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             ParcelData.FromBytes(bytes, ref i);
@@ -80847,10 +81411,10 @@ namespace OpenMetaverse.Packets
                     AtAxis.FromBytes(bytes, i); i += 12;
                     LeftAxis.FromBytes(bytes, i); i += 12;
                     UpAxis.FromBytes(bytes, i); i += 12;
-                    ChangedGrid = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    ChangedGrid = (Utils.BytesToByte(bytes, ref i) != 0);
                     Far = Utils.BytesToFloatSafepos(bytes, i); i += 4;
                     Aspect = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    length = bytes[i++];
+                    length = Utils.BytesToByte(bytes, ref i);
                     Throttles = new byte[length];
                     Buffer.BlockCopy(bytes, i, Throttles, 0, length); i += length;
                     LocomotionState = Utils.BytesToUIntSafepos(bytes, i); i += 4;
@@ -80858,11 +81422,11 @@ namespace OpenMetaverse.Packets
                     BodyRotation.FromBytes(bytes, i, true); i += 12;
                     ControlFlags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
                     EnergyLevel = Utils.BytesToFloatSafepos(bytes, i); i += 4;
-                    GodLevel = (byte)bytes[i++];
-                    AlwaysRun = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    GodLevel = Utils.BytesToByte(bytes, ref i);
+                    AlwaysRun = (Utils.BytesToByte(bytes, ref i) != 0);
                     PreyAgent.FromBytes(bytes, i); i += 16;
-                    AgentAccess = (byte)bytes[i++];
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    AgentAccess = Utils.BytesToByte(bytes, ref i);
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     AgentTextures = new byte[length];
                     Buffer.BlockCopy(bytes, i, AgentTextures, 0, length); i += length;
                     ActiveGroupID.FromBytes(bytes, i); i += 16;
@@ -80886,22 +81450,21 @@ namespace OpenMetaverse.Packets
                 AtAxis.ToBytes(bytes, i); i += 12;
                 LeftAxis.ToBytes(bytes, i); i += 12;
                 UpAxis.ToBytes(bytes, i); i += 12;
-                bytes[i++] = (byte)((ChangedGrid) ? 1 : 0);
+                Utils.ByteToBytes((byte)((ChangedGrid) ? 1 : 0), bytes, ref i);
                 Utils.FloatToBytesSafepos(Far, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(Aspect, bytes, i); i += 4;
-                bytes[i++] = (byte)Throttles.Length;
+                Utils.ByteToBytes((byte)Throttles.Length, bytes, ref i);
                 Buffer.BlockCopy(Throttles, 0, bytes, i, Throttles.Length); i += Throttles.Length;
                 Utils.UIntToBytesSafepos(LocomotionState, bytes, i); i += 4;
                 HeadRotation.ToBytes(bytes, i); i += 12;
                 BodyRotation.ToBytes(bytes, i); i += 12;
                 Utils.UIntToBytesSafepos(ControlFlags, bytes, i); i += 4;
                 Utils.FloatToBytesSafepos(EnergyLevel, bytes, i); i += 4;
-                bytes[i++] = GodLevel;
-                bytes[i++] = (byte)((AlwaysRun) ? 1 : 0);
+                Utils.ByteToBytes( GodLevel, bytes, ref i);
+                Utils.ByteToBytes((byte)((AlwaysRun) ? 1 : 0), bytes, ref i);
                 PreyAgent.ToBytes(bytes, i); i += 16;
-                bytes[i++] = AgentAccess;
-                bytes[i++] = (byte)(AgentTextures.Length % 256);
-                bytes[i++] = (byte)((AgentTextures.Length >> 8) % 256);
+                Utils.ByteToBytes( AgentAccess, bytes, ref i);
+                Utils.UInt16ToBytes((ushort)AgentTextures.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(AgentTextures, 0, bytes, i, AgentTextures.Length); i += AgentTextures.Length;
                 ActiveGroupID.ToBytes(bytes, i); i += 16;
             }
@@ -80935,7 +81498,7 @@ namespace OpenMetaverse.Packets
                 {
                     GroupID.FromBytes(bytes, i); i += 16;
                     GroupPowers = Utils.BytesToUInt64Safepos(bytes, i); i += 8;
-                    AcceptNotices = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    AcceptNotices = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -80947,7 +81510,7 @@ namespace OpenMetaverse.Packets
             {
                 GroupID.ToBytes(bytes, i); i += 16;
                 Utils.UInt64ToBytesSafepos(GroupPowers, bytes, i); i += 8;
-                bytes[i++] = (byte)((AcceptNotices) ? 1 : 0);
+                Utils.ByteToBytes((byte)((AcceptNotices) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -81057,7 +81620,7 @@ namespace OpenMetaverse.Packets
                 int length;
                 try
                 {
-                    length = (bytes[i++] + (bytes[i++] << 8));
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
                     NVPairs = new byte[length];
                     Buffer.BlockCopy(bytes, i, NVPairs, 0, length); i += length;
                 }
@@ -81069,8 +81632,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = (byte)(NVPairs.Length % 256);
-                bytes[i++] = (byte)((NVPairs.Length >> 8) % 256);
+                Utils.UInt16ToBytes((ushort)NVPairs.Length, bytes, i); i += 2;
                 Buffer.BlockCopy(NVPairs, 0, bytes, i, NVPairs.Length); i += NVPairs.Length;
             }
 
@@ -81099,7 +81661,7 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    ParamValue = (byte)bytes[i++];
+                    ParamValue = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -81109,7 +81671,7 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = ParamValue;
+                Utils.ByteToBytes( ParamValue, bytes, ref i);
             }
 
         }
@@ -81138,8 +81700,8 @@ namespace OpenMetaverse.Packets
             {
                 try
                 {
-                    AgentLegacyAccess = (byte)bytes[i++];
-                    AgentMaxAccess = (byte)bytes[i++];
+                    AgentLegacyAccess = Utils.BytesToByte(bytes, ref i);
+                    AgentMaxAccess = Utils.BytesToByte(bytes, ref i);
                 }
                 catch (Exception)
                 {
@@ -81149,8 +81711,8 @@ namespace OpenMetaverse.Packets
 
             public override void ToBytes(byte[] bytes, ref int i)
             {
-                bytes[i++] = AgentLegacyAccess;
-                bytes[i++] = AgentMaxAccess;
+                Utils.ByteToBytes( AgentLegacyAccess, bytes, ref i);
+                Utils.ByteToBytes( AgentMaxAccess, bytes, ref i);
             }
 
         }
@@ -81225,6 +81787,8 @@ namespace OpenMetaverse.Packets
         public AgentAccessBlock[] AgentAccess;
         public AgentInfoBlock[] AgentInfo;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ChildAgentUpdatePacket()
         {
             HasVariableBlocks = true;
@@ -81233,6 +81797,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 25;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             GroupData = null;
@@ -81326,11 +81891,10 @@ namespace OpenMetaverse.Packets
 
         public ChildAgentUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -81422,19 +81986,19 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             AgentData.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)GroupData.Length;
+            Utils.ByteToBytes((byte)GroupData.Length, bytes, ref i);
             for (int j = 0; j < GroupData.Length; j++) { GroupData[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)AnimationData.Length;
+            Utils.ByteToBytes((byte)AnimationData.Length, bytes, ref i);
             for (int j = 0; j < AnimationData.Length; j++) { AnimationData[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)GranterBlock.Length;
+            Utils.ByteToBytes((byte)GranterBlock.Length, bytes, ref i);
             for (int j = 0; j < GranterBlock.Length; j++) { GranterBlock[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)NVPairData.Length;
+            Utils.ByteToBytes((byte)NVPairData.Length, bytes, ref i);
             for (int j = 0; j < NVPairData.Length; j++) { NVPairData[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)VisualParam.Length;
+            Utils.ByteToBytes((byte)VisualParam.Length, bytes, ref i);
             for (int j = 0; j < VisualParam.Length; j++) { VisualParam[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)AgentAccess.Length;
+            Utils.ByteToBytes((byte)AgentAccess.Length, bytes, ref i);
             for (int j = 0; j < AgentAccess.Length; j++) { AgentAccess[j].ToBytes(bytes, ref i); }
-            bytes[i++] = (byte)AgentInfo.Length;
+            Utils.ByteToBytes((byte)AgentInfo.Length, bytes, ref i);
             for (int j = 0; j < AgentInfo.Length; j++) { AgentInfo[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -81921,6 +82485,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ChildAgentAlivePacket()
         {
             HasVariableBlocks = false;
@@ -81929,6 +82495,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 26;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -81951,11 +82518,10 @@ namespace OpenMetaverse.Packets
 
         public ChildAgentAlivePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -82057,7 +82623,7 @@ namespace OpenMetaverse.Packets
                     AtAxis.FromBytes(bytes, i); i += 12;
                     LeftAxis.FromBytes(bytes, i); i += 12;
                     UpAxis.FromBytes(bytes, i); i += 12;
-                    ChangedGrid = (bytes[i++] != 0) ? (bool)true : (bool)false;
+                    ChangedGrid = (Utils.BytesToByte(bytes, ref i) != 0);
                 }
                 catch (Exception)
                 {
@@ -82078,7 +82644,7 @@ namespace OpenMetaverse.Packets
                 AtAxis.ToBytes(bytes, i); i += 12;
                 LeftAxis.ToBytes(bytes, i); i += 12;
                 UpAxis.ToBytes(bytes, i); i += 12;
-                bytes[i++] = (byte)((ChangedGrid) ? 1 : 0);
+                Utils.ByteToBytes((byte)((ChangedGrid) ? 1 : 0), bytes, ref i);
             }
 
         }
@@ -82094,6 +82660,8 @@ namespace OpenMetaverse.Packets
         }
         public AgentDataBlock AgentData;
 
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
         public ChildAgentPositionUpdatePacket()
         {
             HasVariableBlocks = false;
@@ -82102,6 +82670,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 27;
             Header.Reliable = true;
+            NeedValidateIDs = true;
             AgentData = new AgentDataBlock();
         }
 
@@ -82124,11 +82693,10 @@ namespace OpenMetaverse.Packets
 
         public ChildAgentPositionUpdatePacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             AgentData.FromBytes(bytes, ref i);
@@ -82260,6 +82828,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 29;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             SoundData = new SoundDataBlock();
         }
 
@@ -82282,11 +82851,10 @@ namespace OpenMetaverse.Packets
 
         public SoundTriggerPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             SoundData.FromBytes(bytes, ref i);
@@ -82436,6 +83004,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 30;
             Header.Reliable = true;
+            NeedValidateIDs = false;
             Sender = new SenderBlock();
             AnimationList = null;
         }
@@ -82468,11 +83037,10 @@ namespace OpenMetaverse.Packets
 
         public ObjectAnimationPacket(Header head, byte[] bytes, ref int i) : this()
         {
-            int packetEnd = bytes.Length - 1;
-            FromBytes(head, bytes, ref i, ref packetEnd);
+            FromBytes(head, bytes, ref i);
         }
 
-        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
         {
             Header = header;
             Sender.FromBytes(bytes, ref i);
@@ -82498,7 +83066,7 @@ namespace OpenMetaverse.Packets
             int i = 0;
             Header.ToBytes(bytes, ref i);
             Sender.ToBytes(bytes, ref i);
-            bytes[i++] = (byte)AnimationList.Length;
+            Utils.ByteToBytes((byte)AnimationList.Length, bytes, ref i);
             for (int j = 0; j < AnimationList.Length; j++) { AnimationList[j].ToBytes(bytes, ref i); }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
@@ -82564,6 +83132,168 @@ namespace OpenMetaverse.Packets
                 AnimationListStart < AnimationList.Length);
 
             return packets.ToArray();
+        }
+    }
+
+    /// <exclude/>
+    public sealed class GenericStreamingMessagePacket : Packet
+    {
+        /// <exclude/>
+        public sealed class MethodDataBlock : PacketBlock
+        {
+            public ushort Method;
+
+            public override int Length
+            {
+                get
+                {
+                    return 2;
+                }
+            }
+
+            public MethodDataBlock() { }
+            public MethodDataBlock(byte[] bytes, ref int i)
+            {
+                FromBytes(bytes, ref i);
+            }
+
+            public override void FromBytes(byte[] bytes, ref int i)
+            {
+                try
+                {
+                    Method = Utils.BytesToUInt16(bytes, i); i+=2;
+                }
+                catch (Exception)
+                {
+                    throw new MalformedDataException();
+                }
+            }
+
+            public override void ToBytes(byte[] bytes, ref int i)
+            {
+                Utils.UInt16ToBytes(Method, bytes, i); i += 2;
+            }
+
+        }
+
+        /// <exclude/>
+        public sealed class DataBlockBlock : PacketBlock
+        {
+            public byte[] Data;
+
+            public override int Length
+            {
+                get
+                {
+                    int length = 2;
+                    if (Data != null) { length += Data.Length; }
+                    return length;
+                }
+            }
+
+            public DataBlockBlock() { }
+            public DataBlockBlock(byte[] bytes, ref int i)
+            {
+                FromBytes(bytes, ref i);
+            }
+
+            public override void FromBytes(byte[] bytes, ref int i)
+            {
+                int length;
+                try
+                {
+                    length = Utils.BytesToUInt16(bytes, i); i+=2;
+                    Data = new byte[length];
+                    Buffer.BlockCopy(bytes, i, Data, 0, length); i += length;
+                }
+                catch (Exception)
+                {
+                    throw new MalformedDataException();
+                }
+            }
+
+            public override void ToBytes(byte[] bytes, ref int i)
+            {
+                Utils.UInt16ToBytes((ushort)Data.Length, bytes, i); i += 2;
+                Buffer.BlockCopy(Data, 0, bytes, i, Data.Length); i += Data.Length;
+            }
+
+        }
+
+        public override int Length
+        {
+            get
+            {
+                int length = 7;
+                length += MethodData.Length;
+                length += DataBlock.Length;
+                return length;
+            }
+        }
+        public MethodDataBlock MethodData;
+        public DataBlockBlock DataBlock;
+
+        public GenericStreamingMessagePacket()
+        {
+            HasVariableBlocks = false;
+            Type = PacketType.GenericStreamingMessage;
+            Header = new Header();
+            Header.Frequency = PacketFrequency.High;
+            Header.ID =31;
+            Header.Reliable = true;
+            NeedValidateIDs = false;
+            MethodData = new MethodDataBlock();
+            DataBlock = new DataBlockBlock();
+        }
+
+        public GenericStreamingMessagePacket(byte[] bytes, ref int i) : this()
+        {
+            int packetEnd = bytes.Length - 1;
+            FromBytes(bytes, ref i, ref packetEnd, null);
+        }
+
+        override public void FromBytes(byte[] bytes, ref int i, ref int packetEnd, byte[] zeroBuffer)
+        {
+            Header.FromBytes(bytes, ref i, ref packetEnd);
+            if (Header.Zerocoded && zeroBuffer != null)
+            {
+                packetEnd = Helpers.ZeroDecode(bytes, packetEnd + 1, zeroBuffer) - 1;
+                bytes = zeroBuffer;
+            }
+            MethodData.FromBytes(bytes, ref i);
+            DataBlock.FromBytes(bytes, ref i);
+        }
+
+        public GenericStreamingMessagePacket(Header head, byte[] bytes, ref int i): this()
+        {
+            FromBytes(head, bytes, ref i);
+        }
+
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
+        {
+            Header = header;
+            MethodData.FromBytes(bytes, ref i);
+            DataBlock.FromBytes(bytes, ref i);
+        }
+
+        public override byte[] ToBytes()
+        {
+            int length = 7;
+            length += MethodData.Length;
+            length += DataBlock.Length;
+            if (Header.AckList != null && Header.AckList.Length > 0) { length += Header.AckList.Length * 4 + 1; }
+            byte[] bytes = new byte[length];
+            int i = 0;
+            Header.ToBytes(bytes, ref i);
+            MethodData.ToBytes(bytes, ref i);
+            DataBlock.ToBytes(bytes, ref i);
+            if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
+            return bytes;
+        }
+
+        public override byte[][] ToBytesMultiple()
+        {
+            return new byte[][] { ToBytes() };
         }
     }
 

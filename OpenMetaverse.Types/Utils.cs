@@ -27,51 +27,24 @@
  */
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace OpenMetaverse
 {
     public static partial class Utils
     {
-        /// <summary>
-        /// Operating system
-        /// </summary>
-        public enum Platform
-        {
-            /// <summary>Unknown</summary>
-            Unknown,
-            /// <summary>Microsoft Windows</summary>
-            Windows,
-            /// <summary>Microsoft Windows CE</summary>
-            WindowsCE,
-            /// <summary>Linux</summary>
-            Linux,
-            /// <summary>Apple OSX</summary>
-            OSX
-        }
-
-        /// <summary>
-        /// Runtime platform
-        /// </summary>
-        public enum Runtime
-        {
-            /// <summary>.NET runtime</summary>
-            Windows,
-            /// <summary>Mono runtime: http://www.mono-project.com/</summary>
-            Mono
-        }
-
-        public const float E = (float)Math.E;
+        public const float E = MathF.E;
         public const float LOG10E = 0.4342945f;
         public const float LOG2E = 1.442695f;
-        public const float PI = (float)Math.PI;
-        public const float TWO_PI = (float)(Math.PI * 2.0d);
-        public const float PI_OVER_TWO = (float)(Math.PI / 2.0d);
-        public const float PI_OVER_FOUR = (float)(Math.PI / 4.0d);
+        public const float PI = MathF.PI;
+        public const float TWO_PI = MathF.PI * 2.0f;
+        public const float PI_OVER_TWO = MathF.PI / 2.0f;
+        public const float PI_OVER_FOUR = MathF.PI / 4.0f;
         /// <summary>Used for converting degrees to radians</summary>
-        public const float DEG_TO_RAD = (float)(Math.PI / 180.0d);
+        public const float DEG_TO_RAD = MathF.PI / 180.0f;
         /// <summary>Used for converting radians to degrees</summary>
-        public const float RAD_TO_DEG = (float)(180.0d / Math.PI);
+        public const float RAD_TO_DEG = 180.0f / MathF.PI;
 
         /// <summary>Provide a single instance of the CultureInfo class to
         /// help parsing in situations where the grid assumes an en-us 
@@ -82,7 +55,7 @@ namespace OpenMetaverse
         /// <summary>UNIX epoch in DateTime format</summary>
         public static readonly DateTime Epoch = new DateTime(1970, 1, 1);
 
-        public static readonly byte[] EmptyBytes = new byte[0];
+        public static readonly byte[] EmptyBytes = Array.Empty<byte>();
 
         /// <summary>Provide a single instance of the MD5 class to avoid making
         /// duplicate copies and handle thread safety</summary>
@@ -110,16 +83,10 @@ namespace OpenMetaverse
         /// <param name="min">Minimum allowable value</param>
         /// <param name="max">Maximum allowable value</param>
         /// <returns>A value inclusively between lower and upper</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Clamp(float value, float min, float max)
         {
-            // First we check to see if we're greater than the max
-            value = (value > max) ? max : value;
-
-            // Then we check to see if we're less than the min.
-            value = (value < min) ? min : value;
-
-            // There's no check to see if min > max.
-            return value;
+            return (value < max) ? (value > min ? value : min) : max;
         }
 
         /// <summary>
@@ -129,16 +96,10 @@ namespace OpenMetaverse
         /// <param name="min">Minimum allowable value</param>
         /// <param name="max">Maximum allowable value</param>
         /// <returns>A value inclusively between lower and upper</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Clamp(double value, double min, double max)
         {
-            // First we check to see if we're greater than the max
-            value = (value > max) ? max : value;
-
-            // Then we check to see if we're less than the min.
-            value = (value < min) ? min : value;
-
-            // There's no check to see if min > max.
-            return value;
+            return (value < max) ? (value > min ? value : min) : max;
         }
 
         /// <summary>
@@ -148,16 +109,10 @@ namespace OpenMetaverse
         /// <param name="min">Minimum allowable value</param>
         /// <param name="max">Maximum allowable value</param>
         /// <returns>A value inclusively between lower and upper</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Clamp(int value, int min, int max)
         {
-            // First we check to see if we're greater than the max
-            value = (value > max) ? max : value;
-
-            // Then we check to see if we're less than the min.
-            value = (value < min) ? min : value;
-
-            // There's no check to see if min > max.
-            return value;
+            return (value < max) ? (value > min ? value : min) : max;
         }
 
         /// <summary>
@@ -165,6 +120,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="val">Floating point number to round</param>
         /// <returns>Integer</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Round(float val)
         {
             return (int)Math.Floor(val + 0.5f);
@@ -173,6 +129,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Test if a single precision float is a finite number
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsFinite(float value)
         {
             return !(Single.IsNaN(value) || Single.IsInfinity(value));
@@ -181,6 +138,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Test if a double precision float is a finite number
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsFinite(double value)
         {
             return !(Double.IsNaN(value) || Double.IsInfinity(value));
@@ -192,6 +150,7 @@ namespace OpenMetaverse
         /// <param name="value1">First value</param>
         /// <param name="value2">Second value</param>
         /// <returns>The distance between the two values</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Distance(float value1, float value2)
         {
             return Math.Abs(value1 - value2);
@@ -199,40 +158,38 @@ namespace OpenMetaverse
 
         public static float Hermite(float value1, float tangent1, float value2, float tangent2, float amount)
         {
+            if (amount <= 0f)
+                return value1;
+            if (amount >= 1f)
+                return value2;
+
             // All transformed to double not to lose precission
             // Otherwise, for high numbers of param:amount the result is NaN instead of Infinity
-            double v1 = value1, v2 = value2, t1 = tangent1, t2 = tangent2, s = amount, result;
-            double sCubed = s * s * s;
+            double v1 = value1, v2 = value2, t1 = tangent1, t2 = tangent2, s = amount;
             double sSquared = s * s;
-
-            if (amount == 0f)
-                result = value1;
-            else if (amount == 1f)
-                result = value2;
-            else
-                result = (2d * v1 - 2d * v2 + t2 + t1) * sCubed +
+            double sCubed = sSquared * s;
+            
+            return (float)((2d * v1 - 2d * v2 + t2 + t1) * sCubed +
                     (3d * v2 - 3d * v1 - 2d * t1 - t2) * sSquared +
-                    t1 * s + v1;
-            return (float)result;
+                    t1 * s + v1);
         }
 
         public static double Hermite(double value1, double tangent1, double value2, double tangent2, double amount)
         {
+            if (amount <= 0d)
+                return value1;
+            if (amount >= 1f)
+                return value2;
+
             // All transformed to double not to lose precission
             // Otherwise, for high numbers of param:amount the result is NaN instead of Infinity
-            double v1 = value1, v2 = value2, t1 = tangent1, t2 = tangent2, s = amount, result;
-            double sCubed = s * s * s;
+            double v1 = value1, v2 = value2, t1 = tangent1, t2 = tangent2, s = amount;
             double sSquared = s * s;
+            double sCubed = sSquared * s;
 
-            if (amount == 0d)
-                result = value1;
-            else if (amount == 1f)
-                result = value2;
-            else
-                result = (2d * v1 - 2d * v2 + t2 + t1) * sCubed +
+            return (2d * v1 - 2d * v2 + t2 + t1) * sCubed +
                     (3d * v2 - 3d * v1 - 2d * t1 - t2) * sSquared +
                     t1 * s + v1;
-            return result;
         }
 
         public static float Lerp(float value1, float value2, float amount)
@@ -247,22 +204,15 @@ namespace OpenMetaverse
 
         public static float SmoothStep(float value1, float value2, float amount)
         {
-            // It is expected that 0 < amount < 1
-            // If amount < 0, return value1
-            // If amount > 1, return value2
-            float result = Utils.Clamp(amount, 0f, 1f);
-            return Utils.Hermite(value1, 0f, value2, 0f, result);
+            return Utils.Hermite(value1, 0f, value2, 0f, amount);
         }
 
         public static double SmoothStep(double value1, double value2, double amount)
         {
-            // It is expected that 0 < amount < 1
-            // If amount < 0, return value1
-            // If amount > 1, return value2
-            double result = Utils.Clamp(amount, 0f, 1f);
-            return Utils.Hermite(value1, 0f, value2, 0f, result);
+            return Utils.Hermite(value1, 0f, value2, 0f, amount);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float ToDegrees(float radians)
         {
             // This method uses double precission internally,
@@ -271,6 +221,8 @@ namespace OpenMetaverse
             return (float)(radians * 57.295779513082320876798154814105);
         }
 
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float ToRadians(float degrees)
         {
             // This method uses double precission internally,
@@ -284,6 +236,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="data">Byte array to compute the hash for</param>
         /// <returns>MD5 hash of the input data</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] MD5(byte[] data)
         {
             lock (MD5Builder)
@@ -295,6 +248,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="data">Byte array to compute the hash for</param>
         /// <returns>SHA1 hash of the input data</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] SHA1(byte[] data)
         {
             lock (SHA1Builder)
@@ -306,6 +260,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="value">The string to hash</param>
         /// <returns>The SHA1 hash as a string</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string SHA1String(string value)
         {
             StringBuilder digest = new StringBuilder(40);
@@ -323,6 +278,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="data">Byte array to compute the hash for</param>
         /// <returns>SHA256 hash of the input data</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] SHA256(byte[] data)
         {
             lock (SHA256Builder)
@@ -334,6 +290,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="value">The string to hash</param>
         /// <returns>The SHA256 hash as a string</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string SHA256String(string value)
         {
             StringBuilder digest = new StringBuilder(64);
@@ -351,6 +308,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="password">The password to hash</param>
         /// <returns>An MD5 hash in string format, with $1$ prepended</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static string MD5(string password)
         {
             StringBuilder digest = new StringBuilder(32);
@@ -391,52 +349,5 @@ namespace OpenMetaverse
         }
 
         #endregion Math
-
-        #region Platform
-
-        /// <summary>
-        /// Get the current running platform
-        /// </summary>
-        /// <returns>Enumeration of the current platform we are running on</returns>
-        public static Platform GetRunningPlatform()
-        {
-            const string OSX_CHECK_FILE = "/Library/Extensions.kextcache";
-
-            if (Environment.OSVersion.Platform == PlatformID.WinCE)
-            {
-                return Platform.WindowsCE;
-            }
-            else
-            {
-                int plat = (int)Environment.OSVersion.Platform;
-
-                if ((plat != 4) && (plat != 128))
-                {
-                    return Platform.Windows;
-                }
-                else
-                {
-                    if (System.IO.File.Exists(OSX_CHECK_FILE))
-                        return Platform.OSX;
-                    else
-                        return Platform.Linux;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Get the current running runtime
-        /// </summary>
-        /// <returns>Enumeration of the current runtime we are running on</returns>
-        public static Runtime GetRunningRuntime()
-        {
-            Type t = Type.GetType("Mono.Runtime");
-            if (t != null)
-                return Runtime.Mono;
-            else
-                return Runtime.Windows;
-        }
-
-        #endregion Platform
     }
 }

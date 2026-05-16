@@ -234,6 +234,9 @@ namespace OpenMetaverse
         LightImage = 0x40,
         /// <summary>Whether this object is a mesh</summary>
         Mesh = 0x60,
+        MeshFlag = 0x70,
+        RenderMaterial = 0x80,
+        ReflectionProbe = 0x90
     }
 
     /// <summary>
@@ -271,6 +274,8 @@ namespace OpenMetaverse
         Cylinder = 4,
         /// <summary></summary>
         Mesh = 5,
+        /// <summary></summary>
+        llGLTF = 6,
         /// <summary></summary>
         Invert = 64,
         /// <summary></summary>

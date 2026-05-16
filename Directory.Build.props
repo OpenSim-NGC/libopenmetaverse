@@ -1,11 +1,33 @@
 <Project>
- <PropertyGroup>
-  	<AssemblyVersion>1.1.6</AssemblyVersion>
-  	<FileVersion>1.1.6</FileVersion>
-	<Version>1.1.6</Version>
-	<MSBuildProjectExtensionsPath>$(SolutionDir)\obj\$(Configuration)\$(MSBuildProjectName)\</MSBuildProjectExtensionsPath>
-	<IntermediateOutputPath>$(SolutionDir)\obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
-	<OutputPath>$(SolutionDir)\bin\$(Configuration)\$(AssemblyName)\</OutputPath>
-	<OutDir>$(OutputPath)</OutDir>
- </PropertyGroup>
+  <PropertyGroup>
+    <Product>OpenMetaverse</Product>
+    <Authors>Utopa Skye LLC, OpenMetaverse Developers</Authors>
+    <Company>Utopia Skye LLC</Company>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Nerdbank.GitVersioning" Condition="!Exists('packages.config')">
+      <PrivateAssets>all</PrivateAssets>
+      <Version>3.9.50</Version>
+    </PackageReference>
+  </ItemGroup>
+  <PropertyGroup>
+    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/OpenSim-NGC/libopenmetaverse</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>OMV OpenMetaverse OpenSim Halcyon OpenMetaverseFoundation VirtualWorld VirtualReality 3D SecondLife</PackageTags>
+    <RepositoryUrl>https://github.com/OpenSim-NGC/libopenmetaverse.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryBranch>master</RepositoryBranch>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- Symbol package settings: produce .snupkg alongside every .nupkg -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- Embed all source files so debuggers can step into them without a source server -->
+    <EmbedAllSources>true</EmbedAllSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
 </Project>
