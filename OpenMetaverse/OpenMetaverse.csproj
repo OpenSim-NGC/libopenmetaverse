@@ -2,16 +2,18 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
+    <PackageId>OpenMetaverse</PackageId>
+    <Description>Client library for OpenMetaverse-compatible virtual world servers such as OpenSimulator. Provides login, inventory, asset, object, and messaging APIs.</Description>
     <AssemblyTitle>OpenMetaverse</AssemblyTitle>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="log4net" Version="3.3.0" />
+    <PackageReference Include="log4net" Version="3.3.1" />
+    <PackageReference Include="MessagePack" Version="2.5.192" />
     <PackageReference Include="CoreJ2K" Version="2.1.2.38" />
     <PackageReference Include="CoreJ2K.Skia" Version="2.1.2.38" />
-    <PackageReference Include="SkiaSharp" Version="3.119.1" />
-    <PackageReference Include="ZeroFormatter" Version="1.6.4" />
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="XMLRPC">

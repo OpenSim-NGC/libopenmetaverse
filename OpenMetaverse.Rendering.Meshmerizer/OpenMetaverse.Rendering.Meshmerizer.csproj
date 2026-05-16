@@ -2,6 +2,8 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
+    <PackageId>OpenMetaverse.Rendering.Meshmerizer</PackageId>
+    <Description>Full primitive and sculpt mesh renderer using the Meshmerizer engine for the OpenMetaverse library.</Description>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>

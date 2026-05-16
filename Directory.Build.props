@@ -14,10 +14,6 @@
     </PackageReference>
   </ItemGroup>
   <PropertyGroup>
-    <PackageVersion>1.1.8</PackageVersion>
-    <AssemblyVersion>1.1.7</AssemblyVersion>
-    <FileVersion>1.1.7</FileVersion>
-    <Version>1.1.7</Version>
     <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/OpenSim-NGC/libopenmetaverse</PackageProjectUrl>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
@@ -25,5 +21,13 @@
     <RepositoryUrl>https://github.com/OpenSim-NGC/libopenmetaverse.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryBranch>master</RepositoryBranch>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- Symbol package settings: produce .snupkg alongside every .nupkg -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- Embed all source files so debuggers can step into them without a source server -->
+    <EmbedAllSources>true</EmbedAllSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
 </Project>

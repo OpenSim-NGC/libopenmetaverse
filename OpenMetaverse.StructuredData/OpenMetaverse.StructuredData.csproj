@@ -2,6 +2,8 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
+    <PackageId>OpenMetaverse.StructuredData</PackageId>
+    <Description>LLSD/OSD structured data serialization (XML, JSON, binary) for the OpenMetaverse library.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>

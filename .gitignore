@@ -3,11 +3,12 @@ compile.bat
 *.userprefs
 *.suo
 *.cache
+*.csproj.lscache
 .vs/
 [Oo]bj/
 [Bb]in/
 [Bb]uild/
 PublishProfiles/
-
-
-.idea/.idea.OpenMetaverse/.idea/
+build_log.txt
+build_output.txt
+build_status.txt

@@ -2,6 +2,8 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
+    <PackageId>OpenMetaverse.Rendering.Simple</PackageId>
+    <Description>Simple faceted primitive mesh renderer for the OpenMetaverse library.</Description>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
