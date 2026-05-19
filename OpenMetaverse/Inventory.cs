@@ -52,7 +52,7 @@ namespace OpenMetaverse
     public class Inventory
     {
         [MessagePackObject]
-        private sealed class InventoryCacheEntry
+        public sealed class InventoryCacheEntry
         {
             [Key(0)]
             public UUID ParentID { get; set; }
@@ -85,7 +85,6 @@ namespace OpenMetaverse
             data.ParentUUID = cacheNode.ParentID;
             return new InventoryNode(data);
         }
-
 
         /// <summary>The event subscribers, null of no subscribers</summary>
         private EventHandler<InventoryObjectUpdatedEventArgs> m_InventoryObjectUpdated;
