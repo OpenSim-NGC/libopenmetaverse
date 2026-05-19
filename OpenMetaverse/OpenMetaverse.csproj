@@ -10,7 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="log4net" Version="3.3.1" />
-    <PackageReference Include="MessagePack" Version="2.5.192" />
+    <PackageReference Include="MessagePack" Version="3.1.4" />
     <PackageReference Include="CoreJ2K" Version="2.1.2.38" />
     <PackageReference Include="CoreJ2K.Skia" Version="2.1.2.38" />
     <PackageReference Include="SkiaSharp" Version="3.119.2" />
