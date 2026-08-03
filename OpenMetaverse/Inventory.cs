@@ -52,7 +52,7 @@ namespace OpenMetaverse
     public class Inventory
     {
         [MessagePackObject]
-        public sealed class InventoryCacheEntry
+        internal sealed class InventoryCacheEntry
         {
             [Key(0)]
             public UUID ParentID { get; set; }
