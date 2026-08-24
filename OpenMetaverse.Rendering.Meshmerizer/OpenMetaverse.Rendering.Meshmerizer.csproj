@@ -2,8 +2,11 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
-    <PackageId>OpenMetaverse.Rendering.Meshmerizer</PackageId>
+    <AssemblyName>OpenMetaverse.Rendering.Meshmerizer</AssemblyName>
+    <PackageId>UtopiaSkye.OpenMetaverse.Rendering.Meshmerizer</PackageId>
     <Description>Full primitive and sculpt mesh renderer using the Meshmerizer engine for the OpenMetaverse library.</Description>
+    <Authors>OpenSim NGC</Authors>
+    <Company>Utopia Skye LLC</Company>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>

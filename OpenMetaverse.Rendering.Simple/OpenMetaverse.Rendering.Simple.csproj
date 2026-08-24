@@ -2,8 +2,11 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
-    <PackageId>OpenMetaverse.Rendering.Simple</PackageId>
+    <AssemblyName>OpenMetaverse.Rendering.Simple</AssemblyName>
+    <PackageId>UtopiaSkye.OpenMetaverse.Rendering.Simple</PackageId>
     <Description>Simple faceted primitive mesh renderer for the OpenMetaverse library.</Description>
+    <Authors>OpenSim NGC</Authors>
+    <Company>Utopia Skye LLC</Company>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>

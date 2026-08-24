@@ -2,6 +2,7 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
+    <AssemblyName>OpenMetaverse.GUI</AssemblyName>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
