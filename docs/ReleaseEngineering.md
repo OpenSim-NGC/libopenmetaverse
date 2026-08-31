@@ -19,10 +19,10 @@ Update the `version.json` file in your root directory:
 
 ```json
 {
-  "\$schema": "https://githubusercontent.com",
-  "version": "1.0-beta",
+  "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/main/src/NerdBank.GitVersioning/version.schema.json",
+  "version": "1.0",
   "publicReleaseRefSpec": [
-    "^refs/heads/master\$",
+    "^refs/heads/master$",
     "^refs/heads/release/"
   ],
   "release": {

@@ -3,7 +3,8 @@
   "version": "1.2-alpha",
   "publicReleaseRefSpec": [
     "^refs/heads/master$",
-    "^refs/heads/release/"
+    "^refs/heads/release/",
+    "^refs/tags/v"
   ],
   "cloudBuild": {
     "buildNumber": {
