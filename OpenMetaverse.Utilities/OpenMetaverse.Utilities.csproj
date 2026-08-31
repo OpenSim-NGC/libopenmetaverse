@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
-    <AssemblyTitle>OpenMetaverse.Utilities</AssemblyTitle>
+    <AssemblyName>OpenMetaverse.Utilities</AssemblyName>
     <Product>OpenMetaverse.Utilities</Product>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>

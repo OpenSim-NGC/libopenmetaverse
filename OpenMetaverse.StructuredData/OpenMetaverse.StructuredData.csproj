@@ -2,8 +2,11 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
-    <PackageId>OpenMetaverse.StructuredData</PackageId>
+    <AssemblyName>OpenMetaverse.StructuredData</AssemblyName>
+    <PackageId>UtopiaSkye.OpenMetaverse.StructuredData</PackageId>
     <Description>LLSD/OSD structured data serialization (XML, JSON, binary) for the OpenMetaverse library.</Description>
+    <Authors>OpenSim NGC</Authors>
+    <Company>Utopia Skye LLC</Company>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>

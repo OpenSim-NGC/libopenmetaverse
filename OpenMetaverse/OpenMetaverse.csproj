@@ -2,9 +2,11 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
-    <PackageId>OpenMetaverse</PackageId>
-    <Description>Client library for OpenMetaverse-compatible virtual world servers such as OpenSimulator. Provides login, inventory, asset, object, and messaging APIs.</Description>
-    <AssemblyTitle>OpenMetaverse</AssemblyTitle>
+    <AssemblyName>OpenMetaverse</AssemblyName>
+    <PackageId>UtopiaSkye.OpenMetaverse</PackageId>
+    <Description>Client library for the NGC OpenMetaverse-compatible Tranquillity virtual world servers. Provides login, inventory, asset, object, and messaging APIs.</Description>
+    <Authors>OpenSim NGC</Authors>
+    <Company>Utopia Skye LLC</Company>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>

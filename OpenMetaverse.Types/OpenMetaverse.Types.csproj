@@ -2,9 +2,12 @@
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <OutputType>Library</OutputType>
-    <PackageId>OpenMetaverse.Types</PackageId>
+    <RootNamespace>OpenMetaverse</RootNamespace>  
+    <AssemblyName>OpenMetaverse.Types</AssemblyName>
+    <PackageId>UtopiaSkye.OpenMetaverse.Types</PackageId>
     <Description>Core value types for the OpenMetaverse library: UUID, Vector2/3/4, Quaternion, Matrix4, Color4, and related utilities.</Description>
-    <RootNamespace>OpenMetaverse</RootNamespace>
+    <Authors>OpenSim NGC</Authors>
+    <Company>Utopia Skye LLC</Company>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
