@@ -56,11 +56,6 @@ namespace OpenMetaverse.Http
             return false;
         }
 
-        static CapsBase()
-        {
-            ServicePointManager.ServerCertificateValidationCallback = ValidateServerCertificate;
-        }
-
         private class RequestState
         {
             public HttpWebRequest Request;
@@ -135,6 +130,7 @@ namespace OpenMetaverse.Http
 
             // Create the request
             HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(address);
+            request.ServerCertificateValidationCallback = ValidateServerCertificate;
 
             // Add the client certificate to the request if one was given
             if (clientCert != null)

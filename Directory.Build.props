@@ -3,14 +3,14 @@
     <Product>OpenMetaverse</Product>
     <Authors>Utopa Skye LLC, OpenMetaverse Developers</Authors>
     <Company>Utopia Skye LLC</Company>
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Nerdbank.GitVersioning" Condition="!Exists('packages.config')">
       <PrivateAssets>all</PrivateAssets>
-      <Version>3.9.50</Version>
+      <Version>3.10.94</Version>
     </PackageReference>
   </ItemGroup>
   <PropertyGroup>
