@@ -24,13 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using log4net;
 using OpenMetaverse.Assets;
 using SkiaSharp;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
 
 namespace OpenMetaverse.Imaging
 {
@@ -40,7 +35,6 @@ namespace OpenMetaverse.Imaging
     /// </summary>
     public class Baker
     {
-        private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         #region Properties
         /// <summary>Final baked texture</summary>
         public AssetTexture BakedTexture { get { return bakedTexture; } }
@@ -325,7 +319,6 @@ namespace OpenMetaverse.Imaging
             }
 
             // Apply any alpha wearable textures to make parts of the avatar disappear
-            m_log.DebugFormat("[XBakes]: Number of alpha wearable textures: {0}", alphaWearableTextures.Count);
             foreach (ManagedImage img in alphaWearableTextures)
                 AddAlpha(bakedTexture.Image, img);
 

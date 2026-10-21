@@ -100,52 +100,52 @@ namespace OpenMetaverse.Tests
             String t = "true";
             OSD llsdT = OSDParser.DeserializeLLSDNotation(t);
             Assert.Equal(OSDType.Boolean, llsdT.Type);
-            Assert.Equal(true, llsdT.AsBoolean());
+            Assert.True(llsdT.AsBoolean());
 
             String tTwo = "t";
             OSD llsdTTwo = OSDParser.DeserializeLLSDNotation(tTwo);
             Assert.Equal(OSDType.Boolean, llsdTTwo.Type);
-            Assert.Equal(true, llsdTTwo.AsBoolean());
+            Assert.True(llsdTTwo.AsBoolean());
 
             String tThree = "TRUE";
             OSD llsdTThree = OSDParser.DeserializeLLSDNotation(tThree);
             Assert.Equal(OSDType.Boolean, llsdTThree.Type);
-            Assert.Equal(true, llsdTThree.AsBoolean());
+            Assert.True(llsdTThree.AsBoolean());
 
             String tFour = "T";
             OSD llsdTFour = OSDParser.DeserializeLLSDNotation(tFour);
             Assert.Equal(OSDType.Boolean, llsdTFour.Type);
-            Assert.Equal(true, llsdTFour.AsBoolean());
+            Assert.True(llsdTFour.AsBoolean());
 
             String tFive = "1";
             OSD llsdTFive = OSDParser.DeserializeLLSDNotation(tFive);
             Assert.Equal(OSDType.Boolean, llsdTFive.Type);
-            Assert.Equal(true, llsdTFive.AsBoolean());
+            Assert.True(llsdTFive.AsBoolean());
 
             String f = "false";
             OSD llsdF = OSDParser.DeserializeLLSDNotation(f);
             Assert.Equal(OSDType.Boolean, llsdF.Type);
-            Assert.Equal(false, llsdF.AsBoolean());
+            Assert.False(llsdF.AsBoolean());
 
             String fTwo = "f";
             OSD llsdFTwo = OSDParser.DeserializeLLSDNotation(fTwo);
             Assert.Equal(OSDType.Boolean, llsdFTwo.Type);
-            Assert.Equal(false, llsdFTwo.AsBoolean());
+            Assert.False(llsdFTwo.AsBoolean());
 
             String fThree = "FALSE";
             OSD llsdFThree = OSDParser.DeserializeLLSDNotation(fThree);
             Assert.Equal(OSDType.Boolean, llsdFThree.Type);
-            Assert.Equal(false, llsdFThree.AsBoolean());
+            Assert.False(llsdFThree.AsBoolean());
 
             String fFour = "F";
             OSD llsdFFour = OSDParser.DeserializeLLSDNotation(fFour);
             Assert.Equal(OSDType.Boolean, llsdFFour.Type);
-            Assert.Equal(false, llsdFFour.AsBoolean());
+            Assert.False(llsdFFour.AsBoolean());
 
             String fFive = "0";
             OSD llsdFFive = OSDParser.DeserializeLLSDNotation(fFive);
             Assert.Equal(OSDType.Boolean, llsdFFive.Type);
-            Assert.Equal(false, llsdFFive.AsBoolean());
+            Assert.False(llsdFFive.AsBoolean());
         }
 
         [Fact]
@@ -155,13 +155,13 @@ namespace OpenMetaverse.Tests
             string sTrue = OSDParser.SerializeLLSDNotation(llsdTrue);
             OSD llsdTrueDS = OSDParser.DeserializeLLSDNotation(sTrue);
             Assert.Equal(OSDType.Boolean, llsdTrueDS.Type);
-            Assert.Equal(true, llsdTrueDS.AsBoolean());
+            Assert.True(llsdTrueDS.AsBoolean());
 
             OSD llsdFalse = OSD.FromBoolean(false);
             string sFalse = OSDParser.SerializeLLSDNotation(llsdFalse);
             OSD llsdFalseDS = OSDParser.DeserializeLLSDNotation(sFalse);
             Assert.Equal(OSDType.Boolean, llsdFalseDS.Type);
-            Assert.Equal(false, llsdFalseDS.AsBoolean());
+            Assert.False(llsdFalseDS.AsBoolean());
         }
 
         [Fact]
@@ -365,7 +365,7 @@ namespace OpenMetaverse.Tests
 
             DoSomeStringSerializingActionsAndAsserts("\"\"");
 
-            DoSomeStringSerializingActionsAndAsserts("ÄÖÜäöü-these-should-be-some-german-umlauts");
+            DoSomeStringSerializingActionsAndAsserts("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½-these-should-be-some-german-umlauts");
 
             DoSomeStringSerializingActionsAndAsserts("\t\n\r");
 
@@ -507,8 +507,8 @@ namespace OpenMetaverse.Tests
             Assert.Equal(7, llsdArrayFour.Count);
             Assert.Equal("testtest", llsdArrayFour[0].AsString());
             Assert.Equal("aha", llsdArrayFour[1].AsString());
-            Assert.Equal(true, llsdArrayFour[2].AsBoolean());
-            Assert.Equal(false, llsdArrayFour[3].AsBoolean());
+            Assert.True(llsdArrayFour[2].AsBoolean());
+            Assert.False(llsdArrayFour[3].AsBoolean());
             Assert.Equal(1, llsdArrayFour[4].AsInteger());
             Assert.Equal(1.2d, llsdArrayFour[5].AsReal());
             Assert.Equal(OSDType.Array, llsdArrayFour[6].Type);

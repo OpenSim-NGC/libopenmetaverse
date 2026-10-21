@@ -60,22 +60,22 @@ namespace OpenMetaverse.Tests
 
             stream.Position = 0L;
             bool result = OSDParser.FindString(stream, "this");
-            Assert.Equal(true, result);
+            Assert.True(result);
             Assert.Equal(4L, stream.Position);
 
             stream.Position = 10L;
             result = OSDParser.FindString(stream, "teststring");
-            Assert.Equal(true, result);
+            Assert.True(result);
             Assert.Equal(20L, stream.Position);
 
             stream.Position = 25L;
             result = OSDParser.FindString(stream, "notfound");
-            Assert.Equal(false, result);
+            Assert.False(result);
             Assert.Equal(25L, stream.Position);
 
             stream.Position = 60L;
             result = OSDParser.FindString(stream, "beginningAndMore");
-            Assert.Equal(false, result);
+            Assert.False(result);
             Assert.Equal(60L, stream.Position);
 
             byte[] sFrontWhiteSpace = Encoding.ASCII.GetBytes("   \t\t\n\rtest");
@@ -127,11 +127,11 @@ namespace OpenMetaverse.Tests
         {
             OSD llsdTrue = OSDParser.DeserializeLLSDBinary(binaryTrue);
             Assert.Equal(OSDType.Boolean, llsdTrue.Type);
-            Assert.Equal(true, llsdTrue.AsBoolean());
+            Assert.True(llsdTrue.AsBoolean());
 
             OSD llsdFalse = OSDParser.DeserializeLLSDBinary(binaryFalse);
             Assert.Equal(OSDType.Boolean, llsdFalse.Type);
-            Assert.Equal(false, llsdFalse.AsBoolean());
+            Assert.False(llsdFalse.AsBoolean());
         }
 
         [Fact]
@@ -677,7 +677,7 @@ namespace OpenMetaverse.Tests
         {
             // each 80 chars
             string sOne = "asdklfjasadlfkjaerotiudfgjkhsdklgjhsdklfghasdfklhjasdfkjhasdfkljahsdfjklaasdfkj8";
-            string sTwo = "asdfkjlaaweoiugsdfjkhsdfg,.mnasdgfkljhrtuiohfglökajsdfoiwghjkdlaaaaseldkfjgheus9";
+            string sTwo = "asdfkjlaaweoiugsdfjkhsdfg,.mnasdgfkljhrtuiohfglï¿½kajsdfoiwghjkdlaaaaseldkfjgheus9";
 
             OSD stringOne = OSD.FromString(sOne);
             OSD stringTwo = OSD.FromString(sTwo);
