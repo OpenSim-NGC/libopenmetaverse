@@ -17,8 +17,8 @@
     <PackageReference Include="SkiaSharp" Version="4.153.1" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="XMLRPC">
-      <HintPath>..\AppData\XMLRPC.dll</HintPath>
+    <Reference Include="xmlrpc">
+      <HintPath>..\AppData\xmlrpc.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
