@@ -14,6 +14,12 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="xmlrpc">
+      <HintPath>..\AppData\xmlrpc.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\OpenMetaverse.Types\OpenMetaverse.Types.csproj" />
     <ProjectReference Include="..\OpenMetaverse\OpenMetaverse.csproj" />
     <ProjectReference Include="..\OpenMetaverse.StructuredData\OpenMetaverse.StructuredData.csproj" />
