@@ -3,7 +3,7 @@
     <Product>OpenMetaverse</Product>
     <Authors>Utopa Skye LLC, OpenMetaverse Developers</Authors>
     <Company>Utopia Skye LLC</Company>
-    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
   </PropertyGroup>
