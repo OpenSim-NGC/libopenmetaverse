@@ -2431,7 +2431,14 @@ namespace OpenMetaverse.StructuredData
             if (stream.CanSeek)
             {
                 byte[] headerData = new byte[15];
-                stream.Read(headerData, 0, 15);
+                int bytesRead = 0;
+                while (bytesRead < headerData.Length)
+                {
+                    int read = stream.Read(headerData, bytesRead, headerData.Length - bytesRead);
+                    if (read == 0)
+                        break;
+                    bytesRead += read;
+                }
                 stream.Seek(0, SeekOrigin.Begin);
                 string header = Encoding.ASCII.GetString(headerData);
 

@@ -154,7 +154,7 @@ namespace OpenMetaverse.ImportExport
 
                     Logger.Log("Image has irregular dimensions " + origWidth + "x" + origHieght + ". Resizing to " + width + "x" + height, Helpers.LogLevel.Info);
 
-                    SKBitmap resized = bitmap.Resize(new SKImageInfo(width, height), SKFilterQuality.High)
+                    SKBitmap resized = bitmap.Resize(new SKImageInfo(width, height), SKSamplingOptions.Default)
                         ?? throw new Exception("Failed to resize texture image");
 
                     bitmap.Dispose();

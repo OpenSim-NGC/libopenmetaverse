@@ -1359,7 +1359,7 @@ namespace OpenMetaverse
             if(len > 0)
             {
                 byte[] data = new byte[len];
-                ms.Read(data,0, len);
+                ms.ReadExactly(data, 0, len);
                 return new osUTF8(data);
             }
             return new osUTF8();

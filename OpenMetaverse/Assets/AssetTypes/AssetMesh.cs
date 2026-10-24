@@ -25,11 +25,7 @@
  */
 
 using OpenMetaverse.StructuredData;
-using System;
-using System.Buffers;
-using System.IO;
 using System.IO.Compression;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Assets
 {

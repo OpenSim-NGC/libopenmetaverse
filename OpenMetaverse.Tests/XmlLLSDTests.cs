@@ -401,23 +401,23 @@ namespace OpenMetaverse.Tests
 
             Assert.Equal(OSDType.Boolean, array[0].Type);
             tempBool = (OSDBoolean)array[0];
-            Assert.Equal(true, tempBool.AsBoolean());
+            Assert.True(tempBool.AsBoolean());
 
             Assert.Equal(OSDType.Boolean, array[1].Type);
             tempBool = (OSDBoolean)array[1];
-            Assert.Equal(true, tempBool.AsBoolean());
+            Assert.True(tempBool.AsBoolean());
 
             Assert.Equal(OSDType.Boolean, array[2].Type);
             tempBool = (OSDBoolean)array[2];
-            Assert.Equal(false, tempBool.AsBoolean());
+            Assert.False(tempBool.AsBoolean());
 
             Assert.Equal(OSDType.Boolean, array[3].Type);
             tempBool = (OSDBoolean)array[3];
-            Assert.Equal(false, tempBool.AsBoolean());
+            Assert.False(tempBool.AsBoolean());
 
             Assert.Equal(OSDType.Boolean, array[4].Type);
             tempBool = (OSDBoolean)array[4];
-            Assert.Equal(false, tempBool.AsBoolean());
+            Assert.False(tempBool.AsBoolean());
         }
 
         /// <summary>
