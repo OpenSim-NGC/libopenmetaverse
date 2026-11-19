@@ -686,6 +686,7 @@ namespace OpenMetaverse.Packets
         SoundTrigger = 196637,
         ObjectAnimation = 196638,
         GenericStreamingMessage = 196639,
+        GameControlData = 196641,
     }
 
     public abstract partial class Packet
@@ -1125,6 +1126,7 @@ namespace OpenMetaverse.Packets
                         case 29: return PacketType.SoundTrigger;
                         case 30: return PacketType.ObjectAnimation;
                         case 31: return PacketType.GenericStreamingMessage;
+                        case 33: return PacketType.GameControlData;
                     }
                     break;
             }
@@ -1164,6 +1166,7 @@ namespace OpenMetaverse.Packets
               case PacketType.SoundTrigger: return new SoundTriggerPacket();
               case PacketType.ObjectAnimation: return new ObjectAnimationPacket();
               case PacketType.GenericStreamingMessage: return new GenericStreamingMessagePacket();
+              case PacketType.GameControlData: return new GameControlDataPacket();
               case PacketType.ObjectAdd: return new ObjectAddPacket();
               case PacketType.MultipleObjectUpdate: return new MultipleObjectUpdatePacket();
               case PacketType.RequestMultipleObjects: return new RequestMultipleObjectsPacket();
@@ -1947,6 +1950,7 @@ namespace OpenMetaverse.Packets
                         case 29: return new SoundTriggerPacket(header, bytes, ref i);
                         case 30: return new ObjectAnimationPacket(header, bytes, ref i);
                         case 31: return new GenericStreamingMessagePacket(header, bytes, ref i);
+                        case 33: return new GameControlDataPacket(header, bytes, ref i);
 
                     }
                     break;
@@ -83294,6 +83298,501 @@ namespace OpenMetaverse.Packets
         public override byte[][] ToBytesMultiple()
         {
             return new byte[][] { ToBytes() };
+        }
+    }
+
+    public sealed class GameControlDataPacket : Packet
+    {
+        /// <exclude/>
+        public sealed class AgentDataBlock : PacketBlock
+        {
+            public UUID AgentID;
+            public UUID SessionID;
+            public byte Packet;
+            public byte ActionMode;
+
+            public override int Length
+            {
+                get
+                {
+                    return 34;
+                }
+            }
+
+            public AgentDataBlock() { }
+            public AgentDataBlock(byte[] bytes, ref int i)
+            {
+                FromBytes(bytes, ref i);
+            }
+
+            public override void FromBytes(byte[] bytes, ref int i)
+            {
+                try
+                {
+                    AgentID.FromBytes(bytes, i); i += 16;
+                    SessionID.FromBytes(bytes, i); i += 16;
+                    Packet = Utils.BytesToByte(bytes, ref i);
+                    ActionMode = Utils.BytesToByte(bytes, ref i);
+                }
+                catch (Exception)
+                {
+                    throw new MalformedDataException();
+                }
+            }
+
+            public override void ToBytes(byte[] bytes, ref int i)
+            {
+                AgentID.ToBytes(bytes, i); i += 16;
+                SessionID.ToBytes(bytes, i); i += 16;
+                Utils.ByteToBytes( Packet, bytes, ref i);
+                Utils.ByteToBytes( ActionMode, bytes, ref i);
+            }
+
+        }
+
+        /// <exclude/>
+        public sealed class AxesBlock : PacketBlock
+        {
+            public short Value;
+
+            public override int Length
+            {
+                get
+                {
+                    return 2;
+                }
+            }
+
+            public AxesBlock() { }
+            public AxesBlock(byte[] bytes, ref int i)
+            {
+                FromBytes(bytes, ref i);
+            }
+
+            public override void FromBytes(byte[] bytes, ref int i)
+            {
+                try
+                {
+                    Value = Utils.BytesToInt16(bytes, i); i+=2;
+                }
+                catch (Exception)
+                {
+                    throw new MalformedDataException();
+                }
+            }
+
+            public override void ToBytes(byte[] bytes, ref int i)
+            {
+                Utils.Int16ToBytes(Value, bytes, i); i += 2;
+            }
+
+        }
+
+        /// <exclude/>
+        public sealed class ButtonsBlock : PacketBlock
+        {
+            public uint Flags;
+
+            public override int Length
+            {
+                get
+                {
+                    return 4;
+                }
+            }
+
+            public ButtonsBlock() { }
+            public ButtonsBlock(byte[] bytes, ref int i)
+            {
+                FromBytes(bytes, ref i);
+            }
+
+            public override void FromBytes(byte[] bytes, ref int i)
+            {
+                try
+                {
+                    Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
+                }
+                catch (Exception)
+                {
+                    throw new MalformedDataException();
+                }
+            }
+
+            public override void ToBytes(byte[] bytes, ref int i)
+            {
+                Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
+            }
+
+        }
+
+        /// <exclude/>
+        public sealed class ModeAxesBlock : PacketBlock
+        {
+            public short Value;
+
+            public override int Length
+            {
+                get
+                {
+                    return 2;
+                }
+            }
+
+            public ModeAxesBlock() { }
+            public ModeAxesBlock(byte[] bytes, ref int i)
+            {
+                FromBytes(bytes, ref i);
+            }
+
+            public override void FromBytes(byte[] bytes, ref int i)
+            {
+                try
+                {
+                    Value = Utils.BytesToInt16(bytes, i); i+=2;
+                }
+                catch (Exception)
+                {
+                    throw new MalformedDataException();
+                }
+            }
+
+            public override void ToBytes(byte[] bytes, ref int i)
+            {
+                Utils.Int16ToBytes(Value, bytes, i); i += 2;
+            }
+
+        }
+
+        /// <exclude/>
+        public sealed class ModeButtonsBlock : PacketBlock
+        {
+            public uint Flags;
+
+            public override int Length
+            {
+                get
+                {
+                    return 4;
+                }
+            }
+
+            public ModeButtonsBlock() { }
+            public ModeButtonsBlock(byte[] bytes, ref int i)
+            {
+                FromBytes(bytes, ref i);
+            }
+
+            public override void FromBytes(byte[] bytes, ref int i)
+            {
+                try
+                {
+                    Flags = Utils.BytesToUIntSafepos(bytes, i); i += 4;
+                }
+                catch (Exception)
+                {
+                    throw new MalformedDataException();
+                }
+            }
+
+            public override void ToBytes(byte[] bytes, ref int i)
+            {
+                Utils.UIntToBytesSafepos(Flags, bytes, i); i += 4;
+            }
+
+        }
+
+        public override int Length
+        {
+            get
+            {
+                int length = 11;
+                length += AgentData.Length;
+                for (int j = 0; j < Axes.Length; j++)
+                    length += Axes[j].Length;
+                for (int j = 0; j < Buttons.Length; j++)
+                    length += Buttons[j].Length;
+                for (int j = 0; j < ModeAxes.Length; j++)
+                    length += ModeAxes[j].Length;
+                for (int j = 0; j < ModeButtons.Length; j++)
+                    length += ModeButtons[j].Length;
+                return length;
+            }
+        }
+        public AgentDataBlock AgentData;
+        public AxesBlock[] Axes;
+        public ButtonsBlock[] Buttons;
+        public ModeAxesBlock[] ModeAxes;
+        public ModeButtonsBlock[] ModeButtons;
+
+        public override bool ValidIDs(UUID session, UUID agent) { return session.Equals(AgentData.SessionID) && agent.Equals(AgentData.AgentID); }
+
+        public GameControlDataPacket()
+        {
+            HasVariableBlocks = true;
+            Type = PacketType.GameControlData;
+            Header = new Header();
+            Header.Frequency = PacketFrequency.High;
+            Header.ID = 33;
+            Header.Reliable = true;
+            NeedValidateIDs = true;
+            Header.Zerocoded = true;
+            AgentData = new AgentDataBlock();
+            Axes = null;
+            Buttons = null;
+            ModeAxes = null;
+            ModeButtons = null;
+        }
+
+        public GameControlDataPacket(byte[] bytes, ref int i) : this()
+        {
+            int packetEnd = bytes.Length - 1;
+            FromBytes(bytes, ref i, ref packetEnd, null);
+        }
+
+        override public void FromBytes(byte[] bytes, ref int i, ref int packetEnd, byte[] zeroBuffer)
+        {
+            Header.FromBytes(bytes, ref i, ref packetEnd);
+            if (Header.Zerocoded && zeroBuffer != null)
+            {
+                packetEnd = Helpers.ZeroDecode(bytes, packetEnd + 1, zeroBuffer) - 1;
+                bytes = zeroBuffer;
+            }
+            AgentData.FromBytes(bytes, ref i);
+            int count = (int)bytes[i++];
+            if (Axes == null || Axes.Length != -1)
+            {
+                Axes = new AxesBlock[count];
+                for (int j = 0; j < count; j++)
+                { Axes[j] = new AxesBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { Axes[j].FromBytes(bytes, ref i); }
+            count = (int)bytes[i++];
+            if (Buttons == null || Buttons.Length != -1)
+            {
+                Buttons = new ButtonsBlock[count];
+                for (int j = 0; j < count; j++)
+                { Buttons[j] = new ButtonsBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { Buttons[j].FromBytes(bytes, ref i); }
+            count = (int)bytes[i++];
+            if (ModeAxes == null || ModeAxes.Length != -1)
+            {
+                ModeAxes = new ModeAxesBlock[count];
+                for (int j = 0; j < count; j++)
+                { ModeAxes[j] = new ModeAxesBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { ModeAxes[j].FromBytes(bytes, ref i); }
+            count = (int)bytes[i++];
+            if (ModeButtons == null || ModeButtons.Length != -1)
+            {
+                ModeButtons = new ModeButtonsBlock[count];
+                for (int j = 0; j < count; j++)
+                { ModeButtons[j] = new ModeButtonsBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { ModeButtons[j].FromBytes(bytes, ref i); }
+        }
+
+        public GameControlDataPacket(Header head, byte[] bytes, ref int i) : this()
+        {
+            FromBytes(head, bytes, ref i);
+        }
+
+        override public void FromBytes(Header header, byte[] bytes, ref int i)
+        {
+            Header = header;
+            AgentData.FromBytes(bytes, ref i);
+            int count = (int)bytes[i++];
+            if (Axes == null || Axes.Length != count)
+            {
+                Axes = new AxesBlock[count];
+                for (int j = 0; j < count; j++)
+                { Axes[j] = new AxesBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { Axes[j].FromBytes(bytes, ref i); }
+            count = (int)bytes[i++];
+            if (Buttons == null || Buttons.Length != count)
+            {
+                Buttons = new ButtonsBlock[count];
+                for (int j = 0; j < count; j++)
+                { Buttons[j] = new ButtonsBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { Buttons[j].FromBytes(bytes, ref i); }
+            count = (int)bytes[i++];
+            if (ModeAxes == null || ModeAxes.Length != count)
+            {
+                ModeAxes = new ModeAxesBlock[count];
+                for (int j = 0; j < count; j++)
+                { ModeAxes[j] = new ModeAxesBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { ModeAxes[j].FromBytes(bytes, ref i); }
+            count = (int)bytes[i++];
+            if (ModeButtons == null || ModeButtons.Length != count)
+            {
+                ModeButtons = new ModeButtonsBlock[count];
+                for (int j = 0; j < count; j++)
+                { ModeButtons[j] = new ModeButtonsBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { ModeButtons[j].FromBytes(bytes, ref i); }
+        }
+
+        public override byte[] ToBytes()
+        {
+            int length = 7;
+            length += AgentData.Length;
+            length++;
+            for (int j = 0; j < Axes.Length; j++) { length += Axes[j].Length; }
+            length++;
+            for (int j = 0; j < Buttons.Length; j++) { length += Buttons[j].Length; }
+            length++;
+            for (int j = 0; j < ModeAxes.Length; j++) { length += ModeAxes[j].Length; }
+            length++;
+            for (int j = 0; j < ModeButtons.Length; j++) { length += ModeButtons[j].Length; }
+            if (Header.AckList != null && Header.AckList.Length > 0) { length += Header.AckList.Length * 4 + 1; }
+            byte[] bytes = new byte[length];
+            int i = 0;
+            Header.ToBytes(bytes, ref i);
+            AgentData.ToBytes(bytes, ref i);
+            Utils.ByteToBytes((byte)Axes.Length, bytes, ref i);
+            for (int j = 0; j < Axes.Length; j++) { Axes[j].ToBytes(bytes, ref i); }
+            Utils.ByteToBytes((byte)Buttons.Length, bytes, ref i);
+            for (int j = 0; j < Buttons.Length; j++) { Buttons[j].ToBytes(bytes, ref i); }
+            Utils.ByteToBytes((byte)ModeAxes.Length, bytes, ref i);
+            for (int j = 0; j < ModeAxes.Length; j++) { ModeAxes[j].ToBytes(bytes, ref i); }
+            Utils.ByteToBytes((byte)ModeButtons.Length, bytes, ref i);
+            for (int j = 0; j < ModeButtons.Length; j++) { ModeButtons[j].ToBytes(bytes, ref i); }
+            if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
+            return bytes;
+        }
+
+        public override byte[][] ToBytesMultiple()
+        {
+            System.Collections.Generic.List<byte[]> packets = new System.Collections.Generic.List<byte[]>();
+            int i = 0;
+            int fixedLength = 7;
+
+            byte[] ackBytes = null;
+            int acksLength = 0;
+            if (Header.AckList != null && Header.AckList.Length > 0)
+            {
+                Header.AppendedAcks = true;
+                ackBytes = new byte[Header.AckList.Length * 4 + 1];
+                Header.AcksToBytes(ackBytes, ref acksLength);
+            }
+
+            fixedLength += AgentData.Length;
+            byte[] fixedBytes = new byte[fixedLength];
+            Header.ToBytes(fixedBytes, ref i);
+            AgentData.ToBytes(fixedBytes, ref i);
+            fixedLength += 4;
+
+            int AxesStart = 0;
+            int ButtonsStart = 0;
+            int ModeAxesStart = 0;
+            int ModeButtonsStart = 0;
+            do
+            {
+                int variableLength = 0;
+                int AxesCount = 0;
+                int ButtonsCount = 0;
+                int ModeAxesCount = 0;
+                int ModeButtonsCount = 0;
+
+                i = AxesStart;
+                while (fixedLength + variableLength + acksLength < Packet.MTU && i < Axes.Length)
+                {
+                    int blockLength = Axes[i].Length;
+                    if (fixedLength + variableLength + blockLength + acksLength <= MTU || i == AxesStart)
+                    {
+                        variableLength += blockLength;
+                        ++AxesCount;
+                    }
+                    else { break; }
+                    ++i;
+                }
+
+                i = ButtonsStart;
+                while (fixedLength + variableLength + acksLength < Packet.MTU && i < Buttons.Length)
+                {
+                    int blockLength = Buttons[i].Length;
+                    if (fixedLength + variableLength + blockLength + acksLength <= MTU || i == ButtonsStart)
+                    {
+                        variableLength += blockLength;
+                        ++ButtonsCount;
+                    }
+                    else { break; }
+                    ++i;
+                }
+
+                i = ModeAxesStart;
+                while (fixedLength + variableLength + acksLength < Packet.MTU && i < ModeAxes.Length)
+                {
+                    int blockLength = ModeAxes[i].Length;
+                    if (fixedLength + variableLength + blockLength + acksLength <= MTU || i == ModeAxesStart)
+                    {
+                        variableLength += blockLength;
+                        ++ModeAxesCount;
+                    }
+                    else { break; }
+                    ++i;
+                }
+
+                i = ModeButtonsStart;
+                while (fixedLength + variableLength + acksLength < Packet.MTU && i < ModeButtons.Length)
+                {
+                    int blockLength = ModeButtons[i].Length;
+                    if (fixedLength + variableLength + blockLength + acksLength <= MTU || i == ModeButtonsStart)
+                    {
+                        variableLength += blockLength;
+                        ++ModeButtonsCount;
+                    }
+                    else { break; }
+                    ++i;
+                }
+
+                byte[] packet = new byte[fixedLength + variableLength + acksLength];
+                int length = fixedBytes.Length;
+                Buffer.BlockCopy(fixedBytes, 0, packet, 0, length);
+                if (packets.Count > 0) { packet[0] = (byte)(packet[0] & ~0x10); }
+
+                packet[length++] = (byte)AxesCount;
+                for (i = AxesStart; i < AxesStart + AxesCount; i++) { Axes[i].ToBytes(packet, ref length); }
+                AxesStart += AxesCount;
+
+                packet[length++] = (byte)ButtonsCount;
+                for (i = ButtonsStart; i < ButtonsStart + ButtonsCount; i++) { Buttons[i].ToBytes(packet, ref length); }
+                ButtonsStart += ButtonsCount;
+
+                packet[length++] = (byte)ModeAxesCount;
+                for (i = ModeAxesStart; i < ModeAxesStart + ModeAxesCount; i++) { ModeAxes[i].ToBytes(packet, ref length); }
+                ModeAxesStart += ModeAxesCount;
+
+                packet[length++] = (byte)ModeButtonsCount;
+                for (i = ModeButtonsStart; i < ModeButtonsStart + ModeButtonsCount; i++) { ModeButtons[i].ToBytes(packet, ref length); }
+                ModeButtonsStart += ModeButtonsCount;
+
+                if (acksLength > 0)
+                {
+                    Buffer.BlockCopy(ackBytes, 0, packet, length, acksLength);
+                    acksLength = 0;
+                }
+
+                packets.Add(packet);
+            } while (
+                AxesStart < Axes.Length ||
+                ButtonsStart < Buttons.Length ||
+                ModeAxesStart < ModeAxes.Length ||
+                ModeButtonsStart < ModeButtons.Length);
+
+            return packets.ToArray();
         }
     }
 
